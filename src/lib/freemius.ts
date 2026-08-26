@@ -54,6 +54,8 @@ export function loadFreemiusScript(): Promise<void> {
 export interface FreemiusCheckoutOptions {
   plan_id: string;
   billing_cycle: 'monthly' | 'annual';
+  trial?: boolean | string;
+  trial_days?: number;
   user_email?: string;
   user_firstname?: string;
   user_lastname?: string;
@@ -62,10 +64,23 @@ export interface FreemiusCheckoutOptions {
   [key: string]: any;
 }
 
+export function isFreemiusConfigured(): boolean {
+  const pluginId = import.meta.env.VITE_FREEMIUS_PLUGIN_ID;
+  const publicKey = import.meta.env.VITE_FREEMIUS_PUBLIC_KEY;
+  return Boolean(pluginId && publicKey && pluginId !== 'your_plugin_id' && publicKey !== 'your_public_key');
+}
+
 /**
  * Opens a Freemius checkout overlay
  */
 export async function openFreemiusCheckout(options: FreemiusCheckoutOptions): Promise<void> {
+  const pluginId = import.meta.env.VITE_FREEMIUS_PLUGIN_ID;
+  const publicKey = import.meta.env.VITE_FREEMIUS_PUBLIC_KEY;
+
+  if (!pluginId || !publicKey || pluginId === 'your_plugin_id') {
+    throw new Error('VITE_FREEMIUS_PLUGIN_ID and VITE_FREEMIUS_PUBLIC_KEY are not configured yet.');
+  }
+
   await loadFreemiusScript();
 
   if (!window.FS?.Checkout) {
@@ -73,18 +88,16 @@ export async function openFreemiusCheckout(options: FreemiusCheckoutOptions): Pr
   }
 
   if (!freemiusHandler) {
-    const pluginId = import.meta.env.VITE_FREEMIUS_PLUGIN_ID;
-    const publicKey = import.meta.env.VITE_FREEMIUS_PUBLIC_KEY;
-
-    if (!pluginId || !publicKey) {
-      throw new Error('VITE_FREEMIUS_PLUGIN_ID and VITE_FREEMIUS_PUBLIC_KEY must be set in your environment variables.');
-    }
-
     freemiusHandler = window.FS.Checkout.configure({
       plugin_id: pluginId,
       public_key: publicKey,
     });
   }
 
-  freemiusHandler.open(options);
+  freemiusHandler.open({
+    trial: 'free',
+    trial_days: options.trial_days || 3,
+    ...options,
+  });
 }
+

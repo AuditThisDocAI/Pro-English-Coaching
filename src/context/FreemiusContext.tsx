@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { loadFreemiusScript, openFreemiusCheckout, FreemiusCheckoutOptions } from '../lib/freemius';
+import { loadFreemiusScript, openFreemiusCheckout, FreemiusCheckoutOptions, isFreemiusConfigured } from '../lib/freemius';
 
 interface FreemiusContextType {
   isReady: boolean;
   isLoading: boolean;
+  isConfigured: boolean;
   error: string | null;
   openCheckout: (options: FreemiusCheckoutOptions) => Promise<void>;
 }
@@ -11,6 +12,7 @@ interface FreemiusContextType {
 const FreemiusContext = createContext<FreemiusContextType>({
   isReady: false,
   isLoading: true,
+  isConfigured: false,
   error: null,
   openCheckout: async () => {},
 });
@@ -20,6 +22,7 @@ export const FreemiusProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const isMounted = useRef<boolean>(false);
+  const isConfigured = isFreemiusConfigured();
 
   useEffect(() => {
     if (isMounted.current) return;
@@ -28,7 +31,9 @@ export const FreemiusProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     async function initFreemius() {
       try {
         setIsLoading(true);
-        await loadFreemiusScript();
+        if (isConfigured) {
+          await loadFreemiusScript();
+        }
         setIsReady(true);
         setError(null);
       } catch (err: any) {
@@ -40,14 +45,10 @@ export const FreemiusProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     initFreemius();
-  }, []);
+  }, [isConfigured]);
 
   const handleOpenCheckout = useCallback(async (options: FreemiusCheckoutOptions) => {
-    try {
-      await openFreemiusCheckout(options);
-    } catch (err: any) {
-      console.error('Failed to open Freemius checkout:', err);
-    }
+    await openFreemiusCheckout(options);
   }, []);
 
   return (
@@ -55,6 +56,7 @@ export const FreemiusProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       value={{
         isReady,
         isLoading,
+        isConfigured,
         error,
         openCheckout: handleOpenCheckout,
       }}
@@ -65,3 +67,4 @@ export const FreemiusProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 };
 
 export const useFreemius = () => useContext(FreemiusContext);
+
