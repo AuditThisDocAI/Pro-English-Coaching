@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 256)) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 256)) &&
+             (!('nativeLanguage' in data) || (data.nativeLanguage is string && data.nativeLanguage.size() <= 64)) &&
+             (!('jobType' in data) || (data.jobType is string && data.jobType.size() <= 64)) &&
+             (!('preferredJobType' in data) || (data.preferredJobType is string && data.preferredJobType.size() <= 64)) &&
+             (!('isPro' in data) || data.isPro is bool) &&
+             (!('chatCount' in data) || data.chatCount is number) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidSavedPhrase(data) {
+      return data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+             data.original is string && data.original.size() <= 2000 &&
+             data.professional is string && data.professional.size() <= 2000 &&
+             (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
+             (!('translation' in data) || (data.translation is string && data.translation.size() <= 2000)) &&
+             (!('why' in data) || (data.why is string && data.why.size() <= 2000)) &&
+             (!('practice' in data) || (data.practice is string && data.practice.size() <= 2000)) &&
+             (!('mode' in data) || (data.mode is string && data.mode.size() <= 64)) &&
+             (!('jobType' in data) || (data.jobType is string && data.jobType.size() <= 64)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // User document and subcollections
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data) &&
+                      request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // User saved phrases collection
+      match /saved_phrases/{phraseId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(phraseId) &&
+                        isValidSavedPhrase(request.resource.data) &&
+                        request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(phraseId) &&
+                        isValidSavedPhrase(request.resource.data) &&
+                        request.resource.data.userId == userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(phraseId);
+      }
+
+      match /savedPhrases/{phraseId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(phraseId) &&
+                        isValidSavedPhrase(request.resource.data) &&
+                        request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(phraseId) &&
+                        isValidSavedPhrase(request.resource.data) &&
+                        request.resource.data.userId == userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(phraseId);
+      }
+    }
+  }
+}

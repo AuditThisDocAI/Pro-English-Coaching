@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "SavedPhrase": {
+      "title": "Saved Phrase",
+      "description": "A phrase saved by a user for practice and reference",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the owner user",
+          "maxLength": 128
+        },
+        "mode": {
+          "type": "string",
+          "description": "The communication mode (e.g., email, interview, cv, general)",
+          "maxLength": 64
+        },
+        "jobType": {
+          "type": "string",
+          "description": "The industry/job role (e.g., Tech, Healthcare, Retail, etc.)",
+          "maxLength": 64
+        },
+        "original": {
+          "type": "string",
+          "description": "Original sentence inputted by the user",
+          "maxLength": 2000
+        },
+        "professional": {
+          "type": "string",
+          "description": "Polished professional English output",
+          "maxLength": 2000
+        },
+        "translation": {
+          "type": "string",
+          "description": "Translation and notes in the user's native language",
+          "maxLength": 2000
+        },
+        "why": {
+          "type": "string",
+          "description": "Explanation of why this version is better",
+          "maxLength": 2000
+        },
+        "practice": {
+          "type": "string",
+          "description": "Follow-up practice scenario prompt",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp of creation",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "original", "professional"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User profile preferences and membership status",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the user",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 128
+        },
+        "nativeLanguage": {
+          "type": "string",
+          "description": "Selected native language",
+          "maxLength": 64
+        },
+        "jobType": {
+          "type": "string",
+          "description": "Default selected job type",
+          "maxLength": 64
+        },
+        "isPro": {
+          "type": "boolean",
+          "description": "Whether the user has upgraded to Pro"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of last update",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile and preferences"
+    },
+    "/users/{userId}/saved_phrases/{phraseId}": {
+      "schema": { "$ref": "#/entities/SavedPhrase" },
+      "description": "User's saved phrases library"
+    }
+  }
+}

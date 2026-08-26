@@ -1,0 +1,6 @@
+{
+  "name": "ProEnglish Coach",
+  "description": "A global AI tutor that helps non-English speakers write and speak professional English for jobs.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
