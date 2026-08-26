@@ -33,13 +33,13 @@ export const WelcomePage: React.FC = () => {
             <CheckCircle2 className="w-10 h-10 text-emerald-600" />
           </div>
           <h1 className="text-3xl font-extrabold text-white relative z-10">Welcome to Pro!</h1>
-          <p className="text-emerald-100 text-xs font-semibold mt-1">3-Day Free Trial Activated</p>
+          <p className="text-emerald-100 text-xs font-semibold mt-1">7-Day Free Trial Activated</p>
         </div>
         
         <div className="p-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold mb-4 border border-emerald-200">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Zero Charge During 3-Day Trial</span>
+            <span>Zero Charge During 7-Day Trial</span>
           </div>
 
           <h2 className="text-xl font-bold text-neutral-900 mb-2">Your 1000 sessions/month plan is active</h2>

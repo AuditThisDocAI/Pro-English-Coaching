@@ -1,62 +1,56 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { loadFreemiusScript, openFreemiusCheckout, FreemiusCheckoutOptions, isFreemiusConfigured } from '../lib/freemius';
+import { 
+  openFreemiusCheckout, 
+  validateFreemiusConfig, 
+  FreemiusCheckoutLaunchOptions,
+  FreemiusConfigValidation 
+} from '../lib/freemius';
 
 interface FreemiusContextType {
-  isReady: boolean;
-  isLoading: boolean;
   isConfigured: boolean;
+  validation: FreemiusConfigValidation;
   error: string | null;
-  openCheckout: (options: FreemiusCheckoutOptions) => Promise<void>;
+  openCheckout: (options: FreemiusCheckoutLaunchOptions) => Promise<void>;
 }
 
+const initialValidation = validateFreemiusConfig();
+
 const FreemiusContext = createContext<FreemiusContextType>({
-  isReady: false,
-  isLoading: true,
-  isConfigured: false,
+  isConfigured: initialValidation.isValid,
+  validation: initialValidation,
   error: null,
   openCheckout: async () => {},
 });
 
 export const FreemiusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isReady, setIsReady] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [validation, setValidation] = useState<FreemiusConfigValidation>(initialValidation);
   const [error, setError] = useState<string | null>(null);
-  const isMounted = useRef<boolean>(false);
-  const isConfigured = isFreemiusConfigured();
 
   useEffect(() => {
-    if (isMounted.current) return;
-    isMounted.current = true;
-
-    async function initFreemius() {
-      try {
-        setIsLoading(true);
-        if (isConfigured) {
-          await loadFreemiusScript();
-        }
-        setIsReady(true);
-        setError(null);
-      } catch (err: any) {
-        console.warn('Freemius SDK initialization note:', err);
-        setError(err?.message || 'Could not load Freemius SDK');
-      } finally {
-        setIsLoading(false);
-      }
+    const currentValidation = validateFreemiusConfig();
+    setValidation(currentValidation);
+    if (!currentValidation.isValid) {
+      console.info(
+        `[Freemius Trial] Environment configuration note: Missing ${currentValidation.missing.join(', ')}`
+      );
     }
+  }, []);
 
-    initFreemius();
-  }, [isConfigured]);
-
-  const handleOpenCheckout = useCallback(async (options: FreemiusCheckoutOptions) => {
-    await openFreemiusCheckout(options);
+  const handleOpenCheckout = useCallback(async (options: FreemiusCheckoutLaunchOptions) => {
+    try {
+      setError(null);
+      await openFreemiusCheckout(options);
+    } catch (err: any) {
+      setError(err?.message || 'Error opening checkout');
+      throw err;
+    }
   }, []);
 
   return (
     <FreemiusContext.Provider
       value={{
-        isReady,
-        isLoading,
-        isConfigured,
+        isConfigured: validation.isValid,
+        validation,
         error,
         openCheckout: handleOpenCheckout,
       }}
@@ -67,4 +61,3 @@ export const FreemiusProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 };
 
 export const useFreemius = () => useContext(FreemiusContext);
-

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Sparkles, Shield, ArrowLeft, RefreshCw, Zap, Lock, Loader2, X, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Check, Sparkles, Shield, ArrowLeft, RefreshCw, Zap, Lock, Loader2, AlertTriangle, XCircle } from 'lucide-react';
 import { useFreemius } from '../context/FreemiusContext';
 import { auth } from '../lib/firebase';
 import { syncUserProfile } from '../lib/firestoreService';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
+import { validateFreemiusConfig } from '../lib/freemius';
 
 export interface Tier {
   name: 'Pro';
@@ -25,11 +26,11 @@ export const TIERS: Tier[] = [
       'All 8 industry-specific AI modes',
       'Unlimited saved phrase vault',
       'Google Chat & Workspace webhook export',
-      '3-day free trial included',
+      '7-day free trial included',
     ],
     highlight: true,
     price: '$19.99',
-    planId: import.meta.env.VITE_FREEMIUS_PLAN_PRO || 'plan_pro_id',
+    planId: import.meta.env.VITE_FREEMIUS_PLAN_PRO || '',
   },
 ];
 
@@ -39,75 +40,81 @@ interface PricingPageProps {
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
   const navigate = useNavigate();
-  const { isConfigured, openCheckout } = useFreemius();
-  const [isOpeningCheckout, setIsOpeningCheckout] = useState<string | null>(null);
-  const [showTrialModal, setShowTrialModal] = useState<boolean>(false);
-  const [isActivatingTrial, setIsActivatingTrial] = useState<boolean>(false);
-
-  const activateTrialDirectly = async () => {
-    try {
-      setIsActivatingTrial(true);
-      const currentUser = auth.currentUser;
-      
-      // Save locally
-      const key = currentUser ? `proenglish_user_${currentUser.uid}_is_pro` : 'proenglish_guest_is_pro';
-      localStorage.setItem(key, 'true');
-      localStorage.setItem('proenglish_guest_is_pro', 'true');
-      
-      // Sync with Firestore if user is authenticated
-      if (currentUser) {
-        await syncUserProfile(currentUser.uid, { isPro: true });
-      }
-      
-      triggerProUpgradeConfetti();
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-      
-      navigate('/welcome?tier=pro&trial=3day');
-    } catch (err) {
-      console.error('Error activating trial:', err);
-      navigate('/welcome?tier=pro&trial=3day');
-    } finally {
-      setIsActivatingTrial(false);
-      setShowTrialModal(false);
-    }
-  };
+  const { openCheckout } = useFreemius();
+  const [isOpeningCheckout, setIsOpeningCheckout] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: Tier) => {
-    const currentUser = auth.currentUser;
+    // 1. Log button clicked
+    console.log('[Freemius Trial] Button clicked');
 
-    if (!isConfigured) {
-      // If Freemius keys are not yet configured in environment variables, open the interactive 3-day trial activation modal
-      setShowTrialModal(true);
+    // 2. Clear any prior error
+    setErrorMessage(null);
+
+    // 3. Log checking configuration
+    console.log('[Freemius Trial] Checking configuration');
+    const validation = validateFreemiusConfig();
+
+    if (!validation.isValid) {
+      const errorText = `Missing required Freemius configuration: ${validation.missing.join(', ')}`;
+      console.error('[Freemius Trial] Checkout error', errorText);
+      setErrorMessage(errorText);
       return;
     }
 
+    const currentUser = auth.currentUser;
+
     try {
-      setIsOpeningCheckout(tier.name);
+      setIsOpeningCheckout(true);
+
+      // 4. Log opening checkout
+      console.log('[Freemius Trial] Opening checkout');
 
       await openCheckout({
-        plan_id: tier.planId,
+        plan_id: validation.config.planProId,
         billing_cycle: 'monthly',
-        trial: 'free',
-        trial_days: 3,
+        trial: true,
         user_email: currentUser?.email || undefined,
         user_firstname: currentUser?.displayName?.split(' ')[0] || undefined,
         user_lastname: currentUser?.displayName?.split(' ').slice(1).join(' ') || undefined,
-        success: () => {
-          activateTrialDirectly();
+        afterOpen: () => {
+          console.log('[Freemius Trial] Checkout opened successfully');
+        },
+        success: async () => {
+          try {
+            const user = auth.currentUser;
+            const key = user ? `proenglish_user_${user.uid}_is_pro` : 'proenglish_guest_is_pro';
+            localStorage.setItem(key, 'true');
+            localStorage.setItem('proenglish_guest_is_pro', 'true');
+
+            if (user) {
+              await syncUserProfile(user.uid, { isPro: true });
+            }
+
+            triggerProUpgradeConfetti();
+
+            if (onSuccess) {
+              onSuccess();
+            }
+
+            navigate('/welcome?tier=pro&trial=7day');
+          } catch (syncErr) {
+            console.error('Failed to sync profile after successful checkout:', syncErr);
+            navigate('/welcome?tier=pro&trial=7day');
+          }
         },
         cancel: () => {
-          console.log('Freemius checkout cancelled');
+          console.log('Freemius checkout closed by user');
         },
       });
+
+      console.log('[Freemius Trial] Checkout opened successfully');
     } catch (err: any) {
-      console.warn('Freemius Overlay notice, launching trial activation modal:', err?.message || err);
-      // Fallback seamlessly to trial modal so user is never blocked
-      setShowTrialModal(true);
+      const formattedError = err?.message || 'Failed to open Freemius checkout. Please check configuration.';
+      console.error('[Freemius Trial] Checkout error', err);
+      setErrorMessage(formattedError);
     } finally {
-      setIsOpeningCheckout(null);
+      setIsOpeningCheckout(false);
     }
   };
 
@@ -139,7 +146,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold mb-4 border border-emerald-200/60">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Risk-Free 3-Day Trial on Pro Plan</span>
+            <span>Risk-Free 7-Day Trial on Pro Plan</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
             Predictable, transparent coaching plans
@@ -149,15 +156,30 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
           </p>
         </div>
 
-        {/* Single Tier Representation */}
-        <div className="mt-12 max-w-lg mx-auto">
-          {TIERS.map((tier) => {
-            const isCurrentSubmitting = isOpeningCheckout === tier.name;
+        {/* Configuration Error Alert */}
+        {errorMessage && (
+          <div className="mt-6 max-w-lg mx-auto p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900 flex items-start gap-3 shadow-xs animate-in fade-in duration-200">
+            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div className="flex-1 text-xs">
+              <p className="font-bold text-red-800">Checkout Error</p>
+              <p className="mt-1 text-red-700 font-mono break-all leading-relaxed">{errorMessage}</p>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-red-400 hover:text-red-700 p-1 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              <XCircle className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
+        {/* Single Tier Representation */}
+        <div className="mt-10 max-w-lg mx-auto">
+          {TIERS.map((tier) => {
             return (
               <div
                 key={tier.name}
-                className={`relative rounded-3xl bg-white flex flex-col justify-between transition-all duration-200 border-2 border-emerald-500 shadow-xl ring-4 ring-emerald-500/10`}
+                className="relative rounded-3xl bg-white flex flex-col justify-between transition-all duration-200 border-2 border-emerald-500 shadow-xl ring-4 ring-emerald-500/10"
               >
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                   <span className="inline-flex items-center gap-1 px-3.5 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold uppercase tracking-wider shadow-sm">
@@ -184,25 +206,26 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
                   </div>
 
                   <div className="mt-1 text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> 3 days free, then {tier.price}/month
+                    <Check className="w-3.5 h-3.5" /> 7 days free, then {tier.price}/month
                   </div>
 
                   {/* Checkout Action Button */}
                   <button
+                    id="freemius-7day-trial-btn"
                     type="button"
-                    disabled={isCurrentSubmitting}
+                    disabled={isOpeningCheckout}
                     onClick={() => handleSubscribe(tier)}
-                    className={`mt-6 w-full py-3.5 px-4 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg active:scale-[0.99]`}
+                    className="mt-6 w-full py-3.5 px-4 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg active:scale-[0.99]"
                   >
-                    {isCurrentSubmitting ? (
+                    {isOpeningCheckout ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Opening Checkout...</span>
+                        <span>Opening secure checkout...</span>
                       </>
                     ) : (
                       <>
                         <Zap className="w-3.5 h-3.5 fill-white" />
-                        <span>Start 3-Day Free Trial</span>
+                        <span>Start Your 7-Day Free Trial</span>
                         <span>→</span>
                       </>
                     )}
@@ -237,9 +260,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
             <div className="w-10 h-10 mx-auto rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
               <Shield className="w-5 h-5" />
             </div>
-            <h4 className="text-sm font-bold text-neutral-900">3-Day Free Trial</h4>
+            <h4 className="text-sm font-bold text-neutral-900">7-Day Free Trial</h4>
             <p className="mt-1 text-xs text-neutral-500">
-              Practice full features with zero risk. You won't be charged if you cancel within 3 days.
+              Practice full features with zero risk. You won't be charged if you cancel within 7 days.
             </p>
           </div>
 
@@ -288,76 +311,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
           </div>
         </div>
       </div>
-
-      {/* 3-Day Free Trial Activation Modal */}
-      {showTrialModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-neutral-200">
-            <button
-              onClick={() => setShowTrialModal(false)}
-              className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-700 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
-              <Sparkles className="w-6 h-6" />
-            </div>
-
-            <h3 className="text-xl font-extrabold text-neutral-900">
-              Start Your 3-Day Free Trial
-            </h3>
-            <p className="mt-2 text-xs text-neutral-600 leading-relaxed">
-              Experience all premium coaching capabilities with zero risk. You will have full access to <strong>1000 AI sessions/month</strong>, live speech dictation, native audio speed controls, and all industry modules.
-            </p>
-
-            <div className="my-5 p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 space-y-2.5 text-xs">
-              <div className="flex items-center justify-between font-bold text-emerald-950">
-                <span>Trial Period:</span>
-                <span className="text-emerald-700">3 Days Completely Free</span>
-              </div>
-              <div className="flex items-center justify-between font-bold text-emerald-950">
-                <span>Price after 3 Days:</span>
-                <span>$19.99 / month</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 pt-1 border-t border-emerald-200/60">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Cancel anytime with 1-click in account settings or portal.</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled={isActivatingTrial}
-              onClick={activateTrialDirectly}
-              className="w-full py-3.5 px-4 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg"
-            >
-              {isActivatingTrial ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Activating 3-Day Trial...</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 fill-white" />
-                  <span>Activate 3-Day Free Trial Now</span>
-                </>
-              )}
-            </button>
-
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => setShowTrialModal(false)}
-                className="text-xs font-semibold text-neutral-500 hover:text-neutral-800 transition-colors"
-              >
-                Cancel and return
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
-
