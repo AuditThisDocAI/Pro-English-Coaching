@@ -31,9 +31,9 @@ export interface FreemiusConfigValidation {
  * Does not expose any secret keys.
  */
 export function validateFreemiusConfig(): FreemiusConfigValidation {
-  const pluginId = (import.meta.env.VITE_FREEMIUS_PLUGIN_ID || '').trim();
-  const planProId = (import.meta.env.VITE_FREEMIUS_PLAN_PRO || '').trim();
-  const publicKey = (import.meta.env.VITE_FREEMIUS_PUBLIC_KEY || '').trim();
+  const pluginId = (import.meta.env.VITE_FREEMIUS_PLUGIN_ID || '33243').trim();
+  const planProId = (import.meta.env.VITE_FREEMIUS_PLAN_PRO || '62979').trim();
+  const publicKey = (import.meta.env.VITE_FREEMIUS_PUBLIC_KEY || 'pk_8999e34244161ab7d48b3f436630b').trim();
 
   const missing: string[] = [];
   if (!pluginId) missing.push('VITE_FREEMIUS_PLUGIN_ID');

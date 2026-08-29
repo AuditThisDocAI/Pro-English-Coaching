@@ -30,7 +30,7 @@ export const TIERS: Tier[] = [
     ],
     highlight: true,
     price: '$19.99',
-    planId: import.meta.env.VITE_FREEMIUS_PLAN_PRO || '',
+    planId: import.meta.env.VITE_FREEMIUS_PLAN_PRO || '62979',
   },
 ];
 
