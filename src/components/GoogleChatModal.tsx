@@ -3,7 +3,7 @@ import { ChatSpace, ChatMessage, fetchSpaces, fetchMessages, sendChatMessage } f
 import { getAccessToken, signInWithGoogleChat } from '../lib/firebase';
 import { 
   MessageSquare, 
-  Send, 
+Send, 
   RefreshCw, 
   X, 
   AlertCircle, 
@@ -15,8 +15,8 @@ import {
   ShieldCheck, 
   ArrowRight 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-
+type ChatMsg = { role: "user" | "assistant" | "system", content: string};
+import {motion, AnimatePresence } from 'motion/react';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -33,6 +33,13 @@ export function GoogleChatModal({ isOpen, onClose, initialTextToSend = '', onSel
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  type ChatMsg = { role: "user" | "assistant" | "system", content: stringify};
+  const [aiMessages, setAiMessages] = useState<ChatMsg[]>([
+   {role: "system", content: "You are ProEnglishCoach. You help people learn English, Use the conversation history. Dont repeat greetings."}
+    ]);
+  ]);
+  const [input, setInput] = useState(initialTextToSend || "");
+                  
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [showConfirmSend, setShowConfirmSend] = useState(false);
@@ -131,22 +138,25 @@ export function GoogleChatModal({ isOpen, onClose, initialTextToSend = '', onSel
   };
 
   const handleConfirmSend = async () => {
-    if (!textToSend.trim() || !selectedSpace) return;
+    if (!input.trim()) return;
+
+    const userMessage: ChatMsg = { role: "user", content: input };
+    const updatedAiMessages = [...aiMessages, userMessage];
+    setAiMessages(updatedAiMessages);
+    setInput("");
     setIsSending(true);
     setError(null);
-    setSuccessMessage(null);
+    
     try {
-      const token = await getAccessToken();
-      if (!token) {
-        setNeedsAuth(true);
-        setShowConfirmSend(false);
-        return;
-      }
-      await sendChatMessage(selectedSpace.name, textToSend.trim(), token);
-      setSuccessMessage(`Message successfully sent to ${selectedSpace.displayName || 'Google Chat space'}!`);
-      setShowConfirmSend(false);
-      setTextToSend('');
-      loadMessages(selectedSpace.name);
+    const reply = await sendChatMessage(updatedAiMessages);
+    setAiMessages([...updatedAiMessages, {role: "assistant", content: reply }]);
+  } catch (error) {
+    console.error(error);
+      setError("Failed to get AI response");
+    } finally {
+      setIsSending(false);
+    }
+  };
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
       console.error('Send message error:', err);
