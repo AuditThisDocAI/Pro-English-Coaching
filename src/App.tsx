@@ -13,6 +13,7 @@ import { CoachResultCard } from './components/CoachResultCard';
 import { SavedPhrasesModal } from './components/SavedPhrasesModal';
 import { GoogleChatModal } from './components/GoogleChatModal';
 import { AuthModal } from './components/AuthModal';
+import { FlashcardsModal } from './components/FlashcardsModal';
 import { GrammarAnalyticsDashboard } from './components/GrammarAnalyticsDashboard';
 import { SupportSection } from './components/SupportSection';
 import { 
@@ -44,7 +45,8 @@ import {
   ChevronRight,
   Languages,
   User as UserIcon,
-  LogOut
+  LogOut,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTTS } from './lib/useTTS';
@@ -212,6 +214,8 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
+  const [isFlashcardsModalOpen, setIsFlashcardsModalOpen] = useState(false);
+  const [flashcardDeckId, setFlashcardDeckId] = useState<string>('all');
   const [selectedAnalyticsCategory, setSelectedAnalyticsCategory] = useState<string | null>(null);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [chatInitialText, setChatInitialText] = useState('');
@@ -384,6 +388,19 @@ export default function App() {
   const handleOpenSendToChat = (text: string) => {
     setChatInitialText(text);
     setIsChatModalOpen(true);
+  };
+
+  const handleOpenFlashcards = (deckIdOrData?: string | CoachResponse) => {
+    if (typeof deckIdOrData === 'string') {
+      setFlashcardDeckId(deckIdOrData);
+    } else if (deckIdOrData && typeof deckIdOrData === 'object') {
+      // If opened from a coach result card, ensure it's saved so it appears in the vault deck
+      handleSavePhrase(deckIdOrData);
+      setFlashcardDeckId('saved-vault');
+    } else {
+      setFlashcardDeckId('all');
+    }
+    setIsFlashcardsModalOpen(true);
   };
 
   const handleSelectChatForCoaching = (text: string) => {
@@ -613,6 +630,19 @@ export default function App() {
               ))}
             </select>
           </div>
+
+          {/* Flashcards Deck Button */}
+          <button
+            onClick={() => handleOpenFlashcards('all')}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 transition-all cursor-pointer shadow-2xs"
+            title="Practice 3D workplace English flashcards & spaced repetition"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+            <span className="hidden sm:inline">Flashcards</span>
+            <span className="bg-emerald-200/80 text-emerald-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              Decks
+            </span>
+          </button>
 
           {/* Saved Phrases Button */}
           <button
@@ -844,6 +874,7 @@ export default function App() {
                           onSave={handleSavePhrase}
                           isSaved={savedPhrases.some(p => p.professional === msg.coachData?.professional)}
                           onSendToChat={handleOpenSendToChat}
+                          onOpenFlashcards={handleOpenFlashcards}
                         />
                       </div>
                     ) : (
@@ -1040,12 +1071,22 @@ export default function App() {
       />
 
       {/* Modals */}
+      <FlashcardsModal
+        isOpen={isFlashcardsModalOpen}
+        onClose={() => setIsFlashcardsModalOpen(false)}
+        savedPhrases={savedPhrases}
+        nativeLanguage={nativeLanguage}
+        onSendToChat={handleOpenSendToChat}
+        initialDeckId={flashcardDeckId}
+      />
+
       <SavedPhrasesModal
         isOpen={isSavedModalOpen}
         onClose={() => setIsSavedModalOpen(false)}
         savedPhrases={savedPhrases}
         onDeletePhrase={handleDeletePhrase}
         onSendToChat={handleOpenSendToChat}
+        onOpenFlashcards={handleOpenFlashcards}
       />
 
       <GoogleChatModal

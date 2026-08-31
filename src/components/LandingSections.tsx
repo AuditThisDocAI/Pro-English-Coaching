@@ -13,7 +13,8 @@ import {
   ShieldCheck, 
   Globe2, 
   Layers, 
-  HelpCircle 
+  HelpCircle,
+  BookOpen
 } from 'lucide-react';
 
 interface LandingHeroProps {
@@ -201,7 +202,7 @@ export const FeaturesSection: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs">
             <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
               <Mail className="w-5 h-5" />
@@ -224,6 +225,16 @@ export const FeaturesSection: React.FC = () => {
 
           <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs">
             <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-neutral-900 mb-1">3D Flashcard Decks & Spaced Repetition</h3>
+            <p className="text-xs text-neutral-600 leading-relaxed">
+              Flip through curated workplace decks, quiz yourself on executive wording, and track long-term phrase retention.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
               <Award className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-neutral-900 mb-1">CV & Resume Builder</h3>
@@ -239,6 +250,16 @@ export const FeaturesSection: React.FC = () => {
             <h3 className="font-bold text-neutral-900 mb-1">Industry Specialization</h3>
             <p className="text-xs text-neutral-600 leading-relaxed">
               Select between Tech, Healthcare, Retail, Call Center, and Admin to match vocabulary and idioms.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs">
+            <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-neutral-900 mb-1">Real-time Audio & Grammar IQ</h3>
+            <p className="text-xs text-neutral-600 leading-relaxed">
+              Listen to native audio pronunciation at multiple speeds with D3.js error analytics on recurring patterns.
             </p>
           </div>
         </div>

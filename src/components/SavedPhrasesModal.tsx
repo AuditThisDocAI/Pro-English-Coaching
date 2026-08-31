@@ -12,7 +12,8 @@ import {
   VolumeX,
   BarChart3,
   List,
-  Filter
+  Filter,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTTS } from '../lib/useTTS';
@@ -24,9 +25,10 @@ interface Props {
   savedPhrases: SavedPhrase[];
   onDeletePhrase: (id: string) => Promise<void>;
   onSendToChat?: (text: string) => void;
+  onOpenFlashcards?: (deckId?: string) => void;
 }
 
-export function SavedPhrasesModal({ isOpen, onClose, savedPhrases, onDeletePhrase, onSendToChat }: Props) {
+export function SavedPhrasesModal({ isOpen, onClose, savedPhrases, onDeletePhrase, onSendToChat, onOpenFlashcards }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'phrases' | 'analytics'>('phrases');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -100,6 +102,20 @@ export function SavedPhrasesModal({ isOpen, onClose, savedPhrases, onDeletePhras
                   <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>D3 Analytics</span>
                 </button>
+                {onOpenFlashcards && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenFlashcards('saved-vault');
+                    }}
+                    className="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-emerald-800 hover:bg-emerald-100/70 cursor-pointer font-bold"
+                    title="Practice all saved phrases in interactive 3D Flashcards"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Practice Deck</span>
+                  </button>
+                )}
               </div>
 
               <button

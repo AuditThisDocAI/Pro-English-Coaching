@@ -14,7 +14,8 @@ import {
   Volume2, 
   VolumeX, 
   ThumbsUp, 
-  ThumbsDown 
+  ThumbsDown,
+  BookOpen
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTTS } from '../lib/useTTS';
@@ -25,9 +26,10 @@ interface Props {
   isSaved?: boolean;
   onSendToChat?: (text: string) => void;
   onFeedback?: (rating: 'up' | 'down', data: CoachResponse) => void;
+  onOpenFlashcards?: (data: CoachResponse) => void;
 }
 
-export function CoachResultCard({ data, onSave, isSaved = false, onSendToChat, onFeedback }: Props) {
+export function CoachResultCard({ data, onSave, isSaved = false, onSendToChat, onFeedback, onOpenFlashcards }: Props) {
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedLocal, setSavedLocal] = useState(isSaved);
@@ -131,6 +133,16 @@ export function CoachResultCard({ data, onSave, isSaved = false, onSendToChat, o
               >
                 <Send className="w-3.5 h-3.5 text-emerald-600" />
                 <span className="hidden sm:inline">Google Chat</span>
+              </button>
+            )}
+            {onOpenFlashcards && (
+              <button
+                onClick={() => onOpenFlashcards(data)}
+                title="Study this formulation in interactive Flashcard Deck"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all shrink-0 bg-white border border-neutral-200 hover:border-emerald-300 hover:bg-emerald-50 text-neutral-700 hover:text-emerald-800 cursor-pointer shadow-2xs"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden sm:inline">Flashcard</span>
               </button>
             )}
             {onSave && (

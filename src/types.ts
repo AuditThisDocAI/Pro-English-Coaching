@@ -75,3 +75,32 @@ export interface UserProfile {
   createdAt: string;
   updatedAt: string;
 }
+
+export type FlashcardMastery = 'new' | 'learning' | 'mastered';
+
+export interface Flashcard {
+  id: string;
+  deckId?: string;
+  category: string;
+  front: string; // The casual thought, prompt, or scenario
+  frontContext?: string; // E.g. "Polite Pushback", "Interview Answer", "Email Sign-off"
+  backProfessional: string; // Polished executive English
+  backWhy: string; // Linguistic reasoning & executive etiquette
+  backTranslation?: Record<string, string> | string;
+  backPractice?: string; // Follow-up drill
+  mastery?: FlashcardMastery;
+  reviewCount?: number;
+  lastReviewedAt?: string;
+  isCustom?: boolean;
+}
+
+export interface FlashcardDeck {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  icon: string;
+  badgeColor: string;
+  cards: Flashcard[];
+}
+
