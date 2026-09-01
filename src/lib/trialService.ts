@@ -1,7 +1,7 @@
 import { User } from 'firebase/auth';
 
 export const TRIAL_DURATION_DAYS = 3;
-export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000; // 3 days
+export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000; // 3 days (72 hours)
 
 export interface TrialInfo {
   isPro: boolean;
@@ -26,11 +26,13 @@ function getStorageKey(user: User | null, key: string): string {
 
 /**
  * Retrieves the stored trial start timestamp or initializes one if none exists.
+ * Persists across user sessions, device storage, and Firestore accounts.
  */
 export function getUserTrialStartDate(user: User | null, remoteStartDate?: string | null): string {
   if (remoteStartDate) {
     if (typeof window !== 'undefined') {
       localStorage.setItem(getStorageKey(user, 'trial_start_date'), remoteStartDate);
+      localStorage.setItem('proenglish_device_trial_start', remoteStartDate);
     }
     return remoteStartDate;
   }
@@ -41,7 +43,12 @@ export function getUserTrialStartDate(user: User | null, remoteStartDate?: strin
     if (existing) {
       return existing;
     }
-    // Also check guest fallback if user just signed in
+    // Check device fallback if user just signed in or switched auth state
+    const deviceFallback = localStorage.getItem('proenglish_device_trial_start');
+    if (deviceFallback) {
+      localStorage.setItem(key, deviceFallback);
+      return deviceFallback;
+    }
     const guestFallback = localStorage.getItem('proenglish_guest_trial_start_date');
     if (guestFallback) {
       localStorage.setItem(key, guestFallback);
@@ -50,6 +57,8 @@ export function getUserTrialStartDate(user: User | null, remoteStartDate?: strin
 
     const now = new Date().toISOString();
     localStorage.setItem(key, now);
+    localStorage.setItem('proenglish_device_trial_start', now);
+    localStorage.setItem('proenglish_guest_trial_start_date', now);
     return now;
   }
 
@@ -57,18 +66,28 @@ export function getUserTrialStartDate(user: User | null, remoteStartDate?: strin
 }
 
 /**
- * Calculates current trial progress and state.
+ * Calculates current trial progress and state with millisecond precision.
  */
 export function calculateTrialInfo(
   user: User | null,
   isPro: boolean,
-  customStartDate?: string | null
+  customStartDate?: string | null,
+  nowMsOverride?: number
 ): TrialInfo {
   const startDateStr = customStartDate || getUserTrialStartDate(user);
-  const startMs = new Date(startDateStr).getTime() || Date.now();
-  const endMs = startMs + TRIAL_DURATION_MS;
-  const nowMs = Date.now();
+  let startMs = new Date(startDateStr).getTime();
+  if (isNaN(startMs) || startMs <= 0) {
+    startMs = Date.now();
+  }
 
+  const nowMs = typeof nowMsOverride === 'number' ? nowMsOverride : Date.now();
+  
+  // Guard against future dates
+  if (startMs > nowMs) {
+    startMs = nowMs;
+  }
+
+  const endMs = startMs + TRIAL_DURATION_MS;
   const totalSecondsLeft = Math.max(0, Math.floor((endMs - nowMs) / 1000));
   const isTrialActive = !isPro && nowMs < endMs;
   const isTrialExpired = !isPro && nowMs >= endMs;
@@ -81,13 +100,13 @@ export function calculateTrialInfo(
   if (isPro) {
     formattedTimeRemaining = 'Pro Member (Unlimited)';
   } else if (isTrialExpired) {
-    formattedTimeRemaining = 'Trial Expired';
+    formattedTimeRemaining = '3-Day Free Trial Expired';
   } else if (daysLeft > 1) {
-    formattedTimeRemaining = `${daysLeft} days left`;
+    formattedTimeRemaining = `${daysLeft} days left in free trial`;
   } else if (daysLeft === 1 && hoursLeft > 0) {
-    formattedTimeRemaining = `${hoursLeft}h ${minutesLeft}m left`;
+    formattedTimeRemaining = `${hoursLeft}h ${minutesLeft}m left in free trial`;
   } else if (totalSecondsLeft > 0) {
-    formattedTimeRemaining = `${minutesLeft}m left`;
+    formattedTimeRemaining = `${minutesLeft}m left in free trial`;
   }
 
   const elapsedMs = Math.max(0, nowMs - startMs);
@@ -119,6 +138,7 @@ export function resetTrialForTesting(user: User | null): string {
     const key = getStorageKey(user, 'trial_start_date');
     localStorage.setItem(key, now);
     localStorage.setItem('proenglish_guest_trial_start_date', now);
+    localStorage.setItem('proenglish_device_trial_start', now);
   }
   return now;
 }
@@ -132,6 +152,7 @@ export function expireTrialForTesting(user: User | null): string {
     const key = getStorageKey(user, 'trial_start_date');
     localStorage.setItem(key, past);
     localStorage.setItem('proenglish_guest_trial_start_date', past);
+    localStorage.setItem('proenglish_device_trial_start', past);
   }
   return past;
 }

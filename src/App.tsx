@@ -48,7 +48,8 @@ import {
   Layers,
   Flame,
   Award,
-  TrendingUp
+  TrendingUp,
+  Lock
 } from 'lucide-react';
 import { auth, logout } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -105,8 +106,19 @@ export default function App() {
   const [streakDays, setStreakDays] = useState<number>(3);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
+  // Live timer tick to continuously evaluate 3-day trial expiration in real time
+  const [currentTick, setCurrentTick] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTick(Date.now());
+    }, 5000); // Re-calculate every 5 seconds
+
+    return () => clearInterval(timer);
+  }, []);
+
   // Compute live trial state
-  const trialInfo = calculateTrialInfo(currentUser, isPro, trialStartDate);
+  const trialInfo = calculateTrialInfo(currentUser, isPro, trialStartDate, currentTick);
 
   // Native Language for translation insights
   const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage>(() => {
@@ -497,7 +509,7 @@ export default function App() {
             )}
           </button>
 
-          {/* Pro Subscription Button */}
+          {/* Pro / 3-Day Free Trial Button */}
           {isPro ? (
             <button
               type="button"
@@ -508,15 +520,27 @@ export default function App() {
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
               <span className="hidden sm:inline">Pro Active</span>
             </button>
+          ) : trialInfo.isTrialExpired ? (
+            <button
+              type="button"
+              onClick={() => navigate('/pricing')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs font-black shadow-sm transition-all cursor-pointer animate-pulse"
+              title="3-Day complimentary trial concluded. Upgrade to Pro."
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Trial Expired • Upgrade</span>
+              <span className="sm:hidden">Upgrade</span>
+            </button>
           ) : (
             <button
               type="button"
               onClick={() => navigate('/pricing')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-90 text-white text-xs font-extrabold shadow-sm transition-all cursor-pointer"
+              title="3-Day Free Trial Active. Click to view Pro plans."
             >
               <Zap className="w-3.5 h-3.5 fill-white" />
-              <span className="hidden sm:inline">Go Pro ($20/mo)</span>
-              <span className="sm:hidden">Pro</span>
+              <span className="hidden sm:inline">3-Day Trial ({trialInfo.daysLeft}d left) • Go Pro</span>
+              <span className="sm:hidden">{trialInfo.daysLeft}d left</span>
             </button>
           )}
 
@@ -574,6 +598,7 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <TalkPalDashboard
             profile={userProfileObj}
+            trialInfo={trialInfo}
             onNavigate={(tab) => setActiveTab(tab as any)}
             onOpenOnboarding={() => setIsOnboardingOpen(true)}
             onOpenPricing={() => navigate('/pricing')}
