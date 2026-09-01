@@ -13,7 +13,8 @@ import {
   BarChart3,
   List,
   Filter,
-  BookOpen
+  BookOpen,
+  Languages
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTTS } from '../lib/useTTS';
@@ -333,6 +334,12 @@ export function SavedPhrasesModal({ isOpen, onClose, savedPhrases, onDeletePhras
                             </div>
                             <p className="text-sm font-medium">{phrase.professional}</p>
                           </div>
+                          {phrase.translation && (
+                            <div className="text-xs text-neutral-700 bg-neutral-100/90 p-2.5 rounded-xl flex items-center gap-2 border border-neutral-200/60">
+                              <Languages className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span className="font-medium">{phrase.translation}</span>
+                            </div>
+                          )}
                           {phrase.why && (
                             <p className="text-xs text-neutral-500">
                               <span className="font-semibold text-neutral-600">Why:</span> {phrase.why}

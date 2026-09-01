@@ -4,11 +4,11 @@
 class TTSEngine {
   private synth: SpeechSynthesis | null = null;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
-  private currentAudio: HTMLAudioElement | null = null;
   private listeners: Set<() => void> = new Set();
   public speakingText: string | null = null;
   private keepAliveTimer: any = null;
   private voicesLoaded: boolean = false;
+  private isUnlocked = false;
 
   constructor() {
     try {
@@ -16,9 +16,21 @@ class TTSEngine {
         if ('speechSynthesis' in window) {
           this.synth = window.speechSynthesis;
           this.initVoices();
+          
+          // Setup global interaction listeners to unlock speech on iOS
+          const unlock = () => {
+            if (this.isUnlocked || !this.synth) return;
+            const emptyUtterance = new SpeechSynthesisUtterance('');
+            emptyUtterance.volume = 0;
+            this.synth.speak(emptyUtterance);
+            this.isUnlocked = true;
+            window.removeEventListener('touchstart', unlock);
+            window.removeEventListener('click', unlock);
+          };
+          
+          window.addEventListener('touchstart', unlock, { once: true, passive: true });
+          window.addEventListener('click', unlock, { once: true, passive: true });
         }
-
-        // Keep a global reference to prevent WebKit / Mobile Safari garbage collection
         (window as any).__activeUtteranceRef = null;
       }
     } catch (e) {
@@ -33,7 +45,6 @@ class TTSEngine {
       if (voices && voices.length > 0) {
         this.voicesLoaded = true;
       }
-
       if ('onvoiceschanged' in this.synth) {
         this.synth.onvoiceschanged = () => {
           try {
@@ -71,40 +82,28 @@ class TTSEngine {
   }
 
   public isSupported(): boolean {
-    return Boolean(this.synth || (typeof window !== 'undefined' && 'Audio' in window));
+    return Boolean(this.synth);
   }
 
   public isSpeaking(text?: string): boolean {
     try {
       if (text) {
-        return this.speakingText === text && (Boolean(this.synth?.speaking) || Boolean(this.currentAudio && !this.currentAudio.paused));
+        return this.speakingText === text && Boolean(this.synth?.speaking);
       }
-      return Boolean(this.synth?.speaking) || Boolean(this.currentAudio && !this.currentAudio.paused);
+      return Boolean(this.synth?.speaking);
     } catch (_) {
       return false;
     }
   }
 
   public stop(): void {
-    // Clear any iOS keepalive timer
     if (this.keepAliveTimer) {
       clearInterval(this.keepAliveTimer);
       this.keepAliveTimer = null;
     }
-
-    // Stop Web Speech API
     try {
       if (this.synth) {
         this.synth.cancel();
-      }
-    } catch (_) {}
-
-    // Stop HTML Audio fallback if playing
-    try {
-      if (this.currentAudio) {
-        this.currentAudio.pause();
-        this.currentAudio.currentTime = 0;
-        this.currentAudio = null;
       }
     } catch (_) {}
 
@@ -114,70 +113,24 @@ class TTSEngine {
     this.notify();
   }
 
-  // Audio Fallback for mobile browsers when SpeechSynthesis is restricted
-  private speakViaAudioFallback(text: string, options: { rate?: number; onEnd?: () => void; onError?: (err: any) => void }) {
-    try {
-      this.stop();
-      this.speakingText = text;
-      this.notify();
-
-      // Encode clean text
-      const cleanText = text.replace(/[*_#`~]/g, '').replace(/\s+/g, ' ').trim();
-      const encoded = encodeURIComponent(cleanText.slice(0, 200)); // URL limit protection
-      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encoded}`;
-
-      const audio = new Audio(audioUrl);
-      this.currentAudio = audio;
-      audio.playbackRate = options.rate ?? 0.95;
-
-      audio.onended = () => {
-        this.speakingText = null;
-        this.currentAudio = null;
-        this.notify();
-        options.onEnd?.();
-      };
-
-      audio.onerror = (e) => {
-        this.speakingText = null;
-        this.currentAudio = null;
-        this.notify();
-        options.onError?.(e);
-      };
-
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn('Audio fallback autoplay failed:', err);
-          this.speakingText = null;
-          this.currentAudio = null;
-          this.notify();
-        });
-      }
-    } catch (err) {
-      this.speakingText = null;
-      this.currentAudio = null;
-      this.notify();
-    }
-  }
-
   public speak(
     text: string,
     options: {
       rate?: number;
       pitch?: number;
       lang?: string;
+      gender?: 'female' | 'male';
+      voiceName?: string;
       onStart?: () => void;
       onEnd?: () => void;
       onError?: (err: any) => void;
     } = {}
   ): void {
-    // If currently speaking this exact text, toggle off
     if (this.isSpeaking(text)) {
       this.stop();
       return;
     }
 
-    // Always stop previous utterances
     this.stop();
 
     const cleanedText = text
@@ -187,56 +140,96 @@ class TTSEngine {
 
     if (!cleanedText) return;
 
-    // Check if Web Speech Synthesis is available
     if (!this.synth || !('SpeechSynthesisUtterance' in window)) {
-      this.speakViaAudioFallback(cleanedText, options);
       return;
     }
 
     try {
-      // 1. Mobile Safari resume unblock: iOS often pauses synthesis silently
-      try {
-        if (this.synth.paused) {
-          this.synth.resume();
-        }
-      } catch (_) {}
+      if (this.synth.paused) {
+        this.synth.resume();
+      }
+    } catch (_) {}
 
+    try {
       const utterance = new SpeechSynthesisUtterance(cleanedText);
-      utterance.rate = options.rate ?? 0.92; // Slightly paced for workplace pronunciation
-      utterance.pitch = options.pitch ?? 1.0;
+      const isFemale = options.gender === 'female' || (!options.gender && !options.voiceName);
+      
+      utterance.rate = options.rate ?? 0.93;
+      utterance.pitch = options.pitch ?? (options.gender === 'female' ? 1.08 : (options.gender === 'male' ? 0.94 : 1.0));
       utterance.lang = options.lang ?? 'en-US';
 
-      // 2. Select optimal voice
       const voices = this.getVoices();
       if (voices.length > 0) {
-        const preferredVoice =
-          voices.find(
+        const femaleKeywords = [
+          'female', 'samantha', 'jenny', 'aria', 'karen', 'victoria', 'zira', 'ava', 
+          'susan', 'serena', 'allison', 'zoe', 'kate', 'michelle', 'sonia', 'libby', 
+          'clara', 'hazel', 'hedda', 'catherine', 'helena', 'elena', 'emma', 'sophia',
+          'google us english', 'natural (female)', 'online (natural)'
+        ];
+
+        const maleKeywords = [
+          'male', 'daniel', 'david', 'george', 'mark', 'alex', 'fred', 'guy', 'ryan', 
+          'tom', 'oliver', 'james', 'bruce', 'ralph', 'albert'
+        ];
+
+        let selectedVoice: SpeechSynthesisVoice | undefined;
+
+        if (options.voiceName) {
+          selectedVoice = voices.find(v => v.name.toLowerCase().includes(options.voiceName!.toLowerCase()));
+        }
+
+        if (!selectedVoice && options.gender === 'female') {
+          // Find best English female voice
+          selectedVoice = voices.find(v => {
+            const name = v.name.toLowerCase();
+            const isEnglish = v.lang.startsWith('en') || v.lang.includes('US') || v.lang.includes('GB');
+            const hasFemaleName = femaleKeywords.some(k => name.includes(k));
+            const hasMaleName = maleKeywords.some(k => name.includes(k));
+            return isEnglish && hasFemaleName && !hasMaleName;
+          });
+
+          // Fallback to any English voice that is not explicitly male
+          if (!selectedVoice) {
+            selectedVoice = voices.find(v => {
+              const name = v.name.toLowerCase();
+              return (v.lang.startsWith('en-US') || v.lang.startsWith('en-GB') || v.lang.startsWith('en')) &&
+                !maleKeywords.some(k => name.includes(k));
+            });
+          }
+        } else if (!selectedVoice && options.gender === 'male') {
+          selectedVoice = voices.find(v => {
+            const name = v.name.toLowerCase();
+            const isEnglish = v.lang.startsWith('en');
+            return isEnglish && maleKeywords.some(k => name.includes(k));
+          });
+        }
+
+        if (!selectedVoice) {
+          selectedVoice = voices.find(
             (v) =>
               (v.lang.startsWith('en-US') || v.lang.startsWith('en-GB') || v.lang.startsWith('en_')) &&
               (v.name.includes('Google') ||
                 v.name.includes('Natural') ||
                 v.name.includes('Samantha') ||
                 v.name.includes('Siri') ||
-                v.name.includes('Daniel') ||
                 v.name.includes('Karen') ||
                 v.name.includes('English'))
           ) || voices.find((v) => v.lang.startsWith('en'));
+        }
 
-        if (preferredVoice) {
-          utterance.voice = preferredVoice;
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
         }
       }
 
       this.speakingText = text;
       this.currentUtterance = utterance;
-      // 3. Anchor to window to prevent iOS WebKit garbage collection bug
       (window as any).__activeUtteranceRef = utterance;
 
       utterance.onstart = () => {
         this.notify();
         options.onStart?.();
 
-        // 4. iOS Safari Keep-Alive hack: resume every 10 seconds to prevent pause timeout
         if (this.keepAliveTimer) clearInterval(this.keepAliveTimer);
         this.keepAliveTimer = setInterval(() => {
           if (this.synth?.speaking && this.synth.paused) {
@@ -264,24 +257,20 @@ class TTSEngine {
           clearInterval(this.keepAliveTimer);
           this.keepAliveTimer = null;
         }
-        // If Web Speech fails on mobile (e.g. not-allowed or canceled), fallback to audio
-        console.warn('SpeechSynthesis error, triggering mobile audio fallback:', event);
-        this.speakViaAudioFallback(cleanedText, options);
+        console.warn('SpeechSynthesis error:', event);
+        this.speakingText = null;
+        this.currentUtterance = null;
+        this.notify();
+        options.onError?.(event);
       };
 
-      // 5. Fire speech immediately within synchronous touch event
       this.synth.speak(utterance);
       this.notify();
-
-      // Mobile Safari edge case: if not speaking after 250ms, resume
-      setTimeout(() => {
-        if (this.synth && this.synth.speaking && this.synth.paused) {
-          this.synth.resume();
-        }
-      }, 250);
     } catch (err) {
-      console.warn('Exception during SpeechSynthesis, using audio fallback:', err);
-      this.speakViaAudioFallback(cleanedText, options);
+      console.warn('Exception during SpeechSynthesis:', err);
+      this.speakingText = null;
+      this.currentUtterance = null;
+      this.notify();
     }
   }
 }

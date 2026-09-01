@@ -3,19 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { 
   JobType, 
   Mode, 
-  Message, 
   SavedPhrase, 
   CoachResponse, 
   NativeLanguage, 
-  SUPPORTED_LANGUAGES 
+  SUPPORTED_LANGUAGES,
+  EnglishCEFRLevel,
+  EnglishGoal,
+  UserProfile
 } from './types';
-import { CoachResultCard } from './components/CoachResultCard';
+import { TalkPalDashboard } from './components/TalkPalDashboard';
+import { TalkPalChatTutor } from './components/TalkPalChatTutor';
+import { TalkPalRoleplays } from './components/TalkPalRoleplays';
+import { TalkPalCallMode } from './components/TalkPalCallMode';
+import { TalkPalOnboarding } from './components/TalkPalOnboarding';
+import { FlashcardsPracticeHub } from './components/FlashcardsPracticeHub';
 import { SavedPhrasesModal } from './components/SavedPhrasesModal';
 import { GoogleChatModal } from './components/GoogleChatModal';
 import { AuthModal } from './components/AuthModal';
 import { FlashcardsModal } from './components/FlashcardsModal';
 import { GrammarAnalyticsDashboard } from './components/GrammarAnalyticsDashboard';
 import { SupportSection } from './components/SupportSection';
+import { TrialBanner } from './components/TrialBanner';
+import { PaywallOverlay } from './components/PaywallOverlay';
 import { 
   LandingHero, 
   HowItWorksSection, 
@@ -25,33 +34,23 @@ import {
   LandingFooter 
 } from './components/LandingSections';
 import { 
-  Send, 
-  Mail, 
-  Users, 
-  FileText, 
-  Globe, 
   Sparkles, 
-  AlertCircle, 
-  RefreshCw, 
-  MessageSquare, 
-  Copy, 
-  Check, 
   Bookmark, 
-  Volume2, 
-  VolumeX, 
-  Mic, 
   Zap, 
-  Lock, 
-  ChevronRight,
   Languages,
   User as UserIcon,
   LogOut,
-  BookOpen
+  BookOpen,
+  Home,
+  MessageSquare,
+  Briefcase,
+  Phone,
+  Layers,
+  Flame,
+  Award,
+  TrendingUp
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useTTS } from './lib/useTTS';
-import { useSpeechRecognition } from './lib/useSpeechRecognition';
-import { auth, signInWithGoogle, logout } from './lib/firebase';
+import { auth, logout } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { 
   syncUserProfile, 
@@ -60,9 +59,9 @@ import {
   deletePhraseFromFirestore, 
   subscribeToSavedPhrases 
 } from './lib/firestoreService';
-import { triggerCelebrationConfetti, triggerProUpgradeConfetti } from './lib/confetti';
+import { triggerProUpgradeConfetti } from './lib/confetti';
+import { calculateTrialInfo, getUserTrialStartDate } from './lib/trialService';
 
-const JOB_TYPES: JobType[] = ['Tech', 'Healthcare', 'Retail', 'Call Center', 'Admin'];
 const MAX_FREE_CHATS = 20;
 
 function getUserStorageKey(user: User | null, key: string): string {
@@ -85,105 +84,29 @@ function loadUserIsPro(user: User | null): boolean {
   return localStorage.getItem(key) === 'true';
 }
 
-function AssistantMessageBubble({ content }: { content?: string }) {
-  const [copied, setCopied] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState<0.75 | 1 | 1.25>(1);
-  const { speak, isSpeaking, isSupported } = useTTS();
-
-  const speaking = content ? isSpeaking(content) : false;
-
-  const handleToggleSpeak = () => {
-    if (!content) return;
-    speak(content, { rate: playbackSpeed });
-  };
-
-  const cyclePlaybackSpeed = () => {
-    setPlaybackSpeed((prev) => {
-      if (prev === 1) return 1.25;
-      if (prev === 1.25) return 0.75;
-      return 1;
-    });
-  };
-
-  const handleCopy = async () => {
-    if (!content) return;
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy message: ', err);
-    }
-  };
-
-  return (
-    <div className="bg-white border border-neutral-200 text-neutral-800 px-5 py-4 rounded-2xl rounded-tl-sm text-[15px] leading-relaxed shadow-sm flex items-start gap-3 justify-between group">
-      <div className="flex items-start gap-3 flex-1">
-        <div className="bg-emerald-100 p-1.5 rounded-lg shrink-0 mt-0.5">
-          <Sparkles className="w-4 h-4 text-emerald-700" />
-        </div>
-        <p className="flex-1">{content}</p>
-      </div>
-      <div className="flex items-center gap-1 shrink-0">
-        {isSupported && content && (
-          <div className="flex items-center gap-0.5 shrink-0 bg-neutral-50/80 border border-neutral-100 rounded-lg p-0.5 mr-1">
-            <button
-              onClick={cyclePlaybackSpeed}
-              title={`Current speed: ${playbackSpeed}x. Click to change.`}
-              className="px-1.5 py-1 text-[10px] font-bold text-neutral-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors cursor-pointer w-10 text-center"
-            >
-              {playbackSpeed}x
-            </button>
-            <button
-              onClick={handleToggleSpeak}
-              title={speaking ? "Stop reading" : "Listen to audio pronunciation"}
-              className={`p-1 rounded-md transition-colors cursor-pointer ${
-                speaking 
-                  ? 'bg-emerald-600 text-white animate-pulse' 
-                  : 'text-neutral-500 hover:text-emerald-700 hover:bg-emerald-50'
-              }`}
-            >
-              {speaking ? (
-                <VolumeX className="w-4 h-4" />
-              ) : (
-                <Volume2 className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-        )}
-        <button
-          onClick={handleCopy}
-          title={copied ? "Copied!" : "Copy message"}
-          className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors shrink-0 cursor-pointer"
-        >
-          {copied ? (
-            <Check className="w-4 h-4 text-emerald-600" />
-          ) : (
-            <Copy className="w-4 h-4" />
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>('general');
-  const [jobType, setJobType] = useState<JobType>('Tech');
-  const { 
-    transcript: input, 
-    setTranscript: setInput, 
-    resetTranscript, 
-    isListening, 
-    isSupported: isSpeechSupported, 
-    toggleListening,
-    stopListening
-  } = useSpeechRecognition();
   
-  // 20-Chat Limit & Pro Subscription State (Isolated per user / email)
+  const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
+
+  // Active navigation tab
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'roleplays' | 'call' | 'flashcards' | 'analytics'>('dashboard');
+
+  // Quota & Pro Subscription State
   const [chatCount, setChatCount] = useState<number>(() => loadUserChatCount(auth.currentUser));
   const [isPro, setIsPro] = useState<boolean>(() => loadUserIsPro(auth.currentUser));
+  const [trialStartDate, setTrialStartDate] = useState<string>(() => getUserTrialStartDate(auth.currentUser));
+
+  // User Profile details
+  const [englishLevel, setEnglishLevel] = useState<EnglishCEFRLevel>('B1');
+  const [learningGoal, setLearningGoal] = useState<EnglishGoal>('workplace_formal');
+  const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number>(10);
+  const [xpPoints, setXpPoints] = useState<number>(140);
+  const [streakDays, setStreakDays] = useState<number>(3);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Compute live trial state
+  const trialInfo = calculateTrialInfo(currentUser, isPro, trialStartDate);
 
   // Native Language for translation insights
   const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage>(() => {
@@ -211,27 +134,24 @@ export default function App() {
     return [];
   });
 
-  const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
   const [isFlashcardsModalOpen, setIsFlashcardsModalOpen] = useState(false);
-  const [flashcardDeckId, setFlashcardDeckId] = useState<string>('all');
+  const [flashcardDeckId, setFlashcardDeckId] = useState<string>('executive-email');
   const [selectedAnalyticsCategory, setSelectedAnalyticsCategory] = useState<string | null>(null);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [chatInitialText, setChatInitialText] = useState('');
-  const [isGrabHandleActive, setIsGrabHandleActive] = useState(false);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome',
-      type: 'coach',
-      content: "Hi! I'm ProEnglish Coach. I help you speak and write perfect professional English for workplace success. Type or dictate your casual thoughts below, or pick a mode to get started!"
+  // Check if first time user to optionally prompt onboarding
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasCompleted = localStorage.getItem('proenglish_onboarding_completed');
+      if (!hasCompleted) {
+        // First time visitor: show onboarding
+        setIsOnboardingOpen(true);
+      }
     }
-  ]);
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const practiceSectionRef = useRef<HTMLDivElement>(null);
+  }, []);
 
   // Listen to Firebase Auth state & isolate quotas per user
   useEffect(() => {
@@ -239,48 +159,65 @@ export default function App() {
       setCurrentUser(user);
       if (user) {
         try {
-          // Load user's cloud profile from Firestore
           const remoteProfile = await getUserProfile(user.uid);
           if (remoteProfile) {
-            // Existing user profile found in Firestore
             const count = typeof remoteProfile.chatCount === 'number' ? remoteProfile.chatCount : 0;
             const pro = Boolean(remoteProfile.isPro);
+            const trialStart = remoteProfile.trialStartDate || getUserTrialStartDate(user);
             setChatCount(count);
             setIsPro(pro);
+            setTrialStartDate(trialStart);
             if (remoteProfile.nativeLanguage && SUPPORTED_LANGUAGES.some(l => l.name === remoteProfile.nativeLanguage)) {
               setNativeLanguage(remoteProfile.nativeLanguage as NativeLanguage);
             }
-            if (remoteProfile.jobType && JOB_TYPES.includes(remoteProfile.jobType as JobType)) {
-              setJobType(remoteProfile.jobType as JobType);
+            if (remoteProfile.englishLevel) {
+              setEnglishLevel(remoteProfile.englishLevel);
             }
-            // Update user-scoped localStorage
+            if (remoteProfile.learningGoal) {
+              setLearningGoal(remoteProfile.learningGoal);
+            }
+            if (remoteProfile.dailyGoalMinutes) {
+              setDailyGoalMinutes(remoteProfile.dailyGoalMinutes);
+            }
+            if (remoteProfile.xpPoints) {
+              setXpPoints(remoteProfile.xpPoints);
+            }
+            if (remoteProfile.streakDays) {
+              setStreakDays(remoteProfile.streakDays);
+            }
+
             localStorage.setItem(getUserStorageKey(user, 'chat_count'), count.toString());
             localStorage.setItem(getUserStorageKey(user, 'is_pro'), pro.toString());
+            localStorage.setItem(getUserStorageKey(user, 'trial_start_date'), trialStart);
           } else {
-            // Brand-new user / new email: starts with clean 0 chatCount (20 free chats!)
             const initialCount = loadUserChatCount(user);
             const initialPro = loadUserIsPro(user);
+            const initialTrialStart = getUserTrialStartDate(user);
             setChatCount(initialCount);
             setIsPro(initialPro);
+            setTrialStartDate(initialTrialStart);
 
             await syncUserProfile(user.uid, {
               email: user.email,
               displayName: user.displayName,
               nativeLanguage,
-              jobType,
+              englishLevel,
+              learningGoal,
+              dailyGoalMinutes,
+              xpPoints,
+              streakDays,
               isPro: initialPro,
               chatCount: initialCount,
+              trialStartDate: initialTrialStart,
             });
             localStorage.setItem(getUserStorageKey(user, 'chat_count'), initialCount.toString());
             localStorage.setItem(getUserStorageKey(user, 'is_pro'), initialPro.toString());
+            localStorage.setItem(getUserStorageKey(user, 'trial_start_date'), initialTrialStart);
           }
         } catch (err) {
-          console.warn('Error loading user profile, using local scoped store:', err);
-          setChatCount(loadUserChatCount(user));
-          setIsPro(loadUserIsPro(user));
+          console.warn('Error loading user profile:', err);
         }
 
-        // Subscribe to user's saved phrases from Firestore
         const unsubPhrases = subscribeToSavedPhrases(user.uid, (remotePhrases) => {
           if (remotePhrases) {
             setSavedPhrases(remotePhrases);
@@ -292,7 +229,6 @@ export default function App() {
           unsubPhrases?.();
         };
       } else {
-        // Logged out / Guest session: switch to guest-isolated storage
         const guestCount = loadUserChatCount(null);
         const guestPro = loadUserIsPro(null);
         setChatCount(guestCount);
@@ -320,20 +256,39 @@ export default function App() {
     localStorage.setItem('proenglish_native_language', nativeLanguage);
   }, [nativeLanguage]);
 
-  const scrollToPractice = () => {
-    practiceSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 400);
+  const handleAddXP = (amount: number) => {
+    setXpPoints((prev) => {
+      const updated = prev + amount;
+      if (currentUser) {
+        syncUserProfile(currentUser.uid, { xpPoints: updated }).catch(console.error);
+      }
+      return updated;
+    });
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const handleCompleteOnboarding = (data: {
+    nativeLanguage: NativeLanguage;
+    englishLevel: EnglishCEFRLevel;
+    learningGoal: EnglishGoal;
+    dailyGoalMinutes: number;
+  }) => {
+    setNativeLanguage(data.nativeLanguage);
+    setEnglishLevel(data.englishLevel);
+    setLearningGoal(data.learningGoal);
+    setDailyGoalMinutes(data.dailyGoalMinutes);
+    setIsOnboardingOpen(false);
+    localStorage.setItem('proenglish_onboarding_completed', 'true');
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
+    if (currentUser) {
+      syncUserProfile(currentUser.uid, {
+        nativeLanguage: data.nativeLanguage,
+        englishLevel: data.englishLevel,
+        learningGoal: data.learningGoal,
+        dailyGoalMinutes: data.dailyGoalMinutes,
+        onboardingCompleted: true
+      }).catch(console.error);
+    }
+  };
 
   const handleSavePhrase = async (data: CoachResponse): Promise<boolean | void> => {
     const isAlreadySaved = savedPhrases.some(p => p.professional === data.professional);
@@ -351,10 +306,11 @@ export default function App() {
       try {
         const saved = await savePhraseToFirestore(currentUser.uid, {
           ...data,
-          mode,
-          jobType,
+          mode: 'general',
+          jobType: 'Tech',
         });
         setSavedPhrases(prev => [saved, ...prev.filter(p => p.id !== saved.id)]);
+        handleAddXP(20);
         return true;
       } catch (err) {
         console.error('Failed to save to Firestore:', err);
@@ -363,26 +319,32 @@ export default function App() {
 
     const newPhrase: SavedPhrase = {
       id: Date.now().toString(),
-      userId: currentUser?.uid || 'local-user',
-      mode,
-      jobType,
       original: data.original,
       professional: data.professional,
       translation: data.translation,
       why: data.why,
       practice: data.practice,
-      createdAt: new Date().toISOString(),
+      mode: 'general',
+      jobType: 'Tech',
+      timestamp: new Date().toISOString(),
     };
 
-    setSavedPhrases(prev => [newPhrase, ...prev]);
+    const updated = [newPhrase, ...savedPhrases];
+    setSavedPhrases(updated);
+    const key = getUserStorageKey(currentUser, 'saved_phrases');
+    localStorage.setItem(key, JSON.stringify(updated));
+    handleAddXP(20);
     return true;
   };
 
-  const handleDeletePhrase = async (phraseId: string): Promise<void> => {
+  const handleDeletePhrase = async (id: string): Promise<void> => {
     if (currentUser) {
-      deletePhraseFromFirestore(currentUser.uid, phraseId).catch(console.error);
+      await deletePhraseFromFirestore(currentUser.uid, id).catch(console.error);
     }
-    setSavedPhrases(prev => prev.filter(p => p.id !== phraseId));
+    const updated = savedPhrases.filter(p => p.id !== id);
+    setSavedPhrases(updated);
+    const key = getUserStorageKey(currentUser, 'saved_phrases');
+    localStorage.setItem(key, JSON.stringify(updated));
   };
 
   const handleOpenSendToChat = (text: string) => {
@@ -390,238 +352,127 @@ export default function App() {
     setIsChatModalOpen(true);
   };
 
-  const handleOpenFlashcards = (deckIdOrData?: string | CoachResponse) => {
-    if (typeof deckIdOrData === 'string') {
-      setFlashcardDeckId(deckIdOrData);
-    } else if (deckIdOrData && typeof deckIdOrData === 'object') {
-      // If opened from a coach result card, ensure it's saved so it appears in the vault deck
-      handleSavePhrase(deckIdOrData);
-      setFlashcardDeckId('saved-vault');
-    } else {
-      setFlashcardDeckId('all');
-    }
-    setIsFlashcardsModalOpen(true);
+  const handleOpenFlashcards = (deckId?: string) => {
+    if (deckId) setFlashcardDeckId(deckId);
+    setActiveTab('flashcards');
   };
 
-  const handleSelectChatForCoaching = (text: string) => {
-    setInput(text);
-    inputRef.current?.focus();
-  };
-
-  const handleUpgradeSuccess = () => {
-    setIsPro(true);
-    triggerProUpgradeConfetti();
-    const key = getUserStorageKey(currentUser, 'is_pro');
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(key, 'true');
-    }
-    if (currentUser) {
-      syncUserProfile(currentUser.uid, { isPro: true });
-    }
-    // Add a congratulatory coach message
-    setMessages(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        type: 'coach',
-        content: "🎉 Welcome to ProEnglish Pro! Your $20/month Pro membership is now active. You have access to 1000 sessions per month, voice tools, and industry specializations."
-      }
-    ]);
-  };
-
-  const handleCancelSubscription = () => {
+  const handleCancelSubscription = async () => {
     setIsPro(false);
     const key = getUserStorageKey(currentUser, 'is_pro');
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(key, 'false');
-    }
+    localStorage.setItem(key, 'false');
     if (currentUser) {
-      syncUserProfile(currentUser.uid, { isPro: false });
-    }
-    setMessages(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        type: 'coach',
-        content: "ℹ️ Your recurring debit order has been stopped. You will not be billed again. You can re-activate Pro at any time."
-      }
-    ]);
-  };
-
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    // Check 20-chat limit for free tier
-    if (!isPro && chatCount >= MAX_FREE_CHATS) {
-      navigate('/pricing');
-      return;
-    }
-
-    if (isListening) {
-      stopListening();
-    }
-
-    const userText = input.trim();
-    resetTranscript();
-    
-    setMessages(prev => [...prev, { id: Date.now().toString(), type: 'user', content: userText }]);
-    setIsLoading(true);
-
-    const isLastFreeChat = !isPro && chatCount + 1 >= MAX_FREE_CHATS;
-
-    // Increment chat count for the active user session
-    if (!isPro) {
-      setChatCount(prev => {
-        const next = prev + 1;
-        if (next >= MAX_FREE_CHATS) {
-          triggerCelebrationConfetti();
-        }
-        const key = getUserStorageKey(currentUser, 'chat_count');
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(key, next.toString());
-        }
-        if (currentUser) {
-          syncUserProfile(currentUser.uid, { chatCount: next });
-        }
-        return next;
-      });
-    }
-
-    try {
-      const response = await fetch('/api/coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: userText, mode, jobType, nativeLanguage }),
-      });
-
-      let data: any = null;
-      const rawText = await response.text();
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        console.warn('Non-JSON response from /api/coach:', rawText);
-        if (!response.ok) {
-          throw new Error(`Server returned error ${response.status}: ${rawText.slice(0, 100)}`);
-        }
-        data = {
-          original: userText,
-          professional: userText,
-          translation: 'Professional version for workplace communication.',
-          why: 'Clear communication is key in professional environments.',
-          practice: 'Try rephrasing with different wording.'
-        };
-      }
-
-      if (!response.ok) {
-        throw new Error(data?.error || `Server returned status ${response.status}`);
-      }
-
-      if (!data || !data.professional) {
-        throw new Error('Coach was unable to generate a response. Please try again.');
-      }
-
-      const coachData: CoachResponse = {
-        original: data.original || userText,
-        professional: data.professional,
-        translation: data.translation,
-        why: data.why,
-        practice: data.practice,
-      };
-
-      const newCoachMessages: Message[] = [
-        {
-          id: Date.now().toString(),
-          type: 'coach',
-          coachData,
-        }
-      ];
-
-      // If user just completed their 20th chat, trigger celebration confetti & congratulatory notice
-      if (isLastFreeChat) {
-        triggerCelebrationConfetti();
-        newCoachMessages.push({
-          id: `${Date.now()}-milestone`,
-          type: 'coach',
-          content: "🎉 Milestone Achieved! You've successfully completed your 20 free workplace coaching sessions! You can upgrade to Pro for 1000 sessions per month anytime, or review all your saved phrases in the library.",
-        });
-      }
-
-      setMessages(prev => [...prev, ...newCoachMessages]);
-    } catch (err: any) {
-      console.error('Coach API Error:', err);
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          type: 'error',
-          content: err.message || 'Something went wrong while coaching. Please try again.',
-        }
-      ]);
-    } finally {
-      setIsLoading(false);
+      await syncUserProfile(currentUser.uid, { isPro: false });
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      resetTranscript();
-    } else if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+  const userProfileObj: UserProfile = {
+    userId: currentUser?.uid || 'guest',
+    email: currentUser?.email || 'guest@proenglish.ai',
+    displayName: currentUser?.displayName || undefined,
+    nativeLanguage,
+    englishLevel,
+    learningGoal,
+    dailyGoalMinutes,
+    xpPoints,
+    streakDays,
+    isPro,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
-
-  const isLimitReached = !isPro && chatCount >= MAX_FREE_CHATS;
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 font-sans flex flex-col selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-neutral-100 text-neutral-900 flex flex-col font-sans pb-20 sm:pb-0">
+      
       {/* Top Main Navigation Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 px-4 sm:px-6 py-3 flex items-center justify-between shadow-2xs">
+        
+        {/* Brand Logo & Tagline */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-emerald-600/30">
-            PE
-          </div>
-          <div>
-            <h1 className="font-extrabold text-base tracking-tight text-neutral-900 flex items-center gap-1.5">
-              ProEnglish Coach
-              <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                AI Career Tutor
-              </span>
-            </h1>
-            <p className="text-xs text-neutral-500 hidden sm:block">Master workplace English in seconds</p>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('dashboard')}
+            className="flex items-center gap-2.5 text-left group cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-black text-base tracking-tight text-neutral-900 flex items-center gap-1.5 leading-none">
+                Pro English Coach
+                <span className="hidden sm:inline-block text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                  Basic & Formal
+                </span>
+              </h1>
+              <p className="text-[11px] text-neutral-500 hidden sm:block mt-0.5">
+                AI Coach for Conversational & Workplace English
+              </p>
+            </div>
+          </button>
+
+          {/* CEFR Level Badge */}
+          <button
+            type="button"
+            onClick={() => setIsOnboardingOpen(true)}
+            className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold hover:bg-indigo-100 transition-colors cursor-pointer"
+            title="Click to adjust English CEFR level & goals"
+          >
+            <span>CEFR: {englishLevel}</span>
+          </button>
         </div>
 
-        {/* Header Links & Actions */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          <nav className="hidden md:flex items-center gap-5 text-xs font-semibold text-neutral-600 mr-2">
-            <button onClick={scrollToPractice} className="hover:text-emerald-600 transition-colors cursor-pointer">
-              Live Coach
-            </button>
-            <a href="#how-it-works" className="hover:text-emerald-600 transition-colors">
-              How It Works
-            </a>
-            <a href="#features" className="hover:text-emerald-600 transition-colors">
-              Features
-            </a>
-            <a href="#pricing" className="hover:text-emerald-600 transition-colors">
-              Pricing
-            </a>
-            <a href="#support" className="hover:text-emerald-600 text-emerald-700 font-bold transition-colors">
-              Support
-            </a>
-          </nav>
+        {/* Desktop Primary Nav Tabs */}
+        <nav className="hidden lg:flex items-center gap-1 bg-neutral-100/80 p-1 rounded-2xl border border-neutral-200/80 text-xs font-bold">
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: <Home className="w-3.5 h-3.5" /> },
+            { id: 'chat', label: 'Chat Tutor', icon: <MessageSquare className="w-3.5 h-3.5" /> },
+            { id: 'roleplays', label: 'Roleplays', icon: <Briefcase className="w-3.5 h-3.5" /> },
+            { id: 'call', label: 'Voice Call', icon: <Phone className="w-3.5 h-3.5" /> },
+            { id: 'flashcards', label: 'Sentence Cards', icon: <Layers className="w-3.5 h-3.5" /> },
+            { id: 'analytics', label: 'Analytics', icon: <TrendingUp className="w-3.5 h-3.5" /> }
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isActive
+                    ? 'bg-white text-indigo-900 shadow-2xs font-extrabold'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/50'
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Right Actions: Streak, Native Lang, Saved, Pro, Auth */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Daily Streak Flame */}
+          <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs font-black" title="Current Daily Practice Streak">
+            <Flame className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
+            <span>{streakDays}d</span>
+          </div>
+
+          {/* XP Gems */}
+          <div className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-50 border border-teal-200/80 text-teal-900 text-xs font-black" title="Earned Learning XP Points">
+            <Zap className="w-4 h-4 text-teal-600 fill-teal-600" />
+            <span>{xpPoints} XP</span>
+          </div>
 
           {/* Native Language Selector */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-xl border border-neutral-200 bg-neutral-50/80 hover:bg-neutral-100 text-neutral-700 transition-colors">
-            <Languages className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <div className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 transition-colors">
+            <Languages className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
             <select
               value={nativeLanguage}
               onChange={(e) => setNativeLanguage(e.target.value as NativeLanguage)}
-              className="bg-transparent text-neutral-800 font-semibold focus:outline-none cursor-pointer text-xs"
-              title="Select your native language for bilingual translations & hints"
+              className="bg-transparent text-neutral-800 font-extrabold focus:outline-hidden cursor-pointer text-xs"
+              title="Select native language for translations"
             >
               {SUPPORTED_LANGUAGES.map(lang => (
                 <option key={lang.name} value={lang.name}>
@@ -631,80 +482,69 @@ export default function App() {
             </select>
           </div>
 
-          {/* Flashcards Deck Button */}
-          <button
-            onClick={() => handleOpenFlashcards('all')}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 transition-all cursor-pointer shadow-2xs"
-            title="Practice 3D workplace English flashcards & spaced repetition"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
-            <span className="hidden sm:inline">Flashcards</span>
-            <span className="bg-emerald-200/80 text-emerald-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-              Decks
-            </span>
-          </button>
-
-          {/* Saved Phrases Button */}
+          {/* Saved Vault Button */}
           <button
             onClick={() => setIsSavedModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer"
-            title="View saved phrases"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer"
+            title="View saved formal phrase library"
           >
             <Bookmark className="w-3.5 h-3.5 text-amber-600" />
-            <span className="hidden sm:inline">Saved Vault</span>
+            <span className="hidden sm:inline">Saved</span>
             {savedPhrases.length > 0 && (
-              <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">
                 {savedPhrases.length}
               </span>
             )}
           </button>
 
-          {/* Pro Plan / Upgrade Button */}
+          {/* Pro Subscription Button */}
           {isPro ? (
             <button
               type="button"
               onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-bold border border-emerald-200 shadow-2xs transition-colors cursor-pointer"
-              title="Manage Pro membership or cancel debit order"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-extrabold border border-emerald-200 shadow-2xs transition-colors cursor-pointer"
+              title="Manage Pro membership"
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Pro Active</span>
+              <span className="hidden sm:inline">Pro Active</span>
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-sm hover:shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-90 text-white text-xs font-extrabold shadow-sm transition-all cursor-pointer"
             >
               <Zap className="w-3.5 h-3.5 fill-white" />
-              <span>Upgrade ($20/mo)</span>
+              <span className="hidden sm:inline">Go Pro ($20/mo)</span>
+              <span className="sm:hidden">Pro</span>
             </button>
           )}
 
-          {/* Firebase Google Auth Button */}
+          {/* Auth Button */}
           {currentUser ? (
-            <div className="flex items-center gap-2 pl-1 border-l border-neutral-200">
+            <div className="flex items-center gap-1.5 pl-1 border-l border-neutral-200">
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1.5 p-0.5 rounded-full hover:ring-2 hover:ring-emerald-400 transition-all cursor-pointer"
+                className="flex items-center gap-1 p-0.5 rounded-full hover:ring-2 hover:ring-indigo-400 transition-all cursor-pointer"
                 title="View account profile"
               >
                 {currentUser.photoURL ? (
                   <img
                     src={currentUser.photoURL}
                     alt={currentUser.displayName || 'User'}
-                    className="w-8 h-8 rounded-full border border-emerald-300 shadow-2xs"
+                    className="w-7 h-7 rounded-full border border-indigo-300 shadow-2xs"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-xs">
                     {currentUser.displayName?.[0]?.toUpperCase() || currentUser.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                 )}
               </button>
               <button
                 onClick={() => logout()}
-                className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer"
-                title="Sign out of account"
+                className="p-1 text-neutral-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                title="Sign out"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -712,365 +552,205 @@ export default function App() {
           ) : (
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer"
-              title="Sign in with Google to sync phrases and preferences across devices"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer"
             >
-              <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
+              <UserIcon className="w-3.5 h-3.5 text-indigo-600" />
               <span className="hidden sm:inline">Sign In</span>
             </button>
           )}
+
         </div>
       </header>
 
-      {/* 1. Landing Hero Section */}
-      <LandingHero
-        onStartPracticing={scrollToPractice}
-        onOpenPricing={() => navigate('/pricing')}
-        isPro={isPro}
-        chatCount={chatCount}
-        maxChats={MAX_FREE_CHATS}
+      {/* Trial Banner */}
+      <TrialBanner 
+        trialInfo={trialInfo} 
+        onUpgrade={() => navigate('/pricing')} 
+        onOpenSignIn={() => setIsAuthModalOpen(true)}
       />
 
-      {/* 2. Interactive Live Coach Studio Section */}
-      <section 
-        id="live-coach" 
-        ref={practiceSectionRef} 
-        className="py-12 md:py-16 bg-neutral-900 text-white relative overflow-hidden"
-      >
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
-                <Sparkles className="w-3.5 h-3.5" />
-                Live AI Studio
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Practice Your English Now
-              </h2>
-            </div>
-
-            {/* Chat Limit Tracker & Pro Status */}
-            <div className="flex items-center gap-3">
-              {isPro ? (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  Pro Active
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-neutral-800 text-neutral-300 text-xs font-medium border border-neutral-700">
-                  <span className="text-neutral-400">Free Chats:</span>
-                  <span className={`font-bold ${chatCount >= MAX_FREE_CHATS ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {chatCount} / {MAX_FREE_CHATS}
-                  </span>
-                  {chatCount >= MAX_FREE_CHATS && (
-                    <button
-                      onClick={() => navigate('/pricing')}
-                      className="ml-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
-                    >
-                      Upgrade $20/mo
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Native Language Dropdown */}
-              <div className="flex items-center gap-1.5 bg-neutral-800 rounded-xl px-3 py-1.5 border border-neutral-700 text-xs">
-                <Languages className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <select 
-                  value={nativeLanguage}
-                  onChange={(e) => setNativeLanguage(e.target.value as NativeLanguage)}
-                  className="bg-transparent text-white font-medium focus:outline-none cursor-pointer"
-                  title="Your native language for translation insights"
-                >
-                  {SUPPORTED_LANGUAGES.map(lang => (
-                    <option key={lang.name} value={lang.name} className="bg-neutral-800 text-white">
-                      {lang.flag} {lang.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Industry Dropdown */}
-              <div className="flex items-center gap-1.5 bg-neutral-800 rounded-xl px-3 py-1.5 border border-neutral-700 text-xs">
-                <Globe className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-                <select 
-                  value={jobType}
-                  onChange={(e) => setJobType(e.target.value as JobType)}
-                  className="bg-transparent text-white font-medium focus:outline-none cursor-pointer"
-                >
-                  {JOB_TYPES.map(type => (
-                    <option key={type} value={type} className="bg-neutral-800 text-white">{type} Field</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Coach Studio Card Frame */}
-          <div className={`bg-neutral-950 rounded-3xl border shadow-2xl overflow-hidden flex flex-col h-[80vh] min-h-[480px] max-h-[640px] sm:h-[640px] transition-colors duration-200 ${isGrabHandleActive ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' : 'border-neutral-800'}`}>
-            {/* Mobile Grab Handle Indicator */}
-            <div 
-              className="w-full flex justify-center pt-3 pb-1 bg-neutral-900/90 sm:hidden shrink-0 touch-none"
-              onTouchStart={() => setIsGrabHandleActive(true)}
-              onTouchEnd={() => setIsGrabHandleActive(false)}
-              onTouchCancel={() => setIsGrabHandleActive(false)}
-            >
-              <div className={`w-10 h-1.5 rounded-full transition-colors duration-200 ${isGrabHandleActive ? 'bg-emerald-500/80' : 'bg-neutral-700'}`}></div>
-            </div>
-
-            {/* Modes Navigation Bar */}
-            <div className="bg-neutral-900/90 px-4 pb-3 sm:py-3 border-b border-neutral-800 shrink-0 overflow-x-auto no-scrollbar">
-              <div className="flex gap-2 min-w-max">
-                <button
-                  onClick={() => setMode('general')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${mode === 'general' ? 'bg-emerald-600 text-white' : 'bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700'}`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" /> General Practice
-                </button>
-                <button
-                  onClick={() => setMode('email')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${mode === 'email' ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700'}`}
-                >
-                  <Mail className="w-3.5 h-3.5" /> Fix Email
-                </button>
-                <button
-                  onClick={() => setMode('interview')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${mode === 'interview' ? 'bg-purple-600 text-white' : 'bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700'}`}
-                >
-                  <Users className="w-3.5 h-3.5" /> Mock Interview
-                </button>
-                <button
-                  onClick={() => setMode('cv')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${mode === 'cv' ? 'bg-amber-600 text-white' : 'bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700'}`}
-                >
-                  <FileText className="w-3.5 h-3.5" /> Boost CV
-                </button>
-              </div>
-            </div>
-
-            {/* Chat Conversation Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-5 text-neutral-900 bg-neutral-900/40">
-              <AnimatePresence initial={false}>
-                {messages.map((msg) => (
-                  <motion.div 
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'} max-w-[92%] ${msg.type === 'user' ? 'ml-auto' : 'mr-auto'}`}
-                  >
-                    {msg.type === 'user' ? (
-                      <div className="bg-emerald-600 text-white px-5 py-3 rounded-2xl rounded-tr-sm text-[15px] leading-relaxed shadow-sm font-medium">
-                        {msg.content}
-                      </div>
-                    ) : msg.type === 'error' ? (
-                      <div className="bg-red-950/80 text-red-300 px-5 py-3 rounded-2xl rounded-tl-sm text-[15px] leading-relaxed border border-red-800/80 flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
-                        {msg.content}
-                      </div>
-                    ) : msg.coachData ? (
-                      <div className="w-full sm:w-[500px] md:w-[600px] lg:w-[680px]">
-                        <CoachResultCard 
-                          data={msg.coachData} 
-                          onSave={handleSavePhrase}
-                          isSaved={savedPhrases.some(p => p.professional === msg.coachData?.professional)}
-                          onSendToChat={handleOpenSendToChat}
-                          onOpenFlashcards={handleOpenFlashcards}
-                        />
-                      </div>
-                    ) : (
-                      <AssistantMessageBubble content={msg.content} />
-                    )}
-                  </motion.div>
-                ))}
-                {isLoading && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 8 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    exit={{ opacity: 0, y: -4 }}
-                    className="flex items-start max-w-[90%] mr-auto"
-                  >
-                    <div className="bg-neutral-800/90 text-neutral-200 border border-neutral-700/80 px-5 py-3.5 rounded-2xl rounded-tl-sm shadow-md flex items-center gap-3.5">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-4 h-4 animate-pulse" />
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-sm text-neutral-300">Coach is thinking</span>
-                        <div className="flex items-center gap-1.5 pt-0.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '900ms' }} />
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '180ms', animationDuration: '900ms' }} />
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '360ms', animationDuration: '900ms' }} />
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Chat Limit Reached Inline Notification */}
-              {isLimitReached && (
-                <div className="bg-gradient-to-r from-neutral-800 to-neutral-900 border border-emerald-500/40 p-5 rounded-2xl text-center flex flex-col items-center justify-center my-2">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-white text-base">You've reached the 20 free chats limit</h4>
-                  <p className="text-xs text-neutral-400 max-w-md mt-1 mb-3">
-                    Unlock 1000 AI coaching sessions, voice-to-text dictation, and pronunciation audio for just $20/month.
-                  </p>
-                  <button
-                    onClick={() => navigate('/pricing')}
-                    className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all"
-                  >
-                    <Zap className="w-3.5 h-3.5 fill-current" />
-                    Unlock Pro ($20/mo)
-                  </button>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} className="h-2" />
-            </div>
-
-            {/* Input Form Bar */}
-            <div className="bg-neutral-900 border-t border-neutral-800 p-3 sm:p-4 shrink-0">
-              <form onSubmit={handleSubmit} className="relative flex items-center">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={
-                    isLimitReached 
-                      ? "Limit reached — upgrade to Pro for $20/month..."
-                      : mode === 'email' ? "Type an email (e.g., 'sorry for late reply i had bug')..." :
-                      mode === 'interview' ? "Type an answer (e.g., 'my weakness is i work too hard')..." :
-                      mode === 'cv' ? "Type what you did (e.g., 'i made website for shop')..." :
-                      "Type what you want to say in English..."
-                  }
-                  className={`w-full min-h-[56px] sm:min-h-[52px] bg-neutral-950 border ${isLimitReached ? 'border-amber-500/40 text-neutral-400' : 'border-neutral-800 text-white'} rounded-2xl pl-4 sm:pl-5 pr-[116px] sm:pr-[104px] py-4 text-[15px] placeholder:text-neutral-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all`}
-                  disabled={isLoading || isLimitReached}
-                />
-                <div className="absolute right-1.5 sm:right-2 flex items-center gap-1.5">
-                  {isSpeechSupported && (
-                    <button
-                      type="button"
-                      onClick={toggleListening}
-                      disabled={isLoading || isLimitReached}
-                      className={`w-12 h-12 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center rounded-xl transition-colors ${
-                        isListening 
-                          ? 'bg-red-500 text-white' 
-                          : 'bg-transparent text-neutral-400 hover:bg-neutral-800 hover:text-white'
-                      }`}
-                      title={isListening ? "Stop listening" : "Start voice typing"}
-                    >
-                      {isListening ? (
-                        <span className="relative flex h-5 w-5 sm:h-4 sm:w-4 items-center justify-center">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75"></span>
-                          <Mic className="relative inline-flex w-5 h-5 sm:w-4 sm:h-4" />
-                        </span>
-                      ) : (
-                        <Mic className="w-5 h-5 sm:w-4 sm:h-4" />
-                      )}
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={(!input.trim() && !isLimitReached) || isLoading}
-                    className={`w-12 h-12 sm:w-10 sm:h-10 shrink-0 ${isLimitReached ? 'bg-emerald-500 text-neutral-950 hover:bg-emerald-400' : 'bg-emerald-600 hover:bg-emerald-500 text-white'} disabled:bg-neutral-800 disabled:text-neutral-600 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-colors shadow-sm cursor-pointer`}
-                    title={isLimitReached ? "Upgrade to Pro" : "Send message"}
-                  >
-                    {isLimitReached ? (
-                      <Zap className="w-5 h-5 sm:w-4 sm:h-4 fill-current" />
-                    ) : (
-                      <Send className="w-5 h-5 sm:w-4 sm:h-4 ml-0.5" />
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              <div className="flex items-center justify-between text-xs text-neutral-400 mt-2 px-1">
-                <span>
-                  {isPro 
-                    ? '✨ Pro Plan: 1000 Coaching Sessions/mo' 
-                    : `Sessions remaining: ${Math.max(0, MAX_FREE_CHATS - chatCount)} of ${MAX_FREE_CHATS}`}
-                </span>
-                <span className="hidden sm:inline">Press Enter ↵ to send</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2.5 Grammar Analytics Dashboard (D3.js Visualization) */}
-      <section className="py-10 bg-neutral-900/40 border-y border-neutral-800/80">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2 border border-emerald-500/20">
-                <Sparkles className="w-3.5 h-3.5" />
-                D3.js Grammar Intelligence
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                Your Grammar & Error Analytics Over Time
-              </h3>
-              <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-                Visualizing common speech habits, verb agreement, prepositions, and tone patterns based on your saved library.
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsSavedModalOpen(true)}
-                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-xl text-xs font-semibold flex items-center gap-2 border border-neutral-700 transition-colors cursor-pointer"
-              >
-                <Bookmark className="w-3.5 h-3.5 text-amber-400" />
-                <span>Open Saved Library ({savedPhrases.length})</span>
-              </button>
-            </div>
-          </div>
-
-          <GrammarAnalyticsDashboard
-            savedPhrases={savedPhrases}
-            selectedCategory={selectedAnalyticsCategory}
-            onSelectCategory={setSelectedAnalyticsCategory}
+      {/* Main Dynamic View Content */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+        {activeTab === 'dashboard' && (
+          <TalkPalDashboard
+            profile={userProfileObj}
+            onNavigate={(tab) => setActiveTab(tab as any)}
+            onOpenOnboarding={() => setIsOnboardingOpen(true)}
+            onOpenPricing={() => navigate('/pricing')}
           />
-        </div>
-      </section>
+        )}
 
-      {/* 3. How It Works Section */}
-      <HowItWorksSection />
+        {activeTab === 'chat' && (
+          trialInfo.canAccess ? (
+            <TalkPalChatTutor
+              nativeLanguage={nativeLanguage}
+              englishLevel={englishLevel}
+              onSavePhrase={handleSavePhrase}
+              isPro={isPro}
+              onOpenPricing={() => navigate('/pricing')}
+              onAddXP={handleAddXP}
+            />
+          ) : (
+            <PaywallOverlay
+              featureName="AI Chat Tutor"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
+        )}
 
-      {/* 4. Features & Scenarios Section */}
-      <FeaturesSection />
+        {activeTab === 'roleplays' && (
+          trialInfo.canAccess ? (
+            <TalkPalRoleplays
+              nativeLanguage={nativeLanguage}
+              englishLevel={englishLevel}
+              onAddXP={handleAddXP}
+              isPro={isPro}
+              onOpenPricing={() => navigate('/pricing')}
+            />
+          ) : (
+            <PaywallOverlay
+              featureName="Workplace & Career Roleplays"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
+        )}
 
-      {/* 5. Pricing Section ($20/month) */}
-      <PricingSection
-        onSelectPro={() => navigate('/pricing')}
-        isPro={isPro}
-        chatCount={chatCount}
-        maxChats={MAX_FREE_CHATS}
-      />
+        {activeTab === 'call' && (
+          trialInfo.canAccess ? (
+            <TalkPalCallMode
+              nativeLanguage={nativeLanguage}
+              englishLevel={englishLevel}
+              onAddXP={handleAddXP}
+              isPro={isPro}
+              onOpenPricing={() => navigate('/pricing')}
+            />
+          ) : (
+            <PaywallOverlay
+              featureName="Simulated Voice Call Coach"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
+        )}
 
-      {/* 6. FAQ Section */}
-      <FAQSection />
+        {activeTab === 'flashcards' && (
+          trialInfo.canAccess ? (
+            <div className="bg-neutral-900 rounded-3xl p-4 sm:p-6 shadow-xl overflow-hidden">
+              <FlashcardsPracticeHub
+                savedPhrases={savedPhrases}
+                nativeLanguage={nativeLanguage}
+                onLanguageChange={setNativeLanguage}
+                onSavePhrase={handleSavePhrase}
+                onSendToChat={handleOpenSendToChat}
+                onOpenSavedModal={() => setIsSavedModalOpen(true)}
+                onOpenPricing={() => navigate('/pricing')}
+                selectedDeckId={flashcardDeckId}
+                onSelectDeckId={(id) => setFlashcardDeckId(id)}
+                isPro={isPro}
+              />
+            </div>
+          ) : (
+            <PaywallOverlay
+              featureName="Sentence Cards & Spaced Repetition"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
+        )}
 
-      {/* 7. Support & Helpdesk Section (ProEnglishAICoach@protonmail.com) */}
-      <SupportSection
-        userEmail={currentUser?.email || undefined}
-        onOpenPricing={() => navigate('/pricing')}
-      />
+        {activeTab === 'analytics' && (
+          trialInfo.canAccess ? (
+            <div className="bg-neutral-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl space-y-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2 border border-emerald-500/20">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  D3.js Grammar Intelligence
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                  Your Grammar & Formal Error Analytics Over Time
+                </h3>
+                <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+                  Visualizing speech habits, modal verbs, verb agreement, prepositions, and tone patterns based on your saved phrase library.
+                </p>
+              </div>
 
-      {/* 8. Footer */}
-      <LandingFooter
-        onStartPracticing={scrollToPractice}
-        onOpenPricing={() => navigate('/pricing')}
-        onOpenSupport={() => {
-          const el = document.getElementById('support');
-          el?.scrollIntoView({ behavior: 'smooth' });
-        }}
-      />
+              <GrammarAnalyticsDashboard
+                savedPhrases={savedPhrases}
+                selectedCategory={selectedAnalyticsCategory}
+                onSelectCategory={setSelectedAnalyticsCategory}
+              />
+            </div>
+          ) : (
+            <PaywallOverlay
+              featureName="Grammar Analytics Intelligence"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
+        )}
+      </main>
 
-      {/* Modals */}
+      {/* Support and FAQ Section on Dashboard */}
+      {activeTab === 'dashboard' && (
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-12">
+          <HowItWorksSection />
+          <FeaturesSection />
+          <FAQSection />
+          <SupportSection
+            userEmail={currentUser?.email || undefined}
+            onOpenPricing={() => navigate('/pricing')}
+          />
+          <LandingFooter
+            onStartPracticing={() => setActiveTab('chat')}
+            onOpenPricing={() => navigate('/pricing')}
+            onOpenSupport={() => {
+              const el = document.getElementById('support');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
+        </section>
+      )}
+
+      {/* Mobile Bottom Navigation Bar (TalkPal Style) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-neutral-200 px-2 py-2 flex items-center justify-around shadow-lg">
+        {[
+          { id: 'dashboard', label: 'Home', icon: <Home className="w-5 h-5" /> },
+          { id: 'chat', label: 'Chat', icon: <MessageSquare className="w-5 h-5" /> },
+          { id: 'roleplays', label: 'Roleplay', icon: <Briefcase className="w-5 h-5" /> },
+          { id: 'call', label: 'Call', icon: <Phone className="w-5 h-5" /> },
+          { id: 'flashcards', label: 'Cards', icon: <Layers className="w-5 h-5" /> }
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all cursor-pointer ${
+                isActive ? 'text-indigo-600 font-extrabold' : 'text-neutral-400 hover:text-neutral-700'
+              }`}
+            >
+              <div className={`p-1 rounded-xl transition-all ${isActive ? 'bg-indigo-50 text-indigo-600 scale-110' : ''}`}>
+                {tab.icon}
+              </div>
+              <span className="text-[10px] mt-0.5 font-bold tracking-tight">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* TalkPal Onboarding Wizard Modal */}
+      {isOnboardingOpen && (
+        <TalkPalOnboarding
+          initialLanguage={nativeLanguage}
+          onComplete={handleCompleteOnboarding}
+          onClose={() => setIsOnboardingOpen(false)}
+        />
+      )}
+
+      {/* Flashcards Modal */}
       <FlashcardsModal
         isOpen={isFlashcardsModalOpen}
         onClose={() => setIsFlashcardsModalOpen(false)}
@@ -1080,6 +760,7 @@ export default function App() {
         initialDeckId={flashcardDeckId}
       />
 
+      {/* Saved Phrases Vault Modal */}
       <SavedPhrasesModal
         isOpen={isSavedModalOpen}
         onClose={() => setIsSavedModalOpen(false)}
@@ -1089,13 +770,18 @@ export default function App() {
         onOpenFlashcards={handleOpenFlashcards}
       />
 
+      {/* Google Chat Modal */}
       <GoogleChatModal
         isOpen={isChatModalOpen}
         onClose={() => setIsChatModalOpen(false)}
         initialTextToSend={chatInitialText}
-        onSelectForCoaching={handleSelectChatForCoaching}
+        onSelectForCoaching={(text) => {
+          setIsChatModalOpen(false);
+          setActiveTab('chat');
+        }}
       />
 
+      {/* Auth & Subscription Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
@@ -1103,9 +789,11 @@ export default function App() {
         isPro={isPro}
         savedPhrasesCount={savedPhrases.length}
         nativeLanguage={nativeLanguage}
+        trialInfo={trialInfo}
         onCancelSubscription={handleCancelSubscription}
         onOpenPaymentModal={() => navigate('/pricing')}
       />
+
     </div>
   );
 }

@@ -98,6 +98,42 @@ export function incrementReviewedCount(user: User | null): void {
   }
 }
 
+export function loadQuizMistakes(user: User | null): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(getStorageKey(user, 'quiz_mistakes'));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveQuizMistakes(user: User | null, mistakeCardIds: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(getStorageKey(user, 'quiz_mistakes'), JSON.stringify(mistakeCardIds));
+  } catch (e) {
+    console.error('Failed to save quiz mistakes:', e);
+  }
+}
+
+export function recordQuizMistake(user: User | null, cardId: string): string[] {
+  const current = loadQuizMistakes(user);
+  if (!current.includes(cardId)) {
+    const updated = [...current, cardId];
+    saveQuizMistakes(user, updated);
+    return updated;
+  }
+  return current;
+}
+
+export function removeQuizMistake(user: User | null, cardId: string): string[] {
+  const current = loadQuizMistakes(user);
+  const updated = current.filter((id) => id !== cardId);
+  saveQuizMistakes(user, updated);
+  return updated;
+}
+
 /**
  * Combines preset decks, saved vault cards, and custom cards into a unified deck list with accurate mastery states.
  */

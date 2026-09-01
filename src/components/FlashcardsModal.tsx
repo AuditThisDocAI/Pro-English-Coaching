@@ -683,12 +683,29 @@ export function FlashcardsModal({
                             </div>
 
                             {/* Native Translation if available */}
-                            {currentCard && getFlashcardTranslation(currentCard, nativeLanguage) && (
-                              <div className="mt-2.5 p-2.5 rounded-xl bg-neutral-100/80 text-[11px] text-neutral-600 flex items-center gap-2">
-                                <Languages className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                <span className="font-medium">
-                                  {getFlashcardTranslation(currentCard, nativeLanguage)}
-                                </span>
+                            {currentCard && (
+                              <div className="mt-2.5 p-2.5 rounded-xl bg-white/95 border border-emerald-100 text-xs text-neutral-800 shadow-2xs" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                  <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-[10px] uppercase tracking-wider">
+                                    <Languages className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>{nativeLanguage} Translation:</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const text = getFlashcardTranslation(currentCard, nativeLanguage);
+                                      if (text) navigator.clipboard.writeText(text);
+                                    }}
+                                    className="text-neutral-400 hover:text-neutral-700 p-0.5 rounded transition-colors cursor-pointer"
+                                    title={`Copy ${nativeLanguage} translation`}
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                <p className="font-semibold text-neutral-800 text-xs leading-relaxed">
+                                  {getFlashcardTranslation(currentCard, nativeLanguage) || 'Translation available in interactive session.'}
+                                </p>
                               </div>
                             )}
                           </div>

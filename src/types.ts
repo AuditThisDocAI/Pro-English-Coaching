@@ -56,7 +56,7 @@ export interface Message {
 
 export interface SavedPhrase {
   id: string;
-  userId: string;
+  userId?: string;
   mode?: string;
   jobType?: string;
   original: string;
@@ -64,7 +64,8 @@ export interface SavedPhrase {
   translation?: string;
   why?: string;
   practice?: string;
-  createdAt: string;
+  createdAt?: string;
+  timestamp?: string;
 }
 
 export interface UserProfile {
@@ -72,26 +73,110 @@ export interface UserProfile {
   email: string;
   displayName?: string;
   preferredJobType?: string;
+  nativeLanguage?: string;
+  jobType?: string;
+  isPro?: boolean;
+  trialStartDate?: string;
+  englishLevel?: EnglishCEFRLevel;
+  learningGoal?: EnglishGoal;
+  dailyGoalMinutes?: number;
+  onboardingCompleted?: boolean;
+  xpPoints?: number;
+  streakDays?: number;
+  lastActiveDate?: string;
   createdAt: string;
   updatedAt: string;
 }
 
+export type EnglishCEFRLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+
+export interface CEFRLevelInfo {
+  level: EnglishCEFRLevel;
+  title: string;
+  subtitle: string;
+  description: string;
+  badgeColor: string;
+}
+
+export type EnglishGoal = 
+  | 'workplace_formal'
+  | 'interview_career'
+  | 'daily_polite'
+  | 'grammar_etiquette';
+
+export interface RoleplayObjective {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface RoleplayScenario {
+  id: string;
+  title: string;
+  category: 'workplace' | 'interview' | 'daily_formal';
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  partnerName: string;
+  partnerRole: string;
+  partnerAvatar: string;
+  partnerGender?: 'female' | 'male';
+  description: string;
+  initialMessage: string;
+  objectives: RoleplayObjective[];
+  starterSuggestions: string[];
+}
+
+export interface ChatTutorMessage {
+  id: string;
+  sender: 'user' | 'tutor';
+  text: string;
+  translation?: string;
+  formalCorrection?: {
+    original: string;
+    formalAlternative: string;
+    why: string;
+    grammarTag?: string;
+  };
+  suggestions?: string[];
+  audioPlaying?: boolean;
+  timestamp: string;
+}
+
 export type FlashcardMastery = 'new' | 'learning' | 'mastered';
+
+export interface FlashcardOption {
+  text: string;
+  isCorrect: boolean;
+  explanation?: string;
+}
 
 export interface Flashcard {
   id: string;
   deckId?: string;
   category: string;
-  front: string; // The casual thought, prompt, or scenario
-  frontContext?: string; // E.g. "Polite Pushback", "Interview Answer", "Email Sign-off"
-  backProfessional: string; // Polished executive English
+  front: string; // The casual thought, question, or scenario prompt
+  frontContext?: string; // E.g. "Polite Pushback", "Interview Answer", "Manager Update"
+  backProfessional: string; // Polished executive / professional English
   backWhy: string; // Linguistic reasoning & executive etiquette
   backTranslation?: Record<string, string> | string;
-  backPractice?: string; // Follow-up drill
+  backPractice?: string; // Follow-up drill or conversational prompt
+  options?: FlashcardOption[]; // Structured multiple choice options (A, B, C)
+  grammarNote?: string; // Educational grammar/etiquette booster
+  level?: 'Beginner' | 'Intermediate' | 'Advanced';
+  tier?: 'free' | 'pro'; // Free trial (20 cards) vs Pro (100+ cards)
   mastery?: FlashcardMastery;
   reviewCount?: number;
   lastReviewedAt?: string;
   isCustom?: boolean;
+}
+
+export interface QuizHistoryEntry {
+  id: string;
+  deckId: string;
+  deckTitle: string;
+  score: number;
+  total: number;
+  date: string;
+  mistakeCardIds?: string[];
 }
 
 export interface FlashcardDeck {

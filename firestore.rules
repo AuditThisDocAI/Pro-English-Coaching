@@ -26,6 +26,7 @@ service cloud.firestore {
              (!('jobType' in data) || (data.jobType is string && data.jobType.size() <= 64)) &&
              (!('preferredJobType' in data) || (data.preferredJobType is string && data.preferredJobType.size() <= 64)) &&
              (!('isPro' in data) || data.isPro is bool) &&
+             (!('trialStartDate' in data) || (data.trialStartDate is string && data.trialStartDate.size() <= 64)) &&
              (!('chatCount' in data) || data.chatCount is number) &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));

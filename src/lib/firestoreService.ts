@@ -35,7 +35,14 @@ export async function syncUserProfile(userId: string, data: {
   nativeLanguage?: string;
   jobType?: string;
   isPro?: boolean;
+  trialStartDate?: string;
   chatCount?: number;
+  englishLevel?: string;
+  learningGoal?: string;
+  dailyGoalMinutes?: number;
+  xpPoints?: number;
+  streakDays?: number;
+  onboardingCompleted?: boolean;
 }) {
   if (!userId) return;
   const path = `users/${userId}`;
@@ -50,7 +57,14 @@ export async function syncUserProfile(userId: string, data: {
     if (data.nativeLanguage !== undefined) payload.nativeLanguage = data.nativeLanguage;
     if (data.jobType !== undefined) payload.jobType = data.jobType;
     if (data.isPro !== undefined) payload.isPro = data.isPro;
+    if (data.trialStartDate !== undefined) payload.trialStartDate = data.trialStartDate;
     if (data.chatCount !== undefined) payload.chatCount = data.chatCount;
+    if (data.englishLevel !== undefined) payload.englishLevel = data.englishLevel;
+    if (data.learningGoal !== undefined) payload.learningGoal = data.learningGoal;
+    if (data.dailyGoalMinutes !== undefined) payload.dailyGoalMinutes = data.dailyGoalMinutes;
+    if (data.xpPoints !== undefined) payload.xpPoints = data.xpPoints;
+    if (data.streakDays !== undefined) payload.streakDays = data.streakDays;
+    if (data.onboardingCompleted !== undefined) payload.onboardingCompleted = data.onboardingCompleted;
 
     await setDoc(userDocRef, payload, { merge: true });
   } catch (error) {

@@ -159,7 +159,7 @@ export const TermsPage: React.FC = () => {
             </p>
             <ul className="list-disc pl-5 mt-2 space-y-2 text-neutral-600">
               <li>
-                <strong>7-Day Free Trial:</strong> All paid plans include a 7-day free trial. You will not be charged if you cancel before the end of the 7-day trial period.
+                <strong>3-Day Free Trial:</strong> All paid plans include a 3-day free trial. You will not be charged if you cancel before the end of the 3-day trial period.
               </li>
               <li>
                 <strong>Merchant of Record:</strong> Our order process is conducted by our online reseller <strong>Freemius</strong>. Freemius is the Merchant of Record for all our orders. Freemius provides order processing, payment verification, invoicing, and customer service inquiries.
@@ -316,7 +316,7 @@ export const RefundPage: React.FC = () => {
       <div className="max-w-3xl mx-auto bg-white p-8 sm:p-12 rounded-3xl border border-neutral-200 shadow-sm">
         <LegalHeader
           title="Refund & Cancellation Policy"
-          subtitle="Last updated: August 20, 2026 • 7-Day Trial + 14-Day Guarantee"
+          subtitle="Last updated: August 20, 2026 • 3-Day Trial + 14-Day Guarantee"
           icon={<RefreshCw className="w-6 h-6" />}
           iconBg="bg-amber-100"
           iconColor="text-amber-700"
@@ -326,14 +326,14 @@ export const RefundPage: React.FC = () => {
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div className="text-xs leading-relaxed">
-              <strong className="font-bold">Our Guarantee:</strong> Try ProEnglish AI Coach risk-free with our <strong>7-day free trial</strong> and <strong>14-day money-back guarantee</strong> on all Pro subscriptions.
+              <strong className="font-bold">Our Guarantee:</strong> Try ProEnglish AI Coach risk-free with our <strong>3-day free trial</strong> and <strong>14-day money-back guarantee</strong> on all Pro subscriptions.
             </div>
           </div>
 
           <section>
-            <h2 className="text-base font-bold text-neutral-900 mb-2">1. 7-Day Free Trial Period</h2>
+            <h2 className="text-base font-bold text-neutral-900 mb-2">1. 3-Day Free Trial Period</h2>
             <p>
-              When you enroll in any paid subscription plan, your first 7 days are completely free. You can practice up to 1000 monthly coaching sessions, email rewrites, and pronunciation checks. If you cancel at any time during the first 7 days, your card will not be charged.
+              When you enroll in any paid subscription plan, your first 3 days are completely free. You can practice up to 1000 monthly coaching sessions, email rewrites, and pronunciation checks. If you cancel at any time during the first 3 days, your card will not be charged.
             </p>
           </section>
 

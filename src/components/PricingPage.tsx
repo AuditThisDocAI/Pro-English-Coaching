@@ -26,7 +26,7 @@ export const TIERS: Tier[] = [
       'All 8 industry-specific AI modes',
       'Unlimited saved phrase vault',
       'Google Chat & Workspace webhook export',
-      '7-day free trial included',
+      '3-day free trial included',
     ],
     highlight: true,
     price: '$19.99',
@@ -97,10 +97,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
               onSuccess();
             }
 
-            navigate('/welcome?tier=pro&trial=7day');
+            navigate('/welcome?tier=pro&trial=3day');
           } catch (syncErr) {
             console.error('Failed to sync profile after successful checkout:', syncErr);
-            navigate('/welcome?tier=pro&trial=7day');
+            navigate('/welcome?tier=pro&trial=3day');
           }
         },
         cancel: () => {
@@ -146,7 +146,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold mb-4 border border-emerald-200/60">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Risk-Free 7-Day Trial on Pro Plan</span>
+            <span>Risk-Free 3-Day Trial on Pro Plan</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
             Predictable, transparent coaching plans
@@ -206,12 +206,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
                   </div>
 
                   <div className="mt-1 text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> 7 days free, then {tier.price}/month
+                    <Check className="w-3.5 h-3.5" /> 3 days free, then {tier.price}/month
                   </div>
 
                   {/* Checkout Action Button */}
                   <button
-                    id="freemius-7day-trial-btn"
+                    id="freemius-3day-trial-btn"
                     type="button"
                     disabled={isOpeningCheckout}
                     onClick={() => handleSubscribe(tier)}
@@ -225,7 +225,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
                     ) : (
                       <>
                         <Zap className="w-3.5 h-3.5 fill-white" />
-                        <span>Start Your 7-Day Free Trial</span>
+                        <span>Start Your 3-Day Free Trial</span>
                         <span>→</span>
                       </>
                     )}
@@ -260,9 +260,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
             <div className="w-10 h-10 mx-auto rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
               <Shield className="w-5 h-5" />
             </div>
-            <h4 className="text-sm font-bold text-neutral-900">7-Day Free Trial</h4>
+            <h4 className="text-sm font-bold text-neutral-900">3-Day Free Trial</h4>
             <p className="mt-1 text-xs text-neutral-500">
-              Practice full features with zero risk. You won't be charged if you cancel within 7 days.
+              Practice full features with zero risk. You won't be charged if you cancel within 3 days.
             </p>
           </div>
 

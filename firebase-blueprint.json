@@ -82,6 +82,11 @@
           "type": "boolean",
           "description": "Whether the user has upgraded to Pro"
         },
+        "trialStartDate": {
+          "type": "string",
+          "description": "ISO timestamp of 3-day free trial start",
+          "maxLength": 64
+        },
         "updatedAt": {
           "type": "string",
           "description": "Timestamp of last update",

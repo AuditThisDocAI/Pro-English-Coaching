@@ -11,7 +11,7 @@ export function useTTS() {
     return unsubscribe;
   }, []);
 
-  const speak = useCallback((text: string, options?: { rate?: number; pitch?: number; lang?: string }) => {
+  const speak = useCallback((text: string, options?: { rate?: number; pitch?: number; lang?: string; gender?: 'female' | 'male'; voiceName?: string; onStart?: () => void; onEnd?: () => void; onError?: (err: any) => void }) => {
     tts.speak(text, options);
   }, []);
 

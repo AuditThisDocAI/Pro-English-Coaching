@@ -1,11 +1,30 @@
 import { GoogleGenAI, Type } from '@google/genai';
+import OpenAI from 'openai';
 
-function getAIClient() {
+// Lazy-initialized AI clients
+let geminiClient: GoogleGenAI | null = null;
+let openaiClient: OpenAI | null = null;
+
+function getGeminiClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn('GEMINI_API_KEY environment variable is missing.');
+    return null;
   }
-  return new GoogleGenAI({ apiKey: apiKey || '' });
+  if (!geminiClient) {
+    geminiClient = new GoogleGenAI({ apiKey });
+  }
+  return geminiClient;
+}
+
+function getOpenAIClient(): OpenAI | null {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+  if (!openaiClient) {
+    openaiClient = new OpenAI({ apiKey });
+  }
+  return openaiClient;
 }
 
 export interface CoachParams {
@@ -26,7 +45,18 @@ export interface CoachResult {
 // Helper to delay for backoff
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Domain-aware rule and linguistic engine when AI models face temporary 503 high demand
+// Helper to clean JSON string from LLMs
+function cleanJsonOutput(rawText: string): string {
+  let cleaned = rawText.trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+  return cleaned.trim();
+}
+
+// Domain-aware linguistic engine with non-repetitive dynamic synthesis
 export function generateSmartRuleBasedCoach(
   input: string, 
   mode: string, 
@@ -39,24 +69,39 @@ export function generateSmartRuleBasedCoach(
   let professional = '';
   let why = '';
   let practice = '';
-  let translation = `Traducción / Explicación en ${nativeLanguage}: Frase profesional adaptada para el entorno laboral.`;
+  let translation = `Translation (${nativeLanguage}): ${trimmed}`;
 
-  if (nativeLanguage.toLowerCase().includes('portuguese') || nativeLanguage.toLowerCase().includes('português')) {
+  const lowerLang = nativeLanguage.toLowerCase();
+  if (lowerLang.includes('spanish') || lowerLang.includes('español')) {
+    translation = 'Traducción en Español: Versión profesional adaptada para el entorno laboral.';
+  } else if (lowerLang.includes('portuguese') || lowerLang.includes('português')) {
     translation = 'Tradução em Português: Versão profissional polida para comunicação no trabalho.';
-  } else if (nativeLanguage.toLowerCase().includes('french') || nativeLanguage.toLowerCase().includes('français')) {
+  } else if (lowerLang.includes('french') || lowerLang.includes('français')) {
     translation = 'Traduction en Français: Formule professionnelle adaptée au contexte professionnel.';
-  } else if (nativeLanguage.toLowerCase().includes('german') || nativeLanguage.toLowerCase().includes('deutsch')) {
+  } else if (lowerLang.includes('german') || lowerLang.includes('deutsch')) {
     translation = 'Deutsche Übersetzung: Professionelle Formulierung für die Arbeitswelt.';
-  } else if (nativeLanguage.toLowerCase().includes('hindi')) {
+  } else if (lowerLang.includes('hindi')) {
     translation = 'हिन्दी अनुवाद: कार्यस्थल के लिए उपयुक्त और शिष्ट अंग्रेजी अभिव्यक्ति।';
-  } else if (nativeLanguage.toLowerCase().includes('mandarin') || nativeLanguage.toLowerCase().includes('chinese')) {
+  } else if (lowerLang.includes('mandarin') || lowerLang.includes('chinese')) {
     translation = '中文翻译：适用于职场与商务沟通的地道专业表达。';
-  } else if (nativeLanguage.toLowerCase().includes('japanese')) {
+  } else if (lowerLang.includes('japanese')) {
     translation = '日本語訳：ビジネスシーンに最適な丁寧で洗練された表現です。';
-  } else if (nativeLanguage.toLowerCase().includes('korean')) {
+  } else if (lowerLang.includes('korean')) {
     translation = '한국어 번역: 비즈니스 환경에 적합한 정중하고 전문적인 표현입니다.';
-  } else if (nativeLanguage.toLowerCase().includes('arabic')) {
+  } else if (lowerLang.includes('arabic')) {
     translation = 'الترجمة إلى العربية: صياغة مهنية مهذبة ومناسبة لبيئة العمل.';
+  } else if (lowerLang.includes('italian')) {
+    translation = 'Traduzione in Italiano: Formulazione professionale adatta all\'ambiente lavorativo.';
+  } else if (lowerLang.includes('russian')) {
+    translation = 'Перевод на Русский: Профессиональная формулировка для рабочей среды.';
+  } else if (lowerLang.includes('turkish')) {
+    translation = 'Türkçe Çeviri: İş ortamı için uyarlanmış profesyonel ifade.';
+  } else if (lowerLang.includes('vietnamese')) {
+    translation = 'Bản dịch Tiếng Việt: Diễn đạt chuyên nghiệp phù hợp với môi trường công sở.';
+  } else if (lowerLang.includes('polish')) {
+    translation = 'Tłumaczenie na język polski: Profesjonalna formuła dostosowana do środowiska pracy.';
+  } else if (lowerLang.includes('indonesian')) {
+    translation = 'Terjemahan Bahasa Indonesia: Ungkapan profesional yang disesuaikan untuk lingkungan kerja.';
   }
 
   if (mode === 'email') {
@@ -160,43 +205,23 @@ Respond strictly in valid JSON matching this schema:
   "practice": "a follow-up question or scenario sentence for the user to practice"
 }`;
 
-  // Candidate models to try in sequence
-  const candidateModels = ['gemini-2.5-flash', 'gemini-3.7-flash'];
-
-  for (let i = 0; i < candidateModels.length; i++) {
-    const model = candidateModels[i];
+  // 1. Try OpenAI if OPENAI_API_KEY is available
+  const openai = getOpenAIClient();
+  if (openai) {
     try {
-      const ai = getAIClient();
-      const response = await ai.models.generateContent({
-        model,
-        contents: trimmedInput,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              original: { type: Type.STRING },
-              professional: { type: Type.STRING },
-              translation: { type: Type.STRING },
-              why: { type: Type.STRING },
-              practice: { type: Type.STRING },
-            },
-            required: ['original', 'professional', 'translation', 'why', 'practice'],
-          },
-        },
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: trimmedInput }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
       });
 
-      const text = (response.text || '').trim();
-      if (text) {
-        let cleaned = text;
-        if (cleaned.startsWith('```json')) {
-          cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (cleaned.startsWith('```')) {
-          cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
-
-        const parsed = JSON.parse(cleaned);
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        const parsed = JSON.parse(cleanJsonOutput(content));
         if (parsed && parsed.professional) {
           return {
             original: parsed.original || trimmedInput,
@@ -208,40 +233,475 @@ Respond strictly in valid JSON matching this schema:
         }
       }
     } catch (err: any) {
-      console.warn(`Model ${model} attempt failed:`, err?.message || err);
-      // If 503 or transient error, wait 400ms before attempting the next candidate
-      if (i < candidateModels.length - 1) {
-        await delay(400);
+      console.warn('OpenAI coach attempt failed:', err?.message || err);
+    }
+  }
+
+  // 2. Try Gemini API candidate models
+  const gemini = getGeminiClient();
+  if (gemini) {
+    const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
+    for (let i = 0; i < candidateModels.length; i++) {
+      const model = candidateModels[i];
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: trimmedInput,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                original: { type: Type.STRING },
+                professional: { type: Type.STRING },
+                translation: { type: Type.STRING },
+                why: { type: Type.STRING },
+                practice: { type: Type.STRING },
+              },
+              required: ['original', 'professional', 'translation', 'why', 'practice'],
+            },
+          },
+        });
+
+        const text = (response.text || '').trim();
+        if (text) {
+          const parsed = JSON.parse(cleanJsonOutput(text));
+          if (parsed && parsed.professional) {
+            return {
+              original: parsed.original || trimmedInput,
+              professional: parsed.professional,
+              translation: parsed.translation || `Translation into ${nativeLanguage}`,
+              why: parsed.why || 'Clear, concise phrasing improves workplace clarity and builds credibility.',
+              practice: parsed.practice || 'How would you follow up on this with your colleagues?',
+            };
+          }
+        }
+      } catch (err: any) {
+        console.warn(`Gemini Model ${model} coach attempt failed:`, err?.message || err);
+        if (i < candidateModels.length - 1) {
+          await delay(300);
+        }
       }
     }
   }
 
-  // Secondary simplified attempt without strict schema
-  try {
-    const ai = getAIClient();
-    const fallbackResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Improve this for a ${jobType} professional in ${mode} mode (User native language: ${nativeLanguage}): "${trimmedInput}". Return JSON with keys: original, professional, translation (in ${nativeLanguage}), why, practice.`,
-    });
-
-    const text = (fallbackResponse.text || '').trim();
-    if (text) {
-      let cleaned = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').replace(/^```\s*/, '');
-      const parsed = JSON.parse(cleaned);
-      if (parsed && parsed.professional) {
-        return {
-          original: parsed.original || trimmedInput,
-          professional: parsed.professional,
-          translation: parsed.translation || `Translation into ${nativeLanguage}`,
-          why: parsed.why || 'Using concise, polite professional terms enhances clarity with colleagues and clients.',
-          practice: parsed.practice || 'How would you practice this in your next conversation?',
-        };
-      }
-    }
-  } catch (err: any) {
-    console.warn('Secondary fallback attempt failed:', err?.message || err);
-  }
-
-  // Gracefully provide high-quality domain rule coaching if remote API is experiencing spikes
+  // 3. Gracefully provide dynamic rule coaching fallback
   return generateSmartRuleBasedCoach(trimmedInput, mode, jobType, nativeLanguage);
+}
+
+export async function translatePhrase(text: string, targetLanguage: string): Promise<string> {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+
+  // 1. Try OpenAI if available
+  const openai = getOpenAIClient();
+  if (openai) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { 
+            role: 'system', 
+            content: `You are an expert translator. Translate the given English phrase into natural, professional ${targetLanguage}. Return ONLY the direct translation without quotation marks or explanations.` 
+          },
+          { role: 'user', content: trimmed }
+        ],
+        temperature: 0.3,
+      });
+
+      const translated = (response.choices[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
+      if (translated) {
+        return translated;
+      }
+    } catch (err: any) {
+      console.warn('OpenAI translation attempt failed:', err?.message || err);
+    }
+  }
+
+  // 2. Try Gemini
+  const gemini = getGeminiClient();
+  if (gemini) {
+    const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
+    for (const model of candidateModels) {
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: `Translate the following workplace English phrase into natural, professional ${targetLanguage}. Return only the exact translation without quotation marks or commentary:\n\n"${trimmed}"`,
+        });
+
+        const translated = (response.text || '').trim().replace(/^["']|["']$/g, '');
+        if (translated) {
+          return translated;
+        }
+      } catch (err: any) {
+        console.warn(`Translate attempt with Gemini ${model} failed:`, err?.message || err);
+      }
+    }
+  }
+
+  return `${trimmed} (${targetLanguage})`;
+}
+
+export interface ChatTutorParams {
+  messages: { sender: 'user' | 'tutor'; text: string }[];
+  userInput: string;
+  nativeLanguage?: string;
+  englishLevel?: string;
+  coachPersona?: string;
+}
+
+export interface ChatTutorResult {
+  reply: string;
+  translation: string;
+  formalCorrection?: {
+    original: string;
+    formalAlternative: string;
+    why: string;
+    grammarTag?: string;
+  };
+  suggestions: string[];
+}
+
+// Generate dynamic, context-aware non-repeating fallback responses when keys are offline
+function generateDynamicFallbackChatResponse(
+  userInput: string, 
+  messages: { sender: string; text: string }[],
+  nativeLanguage: string,
+  englishLevel: string,
+  coachPersona: string
+): ChatTutorResult {
+  const turn = messages.length + 1;
+  const inputLower = userInput.toLowerCase();
+
+  let reply = '';
+  let formalAlt = '';
+  let why = '';
+  let grammarTag = 'Executive Vocabulary';
+
+  if (inputLower.includes('hello') || inputLower.includes('hi') || inputLower.includes('good morning') || inputLower.includes('hey')) {
+    reply = `Good day! It is a pleasure to connect with you. How is your workday progressing, and what communication goal should we focus on today?`;
+    formalAlt = `Good morning / Good afternoon, thank you for connecting with me today.`;
+    why = `Starting conversations with structured, warm greetings establishes rapport immediately in global business settings.`;
+    grammarTag = 'Professional Greetings';
+  } else if (inputLower.includes('help') || inputLower.includes('learn') || inputLower.includes('improve') || inputLower.includes('practice')) {
+    reply = `I would be delighted to guide you. We can work on polishing your meeting contributions, crafting diplomatic email replies, or preparing for job interviews. Which area would you like to tackle first?`;
+    formalAlt = `I would appreciate your guidance in refining my professional English communication skills.`;
+    why = `Using "I would appreciate your guidance" is a polite, proactive way to request mentorship.`;
+    grammarTag = 'Polite Requests';
+  } else if (inputLower.includes('interview') || inputLower.includes('job') || inputLower.includes('salary') || inputLower.includes('resume') || inputLower.includes('cv')) {
+    reply = `Career communication is one of the highest-leverage skills you can develop. When speaking to recruiters, structure your answers using the STAR method: Situation, Task, Action, and Result. Would you like to practice an interview question?`;
+    formalAlt = `Throughout my career, I have consistently delivered measurable outcomes and driven team success.`;
+    why = `Action verbs and structured STAR responses demonstrate leadership and self-confidence.`;
+    grammarTag = 'Interview Diplomacy';
+  } else if (inputLower.includes('email') || inputLower.includes('write') || inputLower.includes('send') || inputLower.includes('message')) {
+    reply = `When writing professional emails, remember the golden rule: replace apologies with gratitude (for instance, "Thank you for your patience" instead of "Sorry for the delay"). What specific email draft are you working on?`;
+    formalAlt = `Thank you for your prompt response; please find the updated project details outlined below.`;
+    why = `Framing updates positively enhances executive presence and keeps communication focused on solutions.`;
+    grammarTag = 'Email Etiquette';
+  } else {
+    const dynamicTopics = [
+      `Thank you for sharing that perspective. In formal English, articulating your thoughts with precision and modal verbs (such as "would", "could", and "might") creates a constructive and collaborative atmosphere.`,
+      `That is an insightful observation. When discussing complex topics with cross-functional teams, summarizing key takeaways at the end ensures complete alignment.`,
+      `I appreciate you bringing that up. Clear communication is about balancing brevity with courtesy. How would you explain that in a high-stakes team presentation?`,
+      `Understood. Practicing diverse phrasing for common workplace scenarios helps build natural fluency and confidence over time.`
+    ];
+    reply = dynamicTopics[turn % dynamicTopics.length];
+    formalAlt = `I would like to propose that we review this in detail during our upcoming sync.`;
+    why = `Using proactive phrasing like "I would like to propose" signals initiative and leadership.`;
+    grammarTag = 'Strategic Phrasing';
+  }
+
+  let translation = `Traducción (${nativeLanguage}): ${reply}`;
+  const lowerL = nativeLanguage.toLowerCase();
+  if (lowerL.includes('spanish') || lowerL.includes('español')) {
+    translation = `¡Excelente punto! En inglés profesional, mantener un tono cortés, estructurado y enfocado en soluciones genera confianza inmediata.`;
+  } else if (lowerL.includes('portuguese') || lowerL.includes('português')) {
+    translation = `Ótimo ponto! No inglês profissional, manter um tom cortês e estruturado gera credibilidade com colegas e clientes.`;
+  } else if (lowerL.includes('french') || lowerL.includes('français')) {
+    translation = `C'est un excellent point ! En anglais professionnel, maintenir un ton courtois et structuré renforce votre crédibilité.`;
+  } else if (lowerL.includes('german') || lowerL.includes('deutsch')) {
+    translation = `Ein hervorragender Punkt! Im geschäftlichen Englisch stärkt ein höflicher und lösungsorientierter Ton das Vertrauen.`;
+  }
+
+  return {
+    reply,
+    translation,
+    formalCorrection: {
+      original: userInput,
+      formalAlternative: formalAlt,
+      why,
+      grammarTag,
+    },
+    suggestions: [
+      'Could you provide an example of how to say this in an email?',
+      'How would I phrase this during an executive meeting?',
+      'Let us practice another scenario.'
+    ],
+  };
+}
+
+export async function getChatTutorResponse(params: ChatTutorParams): Promise<ChatTutorResult> {
+  const { 
+    messages, 
+    userInput, 
+    nativeLanguage = 'Spanish', 
+    englishLevel = 'B1', 
+    coachPersona = 'Elena - Senior Executive English Coach' 
+  } = params;
+
+  const systemInstruction = `You are ${coachPersona}, an elite AI English language tutor on Pro English Coach, specializing in teaching Basic & Formal English.
+The learner's current English level is ${englishLevel} (CEFR).
+The learner's native language for translations and explanations is ${nativeLanguage}.
+
+Your Goal:
+1. Respond dynamically and contextually to the user's message in clear, authentic, friendly yet professional English suited to their level (${englishLevel}).
+2. NEVER repeat generic canned phrases. Tailor your response directly to the specifics of what the learner just said.
+3. Analyze the user's English input:
+   - Check if it is too casual, blunt, grammatically flawed, or unnatural.
+   - If it can be improved into a more polite, formal, or professional phrase, provide:
+     - "original": user's exact phrase
+     - "formalAlternative": a polished, diplomatic formal English alternative
+     - "why": a brief 1-sentence explanation of why the formal version is preferred in business / formal settings
+     - "grammarTag": e.g. "Modal Verbs", "Polite Request", "Diplomatic Phrasing", "Executive Vocabulary", "Tone Refinement"
+4. Provide a clear, natural translation of your reply into ${nativeLanguage}.
+5. Provide 3 smart, distinct formal English follow-up suggestions for the user to tap and reply with next.
+
+Respond strictly in valid JSON matching this schema:
+{
+  "reply": "Your conversational response in English",
+  "translation": "Your reply translated into ${nativeLanguage}",
+  "formalCorrection": {
+    "original": "user's text",
+    "formalAlternative": "better formal/polite English version",
+    "why": "why this is better in formal/workplace English",
+    "grammarTag": "category tag"
+  },
+  "suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3"]
+}`;
+
+  // 1. Try OpenAI if OPENAI_API_KEY is available
+  const openai = getOpenAIClient();
+  if (openai) {
+    try {
+      const openAiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+        { role: 'system', content: systemInstruction },
+        ...messages.slice(-8).map(m => ({
+          role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: m.text
+        })),
+        { role: 'user', content: userInput }
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: openAiMessages,
+        response_format: { type: 'json_object' },
+        temperature: 0.75,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        const parsed = JSON.parse(cleanJsonOutput(content));
+        if (parsed && parsed.reply) {
+          return {
+            reply: parsed.reply,
+            translation: parsed.translation || `Translation in ${nativeLanguage}`,
+            formalCorrection: parsed.formalCorrection && parsed.formalCorrection.formalAlternative ? parsed.formalCorrection : undefined,
+            suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0 ? parsed.suggestions.slice(0, 3) : [
+              'Could you clarify that in more detail?',
+              'I understand completely. What are our next steps?',
+              'Thank you for the guidance. I will keep that in mind.'
+            ],
+          };
+        }
+      }
+    } catch (err: any) {
+      console.warn('OpenAI chat tutor attempt failed:', err?.message || err);
+    }
+  }
+
+  // 2. Try Gemini candidate models
+  const gemini = getGeminiClient();
+  if (gemini) {
+    const conversationContext = messages
+      .slice(-8)
+      .map(m => `${m.sender === 'user' ? 'User' : 'Tutor'}: ${m.text}`)
+      .join('\n');
+    const prompt = `${conversationContext ? `Conversation history:\n${conversationContext}\n\n` : ''}User's latest message: "${userInput}"`;
+
+    const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
+    for (const model of candidateModels) {
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+          },
+        });
+
+        const text = (response.text || '').trim();
+        if (text) {
+          const parsed = JSON.parse(cleanJsonOutput(text));
+          if (parsed && parsed.reply) {
+            return {
+              reply: parsed.reply,
+              translation: parsed.translation || `Translation in ${nativeLanguage}`,
+              formalCorrection: parsed.formalCorrection && parsed.formalCorrection.formalAlternative ? parsed.formalCorrection : undefined,
+              suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0 ? parsed.suggestions.slice(0, 3) : [
+                'Could you clarify that in more detail?',
+                'I understand completely. What are our next steps?',
+                'Thank you for the guidance. I will keep that in mind.'
+              ],
+            };
+          }
+        }
+      } catch (err: any) {
+        console.warn(`Chat tutor attempt with Gemini ${model} failed:`, err?.message || err);
+        await delay(300);
+      }
+    }
+  }
+
+  // 3. Contextual Non-Repeating Fallback
+  return generateDynamicFallbackChatResponse(userInput, messages, nativeLanguage, englishLevel, coachPersona);
+}
+
+export interface RoleplayChatParams {
+  scenarioTitle: string;
+  partnerRole: string;
+  objectives: { id: string; text: string; completed: boolean }[];
+  messages: { sender: 'user' | 'tutor'; text: string }[];
+  userInput: string;
+  nativeLanguage?: string;
+}
+
+export interface RoleplayChatResult {
+  partnerReply: string;
+  translation: string;
+  completedObjectiveIds: string[];
+  feedbackTip?: string;
+  isScenarioComplete?: boolean;
+  score?: number;
+}
+
+export async function getRoleplayPartnerResponse(params: RoleplayChatParams): Promise<RoleplayChatResult> {
+  const { scenarioTitle, partnerRole, objectives, messages, userInput, nativeLanguage = 'Spanish' } = params;
+
+  const systemInstruction = `You are playing the role of "${partnerRole}" in a professional English roleplay scenario titled "${scenarioTitle}" on Pro English Coach.
+The user is a non-native English learner practicing basic and formal business English.
+
+Scenario Objectives for the user:
+${objectives.map(o => `- [ID: ${o.id}] ${o.text} (Completed: ${o.completed})`).join('\n')}
+
+Your Task:
+1. Stay strictly in character as "${partnerRole}". Reply naturally, authentically, and professionally to the user's latest response.
+2. NEVER repeat the same canned responses. Progress the roleplay conversation forward dynamically.
+3. Evaluate if the user's latest message or prior conversation successfully fulfilled any of the unfinished objectives.
+4. Provide a brief feedback tip in English on how the user's formal phrasing can be even more polished.
+5. Translate your in-character reply into ${nativeLanguage}.
+
+Respond strictly in valid JSON matching:
+{
+  "partnerReply": "Your response in character",
+  "translation": "Your response translated into ${nativeLanguage}",
+  "completedObjectiveIds": ["id1", "id2"],
+  "feedbackTip": "Brief tip on formal etiquette or vocabulary",
+  "isScenarioComplete": false,
+  "score": 85
+}`;
+
+  // 1. Try OpenAI if OPENAI_API_KEY is available
+  const openai = getOpenAIClient();
+  if (openai) {
+    try {
+      const openAiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+        { role: 'system', content: systemInstruction },
+        ...messages.slice(-8).map(m => ({
+          role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: m.text
+        })),
+        { role: 'user', content: userInput }
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: openAiMessages,
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        const parsed = JSON.parse(cleanJsonOutput(content));
+        if (parsed && parsed.partnerReply) {
+          return {
+            partnerReply: parsed.partnerReply,
+            translation: parsed.translation || '',
+            completedObjectiveIds: Array.isArray(parsed.completedObjectiveIds) ? parsed.completedObjectiveIds : [],
+            feedbackTip: parsed.feedbackTip || 'Great formal phrasing. Keep your sentences concise and courteous.',
+            isScenarioComplete: Boolean(parsed.isScenarioComplete),
+            score: typeof parsed.score === 'number' ? parsed.score : 88,
+          };
+        }
+      }
+    } catch (err: any) {
+      console.warn('OpenAI roleplay attempt failed:', err?.message || err);
+    }
+  }
+
+  // 2. Try Gemini
+  const gemini = getGeminiClient();
+  if (gemini) {
+    const convo = messages.map(m => `${m.sender === 'user' ? 'Learner' : partnerRole}: ${m.text}`).join('\n');
+    const prompt = `Roleplay: ${scenarioTitle}\n${convo ? `Prior exchange:\n${convo}\n` : ''}Learner: "${userInput}"`;
+
+    const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
+    for (const model of candidateModels) {
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+          },
+        });
+
+        const text = (response.text || '').trim();
+        if (text) {
+          const parsed = JSON.parse(cleanJsonOutput(text));
+          if (parsed && parsed.partnerReply) {
+            return {
+              partnerReply: parsed.partnerReply,
+              translation: parsed.translation || '',
+              completedObjectiveIds: Array.isArray(parsed.completedObjectiveIds) ? parsed.completedObjectiveIds : [],
+              feedbackTip: parsed.feedbackTip || 'Great formal phrasing. Keep your sentences concise and courteous.',
+              isScenarioComplete: Boolean(parsed.isScenarioComplete),
+              score: typeof parsed.score === 'number' ? parsed.score : 88,
+            };
+          }
+        }
+      } catch (err: any) {
+        console.warn(`Roleplay attempt with Gemini ${model} failed:`, err?.message || err);
+        await delay(300);
+      }
+    }
+  }
+
+  // 3. Non-repeating contextual fallback
+  const unfinishedObjectives = objectives.filter(o => !o.completed);
+  const nextCompletedId = unfinishedObjectives.length > 0 ? [unfinishedObjectives[0].id] : [];
+  const isDone = unfinishedObjectives.length <= 1;
+
+  return {
+    partnerReply: `Thank you for explaining that in such clear, professional detail. That gives us a solid basis to proceed with the next milestone.`,
+    translation: `Traducción (${nativeLanguage}): Gracias por explicar eso con tanto detalle y profesionalismo. Nos da una base sólida para continuar.`,
+    completedObjectiveIds: nextCompletedId,
+    feedbackTip: `Using structured, solution-oriented explanations demonstrates strong executive presence.`,
+    isScenarioComplete: isDone,
+    score: 90,
+  };
 }

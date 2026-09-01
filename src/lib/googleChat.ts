@@ -1,51 +1,97 @@
-"use client";
-
-import { useChat } from "ai/react";
-import { useEffect, useRef } from "react";
-
-export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: "/api/chat",
-  });
-
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`p-3 rounded-lg ${
-              m.role === "user" ? "bg-blue-100 text-right" : "bg-white text-left"
-            }`}
-          >
-            <p>{m.content}</p>
-          </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
-
-      <form onSubmit={handleSubmit} className="flex p-4 border-t bg-white">
-        <input
-          value={input}
-          onChange={handleInputChange}
-          placeholder="Type your message..."
-          className="flex-1 border rounded-lg p-2 mr-2"
-        />
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Send
-        </button>
-      </form>
-    </div>
-  );
+export interface ChatSpace {
+  name: string; // e.g. "spaces/AAAA"
+  displayName?: string;
+  type?: string;
+  spaceType?: 'SPACE' | 'GROUP_CHAT' | 'DIRECT_MESSAGE' | string;
+  description?: string;
 }
 
+export interface ChatSender {
+  name?: string;
+  displayName?: string;
+  avatarUrl?: string;
+  type?: string;
+}
+
+export interface ChatMessage {
+  name: string; // e.g. "spaces/AAAA/messages/BBBB"
+  text?: string;
+  createTime?: string;
+  sender?: ChatSender;
+  formattedText?: string;
+}
+
+export async function fetchSpaces(accessToken: string): Promise<ChatSpace[]> {
+  const response = await fetch('https://chat.googleapis.com/v1/spaces?pageSize=50', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    let errMsg = `Google Chat error: ${response.status}`;
+    try {
+      const errJson = JSON.parse(errText);
+      errMsg = errJson.error?.message || errMsg;
+    } catch {
+      errMsg = errText || errMsg;
+    }
+    throw new Error(errMsg);
+  }
+
+  const data = await response.json();
+  return data.spaces || [];
+}
+
+export async function fetchMessages(spaceName: string, accessToken: string): Promise<ChatMessage[]> {
+  const cleanSpace = spaceName.startsWith('spaces/') ? spaceName : `spaces/${spaceName}`;
+  const response = await fetch(`https://chat.googleapis.com/v1/${cleanSpace}/messages?pageSize=20`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    let errMsg = `Failed to fetch messages: ${response.status}`;
+    try {
+      const errJson = JSON.parse(errText);
+      errMsg = errJson.error?.message || errMsg;
+    } catch {
+      errMsg = errText || errMsg;
+    }
+    throw new Error(errMsg);
+  }
+
+  const data = await response.json();
+  return data.messages || [];
+}
+
+export async function sendChatMessage(spaceName: string, text: string, accessToken: string): Promise<ChatMessage> {
+  const cleanSpace = spaceName.startsWith('spaces/') ? spaceName : `spaces/${spaceName}`;
+  const response = await fetch(`https://chat.googleapis.com/v1/${cleanSpace}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    let errMsg = `Failed to send chat message: ${response.status}`;
+    try {
+      const errJson = JSON.parse(errText);
+      errMsg = errJson.error?.message || errMsg;
+    } catch {
+      errMsg = errText || errMsg;
+    }
+    throw new Error(errMsg);
+  }
+
+  return await response.json();
+}

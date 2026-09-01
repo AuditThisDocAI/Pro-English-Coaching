@@ -38,20 +38,20 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         {/* Top Badge */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-semibold uppercase tracking-wider mb-6 shadow-xs">
           <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-          The AI English Coach for Global Professionals
+          Interactive Workplace English Practice Hub
         </div>
 
         {/* Main Headline */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-neutral-900 tracking-tight leading-[1.15] max-w-4xl mx-auto mb-6">
-          Turn Broken English Into <br className="hidden sm:inline" />
+          Master Workplace English with <br className="hidden sm:inline" />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700">
-            Fluent Workplace Confidence
+            3D Flashcards & Spaced Repetition
           </span>
         </h1>
 
         {/* Subtitle */}
         <p className="text-lg sm:text-xl text-neutral-600 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
-          Instant native phrasing, pronunciation audio, and why-it-works explanations for emails, job interviews, CVs, and team meetings.
+          Flip cards, practice executive email phrasing, STAR job interview answers, standups, and idioms with multi-speed audio and instant recall quizzes.
         </p>
 
         {/* CTA Group */}
@@ -60,8 +60,8 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
             onClick={onStartPracticing}
             className="w-full sm:w-auto px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-2xl shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-base"
           >
-            <MessageSquare className="w-5 h-5" />
-            Start Practicing Live
+            <BookOpen className="w-5 h-5" />
+            Start Flashcards Practice
             <ArrowRight className="w-4 h-4 ml-1" />
           </button>
           
@@ -70,7 +70,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
             className="w-full sm:w-auto px-6 py-4 bg-white hover:bg-neutral-50 text-neutral-800 font-semibold rounded-2xl border border-neutral-200 shadow-xs hover:border-neutral-300 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-base"
           >
             <Zap className="w-4 h-4 text-emerald-600" />
-            {isPro ? 'Pro Active ($20/mo)' : 'Get Unlimited ($20/mo)'}
+            {isPro ? 'Pro Active ($20/mo)' : 'Upgrade Pro ($20/mo)'}
           </button>
         </div>
 
@@ -78,11 +78,11 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto pt-6 border-t border-neutral-200/60 text-left">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0">
-              <Mic className="w-5 h-5" />
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-neutral-900">Voice Dictation</p>
-              <p className="text-[11px] text-neutral-500">Hands-free practice</p>
+              <p className="text-xs font-bold text-neutral-900">3D Flip Cards</p>
+              <p className="text-[11px] text-neutral-500">Touch & keyboard flips</p>
             </div>
           </div>
 
@@ -92,7 +92,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
             </div>
             <div>
               <p className="text-xs font-bold text-neutral-900">Native Audio</p>
-              <p className="text-[11px] text-neutral-500">Natural pronunciation</p>
+              <p className="text-[11px] text-neutral-500">0.75x, 1x, 1.25x speeds</p>
             </div>
           </div>
 
@@ -101,8 +101,8 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
               <Briefcase className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-neutral-900">5 Job Fields</p>
-              <p className="text-[11px] text-neutral-500">Tech, Health, Retail & more</p>
+              <p className="text-xs font-bold text-neutral-900">Curated Decks</p>
+              <p className="text-[11px] text-neutral-500">Email, STAR, Tech, Idioms</p>
             </div>
           </div>
 
@@ -111,8 +111,8 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-neutral-900">{isPro ? 'Unlimited Plan' : `${maxChats - chatCount} Free Left`}</p>
-              <p className="text-[11px] text-neutral-500">{isPro ? 'All features active' : 'Try 20 chats free'}</p>
+              <p className="text-xs font-bold text-neutral-900">Spaced Repetition</p>
+              <p className="text-[11px] text-neutral-500">Streaks & mastery queues</p>
             </div>
           </div>
         </div>
@@ -127,10 +127,10 @@ export const HowItWorksSection: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-2">
-            Simple 3-Step Process
+            Simple 3-Step Practice Flow
           </h2>
           <p className="text-3xl font-extrabold text-neutral-900 tracking-tight">
-            How ProEnglish Coach Transforms Your English
+            How Flashcards Transform Your Workplace Fluency
           </p>
         </div>
 
@@ -141,13 +141,13 @@ export const HowItWorksSection: React.FC = () => {
               1
             </div>
             <h3 className="text-lg font-bold text-neutral-900 mb-2">
-              Speak or Type Casually
+              Select Your Workplace Deck
             </h3>
             <p className="text-neutral-600 text-sm leading-relaxed mb-4 flex-1">
-              Type your raw thoughts or use the Web Speech microphone button to dictate naturally in your conversational English.
+              Choose from Executive Email, Job Interview STAR answers, Daily Standups, Customer Negotiation, or your Personal Saved Vault.
             </p>
             <div className="bg-white p-3 rounded-xl border border-neutral-200/60 text-xs text-neutral-500 italic">
-              "sorry for late reply i was busy with bug"
+              "Sorry for the late reply, I was busy with bug."
             </div>
           </div>
 
@@ -157,13 +157,13 @@ export const HowItWorksSection: React.FC = () => {
               2
             </div>
             <h3 className="text-lg font-bold text-neutral-900 mb-2">
-              Instant AI Transformation
+              Flip & Absorb Executive Phrasing
             </h3>
             <p className="text-neutral-600 text-sm leading-relaxed mb-4 flex-1">
-              Gemini AI restructures grammar, vocabulary, and workplace tone while breaking down the exact reason why the new phrasing sounds superior.
+              Flip cards with 3D animation, listen to native pronunciation at custom speeds, and study the exact rationale behind why executive tone works.
             </p>
             <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200/60 text-xs text-emerald-800 font-medium">
-              "Thank you for your patience; I was addressing a critical production issue."
+              "Thank you for your patience while I gave this matter the attention it requires."
             </div>
           </div>
 
@@ -173,14 +173,14 @@ export const HowItWorksSection: React.FC = () => {
               3
             </div>
             <h3 className="text-lg font-bold text-neutral-900 mb-2">
-              Listen & Practice Pronunciation
+              Rate Recall & Quiz Challenge
             </h3>
             <p className="text-neutral-600 text-sm leading-relaxed mb-4 flex-1">
-              Tap the audio button to hear native cadence and stress, practice follow-up interview questions, or copy directly to email and chat.
+              Rate your recall (Review Soon / Learning / Mastered), test your memory with 3-choice quiz challenges, and build daily review streaks.
             </p>
             <div className="bg-white p-3 rounded-xl border border-neutral-200/60 text-xs text-neutral-700 flex items-center justify-between">
-              <span>🔊 Listen at 0.95x speed</span>
-              <span className="text-emerald-600 font-semibold">Copy & Send</span>
+              <span>🔥 Daily streak tracking</span>
+              <span className="text-emerald-600 font-semibold">Mastered Queue</span>
             </div>
           </div>
         </div>
@@ -289,7 +289,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             Simple, Transparent Pricing
           </h2>
           <p className="text-3xl font-extrabold text-neutral-900 tracking-tight">
-            Start Free, Upgrade for Unlimited Growth
+            Start Your 3-Day Free Trial, Then Just $20/Month
           </p>
         </div>
 
@@ -298,14 +298,14 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           <div className="bg-neutral-50 rounded-3xl p-8 border border-neutral-200 flex flex-col">
             <div className="mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-                Free Trial
+                Starter Preview
               </span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-4xl font-extrabold text-neutral-900">$0</span>
-                <span className="text-xs text-neutral-500">/ 20 free chats</span>
+                <span className="text-xs text-neutral-500">/ 20 preview chats</span>
               </div>
               <p className="text-xs text-neutral-600 mt-2">
-                Try out the AI coach with no credit card required.
+                Try out flashcards and coaching preview with no credit card required.
               </p>
             </div>
 
@@ -348,10 +348,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             </div>
           </div>
 
-          {/* Pro Tier ($20/month) */}
+          {/* Pro Tier ($20/month with 3-Day Free Trial) */}
           <div className="bg-gradient-to-b from-neutral-900 to-neutral-950 text-white rounded-3xl p-8 border border-neutral-800 shadow-xl relative flex flex-col">
             <div className="absolute -top-3.5 right-6 px-3 py-1 bg-emerald-500 text-neutral-950 font-bold text-xs uppercase tracking-wider rounded-full shadow-sm">
-              Most Popular
+              3-Day Free Trial
             </div>
 
             <div className="mb-4">
@@ -360,25 +360,29 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               </span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-4xl font-extrabold text-white">$20</span>
-                <span className="text-xs text-neutral-400">/ month</span>
+                <span className="text-xs text-neutral-400">/ month after 3-day trial</span>
               </div>
               <p className="text-xs text-neutral-400 mt-2">
-                Everything you need to master workplace communication.
+                3 days 100% free trial. Cancel anytime before day 3 with zero charge.
               </p>
             </div>
 
             <div className="space-y-3 text-xs text-neutral-300 mb-8 flex-1 pt-4">
               <div className="flex items-center gap-2.5">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold text-white">Unlimited AI Practice Chats</span>
+                <span className="font-semibold text-white">3-Day Full-Access Free Trial</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>All 5 Industry Specializations</span>
+                <span className="font-semibold text-white">Unlimited AI Practice & 3D Flashcards</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Voice-to-Text & Native Audio Playback</span>
+                <span>All Industry Specializations</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Multi-speed Native Audio Playback</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -386,11 +390,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               </div>
               <div className="flex items-center gap-2.5">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Google Chat Direct Integration</span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Cancel Debit Order Anytime with 1 Click</span>
+                <span>1-Click Cancellation Anytime</span>
               </div>
             </div>
 
@@ -399,7 +399,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               className="w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-xl text-sm shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
             >
               <Zap className="w-4 h-4 fill-current" />
-              {isPro ? 'Manage Active Pro & Debit Order' : 'Get Unlimited Pro for $20/mo'}
+              {isPro ? 'Manage Active Pro Subscription' : 'Start 3-Day Free Trial ($20/mo)'}
             </button>
           </div>
         </div>
@@ -411,19 +411,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 export const FAQSection: React.FC = () => {
   const faqs = [
     {
-      q: 'How does the 20-chat free limit work?',
-      a: 'You get 20 full AI coaching sessions completely free to test out email polishing, interview prep, and voice dictation. Once you reach 20 sessions, you can upgrade to Unlimited Pro for just $20/month.'
+      q: 'How does the 3-day free trial work?',
+      a: 'When you start your trial, you get 3 full days of unrestricted access to all 1000 monthly sessions, 3D workplace flashcard decks, multi-speed audio, and saved vaults. You will not be charged if you cancel before the 3-day period ends.'
     },
     {
-      q: 'How do I cancel my debit order or recurring subscription?',
-      a: 'You can cancel your subscription anytime with 1-click via the Freemius portal or from the link in your receipt email. There are zero cancellation fees or lock-ins, and future recurring charges stop immediately.'
+      q: 'How do I cancel my subscription during or after the trial?',
+      a: 'You can cancel your subscription anytime with 1-click via the Freemius customer portal or from the link in your receipt email. There are zero cancellation fees or lock-ins, and future recurring charges stop immediately.'
     },
     {
       q: 'Does speaker audio and speech dictation work on mobile?',
       a: 'Yes! ProEnglish Coach features a mobile-optimized dual Text-to-Speech (TTS) audio engine and Speech Recognition that works seamlessly on iOS Safari, Chrome for Android, and tablets.'
     },
     {
-      q: 'Which industries are supported?',
+      q: 'Which industries are supported in flashcards & coaching?',
       a: 'We specialize in Tech & Engineering, Healthcare, Retail & Hospitality, Call Centers & Support, and Corporate Administration.'
     }
   ];

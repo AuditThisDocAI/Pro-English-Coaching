@@ -1,6 +1,7 @@
 {
-  "name": "ProEnglish Coach",
-  "description": "A global AI tutor that helps non-English speakers write and speak professional English for jobs.",
-  "requestFramePermissions": ["microphone"],
+  "name": "Pro English Coach",
+  "description": "Interactive workplace English coaching, basic to formal conversation tutor, AI roleplays, voice calls, and 3D flashcards.",
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
+

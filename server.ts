@@ -9,7 +9,12 @@ import {
   getSavedPhrasesByUserUid, 
   deleteSavedPhraseById 
 } from './src/db/phrases.ts';
-import { getProfessionalCoaching } from './server/aiCoach.ts';
+import { 
+  getProfessionalCoaching, 
+  translatePhrase,
+  getChatTutorResponse,
+  getRoleplayPartnerResponse
+} from './server/aiCoach.ts';
 
 async function startServer() {
   const app = express();
@@ -133,6 +138,72 @@ async function startServer() {
       return res.status(500).json({ 
         error: error?.message || 'Failed to generate coaching suggestions. Please try again.' 
       });
+    }
+  });
+
+  // AI Translation API Route
+  app.post('/api/translate', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const { text, targetLanguage = 'Spanish' } = req.body || {};
+      if (!text || typeof text !== 'string' || !text.trim()) {
+        return res.status(400).json({ error: 'Text is required for translation.' });
+      }
+
+      const translation = await translatePhrase(text, targetLanguage);
+      return res.json({ status: 'ok', translation, targetLanguage });
+    } catch (error: any) {
+      console.error('Translation error:', error);
+      return res.status(500).json({ error: error?.message || 'Failed to translate phrase.' });
+    }
+  });
+
+  // TalkPal AI Chat Tutor API Route
+  app.post('/api/chat-tutor', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const { messages = [], userInput = '', nativeLanguage = 'Spanish', englishLevel = 'B1', coachPersona } = req.body || {};
+      if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
+        return res.status(400).json({ error: 'User input is required.' });
+      }
+
+      const result = await getChatTutorResponse({
+        messages,
+        userInput,
+        nativeLanguage,
+        englishLevel,
+        coachPersona
+      });
+
+      return res.json({ status: 'ok', ...result });
+    } catch (error: any) {
+      console.error('Chat tutor error:', error);
+      return res.status(500).json({ error: error?.message || 'Failed to get chat tutor response.' });
+    }
+  });
+
+  // TalkPal AI Roleplay Partner API Route
+  app.post('/api/roleplay-chat', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const { scenarioTitle, partnerRole, objectives = [], messages = [], userInput = '', nativeLanguage = 'Spanish' } = req.body || {};
+      if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
+        return res.status(400).json({ error: 'User input is required.' });
+      }
+
+      const result = await getRoleplayPartnerResponse({
+        scenarioTitle,
+        partnerRole,
+        objectives,
+        messages,
+        userInput,
+        nativeLanguage
+      });
+
+      return res.json({ status: 'ok', ...result });
+    } catch (error: any) {
+      console.error('Roleplay chat error:', error);
+      return res.status(500).json({ error: error?.message || 'Failed to get roleplay response.' });
     }
   });
 
