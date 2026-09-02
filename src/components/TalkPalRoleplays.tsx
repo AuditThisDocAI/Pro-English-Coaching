@@ -516,10 +516,28 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
       }
     } catch (err) {
       console.error('Roleplay error:', err);
+      const isDinner = activeScenario.title.toLowerCase().includes('dinner') || activeScenario.partnerName.includes('Antoine');
+      const isSalary = activeScenario.title.toLowerCase().includes('salary') || activeScenario.partnerName.includes('Marcus');
+      const isDeadline = activeScenario.title.toLowerCase().includes('deadline') || activeScenario.partnerName.includes('Victoria');
+      
+      let fallbackText = `I appreciate you detailing that. Let us proceed with these parameters and review the next milestones.`;
+      let fallbackTrans = `Agradezco que hayas detallado eso. Avancemos con estos parámetros.`;
+
+      if (isDinner) {
+        fallbackText = `The chef's pan-seared sea bass is exceptional tonight, or the aged ribeye if you prefer meat. May I order a bottle of wine for our table?`;
+        fallbackTrans = `El róbalo del chef está excepcional esta noche, o el filete si prefieres carne. ¿Puedo pedir vino para la mesa?`;
+      } else if (isSalary) {
+        fallbackText = `We genuinely appreciate your track record. Let me consult with the executive compensation committee to see how we can optimize your offer.`;
+        fallbackTrans = `Apreciamos sinceramente tu trayectoria. Consultaré con el comité para optimizar la oferta.`;
+      } else if (isDeadline) {
+        fallbackText = `I understand the technical QA necessity. Let us reschedule the deployment for next Tuesday afternoon to guarantee stability.`;
+        fallbackTrans = `Entiendo la necesidad técnica de control de calidad. Reprogramemos el despliegue para el próximo martes.`;
+      }
+
       const fallbackPartner = {
         sender: 'tutor' as const,
-        text: 'Thank you for explaining. That sounds reasonable and professionally handled.',
-        translation: 'Gracias por explicar. Eso suena razonable y profesional.'
+        text: fallbackText,
+        translation: fallbackTrans
       };
       setMessages((prev) => [...prev, fallbackPartner]);
       speak(fallbackPartner.text, {
