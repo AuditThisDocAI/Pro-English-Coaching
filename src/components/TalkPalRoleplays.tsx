@@ -333,14 +333,28 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
     }, 4000);
   };
 
+  const toggleObjectiveState = (objId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setObjectives((prev) =>
+      prev.map((o) => {
+        if (o.id === objId) {
+          const nextCompleted = !o.completed;
+          return { ...o, completed: nextCompleted };
+        }
+        return o;
+      })
+    );
+    setSelectedObjectiveId(objId);
+  };
+
   const handleSelectSentence = (obj: RoleplayObjective, specificPhrase?: string, autoSend: boolean = false) => {
     const phrase = specificPhrase || obj.suggestedPhrase || obj.text;
     setInput(phrase);
     setSelectedObjectiveId(obj.id);
-    showToast(`Loaded sentence for: "${obj.text.slice(0, 32)}..." into reply box!`);
+    showToast(`Selected: "${obj.text.slice(0, 32)}..." (Marked Yellow / In-Progress)`);
 
     if (autoSend) {
-      handleSendResponse(phrase);
+      handleSendResponse(phrase, obj.id);
     } else {
       setTimeout(() => {
         inputRef.current?.focus();
@@ -418,9 +432,17 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
     }
   };
 
-  const handleSendResponse = async (textToSend?: string) => {
+  const handleSendResponse = async (textToSend?: string, targetObjId?: string) => {
     const text = (textToSend || input).trim();
     if (!text || isLoading || !activeScenario) return;
+
+    // Immediately mark target objective as green if specified or if selected
+    const activeObjId = targetObjId || selectedObjectiveId;
+    if (activeObjId) {
+      setObjectives((prev) =>
+        prev.map((o) => (o.id === activeObjId ? { ...o, completed: true } : o))
+      );
+    }
 
     const userMessage = { sender: 'user' as const, text };
     setMessages((prev) => [...prev, userMessage]);
@@ -449,12 +471,15 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
         setObjectives((prev) =>
           prev.map((obj) => ({
             ...obj,
-            completed: obj.completed || data.completedObjectiveIds.includes(obj.id)
+            completed: obj.completed || data.completedObjectiveIds.includes(obj.id) || obj.id === activeObjId
           }))
         );
       } else {
         // Fallback progress
         setObjectives((prev) => {
+          if (activeObjId) {
+            return prev.map((o) => (o.id === activeObjId ? { ...o, completed: true } : o));
+          }
           const firstUncompleted = prev.find((o) => !o.completed);
           if (firstUncompleted) {
             return prev.map((o) => (o.id === firstUncompleted.id ? { ...o, completed: true } : o));
@@ -659,12 +684,17 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-extrabold text-neutral-900">
                   <span>Scenario Objectives</span>
-                  <span className="text-indigo-600 font-black">
-                    {objectives.filter(o => o.completed).length} / {objectives.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold border border-amber-200">
+                      Yellow = Active
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
+                      Green = Done ({objectives.filter(o => o.completed).length}/{objectives.length})
+                    </span>
+                  </div>
                 </div>
                 <p className="text-[11px] text-neutral-500 leading-tight">
-                  Click any objective or sentence button to choose and insert it into your reply:
+                  Click any circle to toggle or choose a sentence to reply in yellow, then send to turn green:
                 </p>
 
                 <div className="space-y-2.5 pt-1">
@@ -674,33 +704,39 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                     return (
                       <div
                         key={obj.id}
-                        className={`rounded-2xl border transition-all text-xs overflow-hidden ${
+                        className={`rounded-2xl border-2 transition-all text-xs overflow-hidden ${
                           obj.completed
-                            ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950 shadow-xs'
+                            ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-medium ring-2 ring-emerald-400/30 shadow-xs'
                             : isSelected
-                            ? 'bg-indigo-50/90 border-indigo-500 ring-2 ring-indigo-400/40 text-neutral-900 shadow-md'
-                            : 'bg-white hover:bg-neutral-50 border-neutral-200 text-neutral-800 hover:border-indigo-300 shadow-2xs'
+                            ? 'bg-amber-50 border-amber-400 text-amber-950 ring-2 ring-amber-300 shadow-md'
+                            : 'bg-white hover:bg-neutral-50 border-neutral-200 text-neutral-800 hover:border-amber-300 shadow-2xs'
                         }`}
                       >
                         {/* Main Objective Card Click Area */}
                         <div 
                           onClick={() => handleSelectSentence(obj)}
                           className="p-3 cursor-pointer flex items-start gap-2.5 transition-colors"
-                          title="Click to choose this sentence for your reply"
+                          title="Click to select this sentence (turns Yellow) or send it (turns Green)"
                         >
-                          <div className="mt-0.5 shrink-0">
+                          {/* Interactive Toggle Circle */}
+                          <div 
+                            onClick={(e) => toggleObjectiveState(obj.id, e)}
+                            className="mt-0.5 shrink-0 cursor-pointer p-0.5 rounded-full hover:bg-neutral-100 transition-colors"
+                            title={obj.completed ? "Click to uncheck" : "Click to mark done in Green"}
+                          >
                             {obj.completed ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <CheckCircle2 className="w-5 h-5 text-emerald-600 fill-emerald-100" />
                             ) : isSelected ? (
-                              <div className="w-4 h-4 rounded-full border-2 border-indigo-600 flex items-center justify-center bg-indigo-600 text-white">
-                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                              <div className="w-5 h-5 rounded-full border-2 border-amber-500 flex items-center justify-center bg-amber-100 text-amber-800 animate-pulse">
+                                <div className="w-2 h-2 rounded-full bg-amber-500" />
                               </div>
                             ) : (
-                              <Circle className="w-4 h-4 text-neutral-400 group-hover:text-indigo-500" />
+                              <Circle className="w-5 h-5 text-neutral-400 hover:text-amber-500 hover:border-amber-400" />
                             )}
                           </div>
+
                           <div className="flex-1 space-y-1.5">
-                            <span className={`font-semibold leading-snug block ${obj.completed ? 'line-through text-emerald-800' : 'text-neutral-900'}`}>
+                            <span className={`font-semibold leading-snug block ${obj.completed ? 'line-through text-emerald-900' : isSelected ? 'text-amber-950 font-bold' : 'text-neutral-900'}`}>
                               {obj.text}
                             </span>
 
@@ -713,14 +749,31 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                                   handleSelectSentence(obj);
                                 }}
                                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-indigo-600 text-white shadow-xs'
-                                    : 'bg-indigo-100 hover:bg-indigo-200 text-indigo-800'
+                                  obj.completed
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : isSelected
+                                    ? 'bg-amber-500 text-white shadow-xs'
+                                    : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300/60'
                                 }`}
                               >
                                 <Sparkles className="w-3 h-3" />
-                                <span>{isSelected ? 'Sentence Chosen' : 'Choose Sentence'}</span>
+                                <span>{obj.completed ? 'Completed (Green)' : isSelected ? 'Selected (Yellow)' : 'Select Answer'}</span>
                               </button>
+
+                              {!obj.completed && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectSentence(obj, undefined, true);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
+                                  title="Send this response now and mark objective green"
+                                >
+                                  <span>Send Answer (➔ Green)</span>
+                                  <Send className="w-2.5 h-2.5" />
+                                </button>
+                              )}
 
                               {obj.samplePhrases && obj.samplePhrases.length > 0 && (
                                 <button
@@ -731,7 +784,7 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                                   }}
                                   className="px-2 py-1 rounded-lg text-[11px] font-medium bg-neutral-100 hover:bg-neutral-200 text-neutral-700 flex items-center gap-1 cursor-pointer transition-all"
                                 >
-                                  <span>{obj.samplePhrases.length} Alternatives</span>
+                                  <span>{obj.samplePhrases.length} Variations</span>
                                   {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                 </button>
                               )}
@@ -743,18 +796,25 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                         {isExpanded && obj.samplePhrases && (
                           <div className="p-3 bg-neutral-50/90 border-t border-neutral-100 space-y-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block">
-                              Alternative Professional Phrasings:
+                              Alternative Professional Phrasings (Click to choose & turn Yellow / Green):
                             </span>
                             {obj.samplePhrases.map((phrase, pIdx) => (
                               <div 
                                 key={pIdx}
                                 onClick={() => handleSelectSentence(obj, phrase)}
-                                className="p-2 rounded-xl bg-white hover:bg-indigo-50/70 border border-neutral-200/80 hover:border-indigo-300 text-[11px] text-neutral-800 leading-snug cursor-pointer transition-all flex items-start justify-between gap-2 group"
+                                className="p-2 rounded-xl bg-white hover:bg-amber-50/70 border border-neutral-200/80 hover:border-amber-400 text-[11px] text-neutral-800 leading-snug cursor-pointer transition-all flex items-start justify-between gap-2 group"
                               >
                                 <span>"{phrase}"</span>
-                                <span className="text-[10px] font-bold text-indigo-600 opacity-0 group-hover:opacity-100 shrink-0 mt-0.5">
-                                  Use ↵
-                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectSentence(obj, phrase, true);
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold shrink-0 mt-0.5 shadow-2xs"
+                                >
+                                  Send ➔
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -901,37 +961,79 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
 
               {showPhraseDrawer && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                  {objectives.filter(o => !o.completed).map((obj, i) => (
-                    <button
+                  {objectives.map((obj, i) => (
+                    <div
                       key={obj.id}
-                      type="button"
-                      onClick={() => handleSelectSentence(obj)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer shadow-2xs transition-all flex items-center gap-1.5 ${
-                        selectedObjectiveId === obj.id
-                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                          : 'bg-white hover:bg-indigo-50 border-neutral-200 text-neutral-800 hover:border-indigo-300'
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap shrink-0 shadow-2xs transition-all flex items-center gap-2 ${
+                        obj.completed
+                          ? 'bg-emerald-50 text-emerald-900 border-emerald-500 ring-1 ring-emerald-400/40'
+                          : selectedObjectiveId === obj.id
+                          ? 'bg-amber-100 text-amber-950 border-amber-500 ring-2 ring-amber-400 font-bold'
+                          : 'bg-white hover:bg-amber-50/60 border-neutral-200 text-neutral-800 hover:border-amber-300'
                       }`}
-                      title={obj.suggestedPhrase || obj.text}
                     >
-                      <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                      <span>{obj.text.length > 30 ? `${obj.text.slice(0, 30)}...` : obj.text}</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectSentence(obj)}
+                        className="flex items-center gap-1.5 cursor-pointer"
+                        title={obj.suggestedPhrase || obj.text}
+                      >
+                        {obj.completed ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : selectedObjectiveId === obj.id ? (
+                          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0 animate-pulse" />
+                        ) : (
+                          <Circle className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                        )}
+                        <span>{obj.text.length > 28 ? `${obj.text.slice(0, 28)}...` : obj.text}</span>
+                      </button>
+
+                      {!obj.completed && (
+                        <button
+                          type="button"
+                          onClick={() => handleSelectSentence(obj, undefined, true)}
+                          className="px-1.5 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-extrabold cursor-pointer transition-all shadow-2xs"
+                          title="Send now & complete in green"
+                        >
+                          Send ➔
+                        </button>
+                      )}
+                    </div>
                   ))}
 
-                  {activeScenario.starterSuggestions.map((sugg, i) => (
-                    <button
-                      key={`sugg-${i}`}
-                      type="button"
-                      onClick={() => {
-                        setInput(sugg);
-                        showToast("Loaded starter suggestion into reply bar!");
-                        setTimeout(() => inputRef.current?.focus(), 50);
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-neutral-100 border border-neutral-200 text-xs font-medium text-neutral-700 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs transition-all"
-                    >
-                      "{sugg.length > 35 ? `${sugg.slice(0, 35)}...` : sugg}"
-                    </button>
-                  ))}
+                  {activeScenario.starterSuggestions.map((sugg, i) => {
+                    const isSelectedSugg = input === sugg;
+                    return (
+                      <div
+                        key={`sugg-${i}`}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-medium whitespace-nowrap shrink-0 shadow-2xs transition-all flex items-center gap-1.5 ${
+                          isSelectedSugg
+                            ? 'bg-amber-100 border-amber-400 text-amber-950 ring-2 ring-amber-300 font-bold'
+                            : 'bg-white hover:bg-neutral-100 border-neutral-200 text-neutral-700'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInput(sugg);
+                            showToast("Loaded starter suggestion (Yellow)!");
+                            setTimeout(() => inputRef.current?.focus(), 50);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          "{sugg.length > 32 ? `${sugg.slice(0, 32)}...` : sugg}"
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSendResponse(sugg)}
+                          className="px-1.5 py-0.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold cursor-pointer"
+                          title="Send this suggestion"
+                        >
+                          Send ➔
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

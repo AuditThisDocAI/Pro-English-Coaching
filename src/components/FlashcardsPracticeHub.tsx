@@ -1197,18 +1197,28 @@ export function FlashcardsPracticeHub({
 
                   {/* Multiple Choice Options */}
                   <div className="space-y-3">
-                    <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">
-                      Select the most polite and professional executive response:
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider block">
+                        Select the most polite and professional executive response:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold border border-amber-200">
+                          Yellow = Selected
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-200">
+                          Green = Correct
+                        </span>
+                      </div>
+                    </div>
                     {quizOptions.map((opt, idx) => {
                       const isSelected = quizSelectedOption === idx;
-                      let btnStyle = 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200 text-neutral-800';
+                      let btnStyle = 'bg-white hover:bg-amber-50/60 border-neutral-200 hover:border-amber-400 text-neutral-800';
 
                       if (quizAnswered) {
                         if (opt.isCorrect) {
-                          btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold ring-2 ring-emerald-500/20';
+                          btnStyle = 'bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-bold ring-2 ring-emerald-500/20 shadow-xs';
                         } else if (isSelected && !opt.isCorrect) {
-                          btnStyle = 'bg-red-50 border-red-300 text-red-800';
+                          btnStyle = 'bg-amber-50 border-2 border-amber-500 text-amber-950 font-bold ring-2 ring-amber-400/30 shadow-xs';
                         } else {
                           btnStyle = 'opacity-50 bg-neutral-50 border-neutral-200 text-neutral-500';
                         }
@@ -1222,14 +1232,30 @@ export function FlashcardsPracticeHub({
                           className={`w-full text-left p-4 rounded-2xl border transition-all text-xs sm:text-sm leading-relaxed flex items-start gap-3.5 cursor-pointer shadow-2xs ${btnStyle}`}
                         >
                           <span className={`w-6 h-6 rounded-full border border-current flex items-center justify-center font-extrabold text-xs shrink-0 mt-0.5 ${
-                            quizAnswered && opt.isCorrect ? 'bg-emerald-600 text-white border-emerald-600' : ''
+                            quizAnswered && opt.isCorrect
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : quizAnswered && isSelected && !opt.isCorrect
+                              ? 'bg-amber-500 text-white border-amber-500'
+                              : ''
                           }`}>
                             {String.fromCharCode(65 + idx)}
                           </span>
                           <div className="flex-1">
-                            <p className="font-semibold text-neutral-900">{opt.text}</p>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-semibold text-neutral-900">{opt.text}</p>
+                              {quizAnswered && opt.isCorrect && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold shrink-0">
+                                  Correct Answer (Green)
+                                </span>
+                              )}
+                              {quizAnswered && isSelected && !opt.isCorrect && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-extrabold shrink-0">
+                                  Your Choice (Yellow)
+                                </span>
+                              )}
+                            </div>
                             {quizAnswered && opt.explanation && (
-                              <p className={`text-[11px] mt-1 font-normal ${opt.isCorrect ? 'text-emerald-700' : 'text-neutral-500'}`}>
+                              <p className={`text-[11px] mt-1.5 font-medium ${opt.isCorrect ? 'text-emerald-800' : 'text-neutral-600'}`}>
                                 {opt.explanation}
                               </p>
                             )}
@@ -1238,7 +1264,7 @@ export function FlashcardsPracticeHub({
                             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                           )}
                           {quizAnswered && isSelected && !opt.isCorrect && (
-                            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                           )}
                         </button>
                       );
