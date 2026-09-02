@@ -11,7 +11,14 @@ function getGeminiClient(): GoogleGenAI | null {
     return null;
   }
   if (!geminiClient) {
-    geminiClient = new GoogleGenAI({ apiKey });
+    geminiClient = new GoogleGenAI({ 
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
   }
   return geminiClient;
 }
@@ -379,105 +386,193 @@ function generateDynamicFallbackChatResponse(
   let reply = '';
   let formalAlt = '';
   let why = '';
-  let grammarTag = 'Executive Vocabulary';
-  let suggestions = [
-    'Could you clarify how to say this in an email?',
-    'What would be a more diplomatic alternative?',
-    'Let us practice another example together.'
-  ];
+  let grammarTag = 'Executive Communication';
+  let suggestions: string[] = [];
 
-  if (inputLower.includes('hello') || inputLower.includes('hi') || inputLower.includes('good morning') || inputLower.includes('hey')) {
+  // 1. User is explicitly asking for a job interview question / practice
+  if (
+    inputLower.includes('ask me a') || 
+    inputLower.includes('ask me an interview') || 
+    inputLower.includes('standard interview question') || 
+    inputLower.includes('practice an interview') || 
+    inputLower.includes('another interview question') || 
+    inputLower.includes('different interview question') ||
+    inputLower === 'yes' ||
+    inputLower === 'yes please' ||
+    inputLower === 'i would like to practice' ||
+    inputLower.includes('give me an interview question') ||
+    (inputLower.includes('interview') && (inputLower.includes('question') || inputLower.includes('start') || inputLower.includes('ready') || inputLower.includes('test')))
+  ) {
+    const interviewQuestions = [
+      `Certainly! Here is a core behavioral interview question: **"Can you tell me about a time when you had to manage a project under tight deadlines with competing priorities? How did you ensure success?"**\n\nTake your time to structure your response using the STAR method (Situation, Task, Action, Result). Please share your answer!`,
+      `Excellent! Let us practice this high-impact executive question: **"How do you handle constructive disagreement with a senior manager or client when you believe a different approach is necessary?"**\n\nHow would you formulate your response in professional English?`,
+      `Here is a common situational question: **"Tell me about a time a project did not go according to plan. What steps did you take to mitigate the risks, and what was the outcome?"**\n\nGo ahead and share your response, and I will coach your phrasing!`,
+      `Let us practice a fundamental opening question: **"Could you walk me through your professional background and highlight what makes you a strong candidate for this role?"**\n\nTry delivering a concise 2-3 sentence executive summary of your career.`
+    ];
+    reply = interviewQuestions[turn % interviewQuestions.length];
+    formalAlt = `Could you please present a standard behavioral interview question for us to practice?`;
+    why = `Using "Could you please present..." is a courteous, professional way to request interview simulations.`;
+    grammarTag = 'Interview Practice';
+    suggestions = [
+      'In my previous role, I spearheaded a critical project under a strict deadline...',
+      'When managing tight deadlines, I prioritize high-impact deliverables first...',
+      'Could you give me a different situational question?'
+    ];
+  } 
+  // 2. User is answering an interview question / sharing their experience
+  else if (
+    inputLower.startsWith('in my previous role') || 
+    inputLower.startsWith('in my current role') || 
+    inputLower.startsWith('when i was working') || 
+    inputLower.startsWith('throughout my career') || 
+    inputLower.startsWith('i spearheaded') || 
+    inputLower.startsWith('i managed') || 
+    inputLower.startsWith('i worked on') || 
+    inputLower.startsWith('i led') || 
+    (inputLower.includes('project') && (inputLower.includes('team') || inputLower.includes('deadline') || inputLower.includes('delivered') || inputLower.includes('client'))) ||
+    inputLower.includes('my main achievement') ||
+    inputLower.includes('situation:') ||
+    inputLower.includes('action:')
+  ) {
+    reply = `Impressive answer! You effectively outlined your actions and leadership. To make this even more persuasive to senior interviewers, always conclude with a quantifiable metric (e.g., *"resulting in a 20% reduction in turnaround time"*). Would you like to practice adding a metric to this, or try the next interview question?`;
+    formalAlt = `Throughout my tenure, I orchestrated key initiatives, optimized team workflows, and delivered measurable outcomes for stakeholders.`;
+    why = `Action verbs like "orchestrated", "optimized", and "delivered" demonstrate proactive leadership and executive capability.`;
+    grammarTag = 'Action-Oriented Language';
+    suggestions = [
+      'This initiative resulted in a 25% increase in operational efficiency.',
+      'Could you ask me the next interview question?',
+      'How would you rate the clarity of my answer?'
+    ];
+  }
+  // 3. User is asking about salary negotiation
+  else if (inputLower.includes('salary') || inputLower.includes('compensation') || inputLower.includes('negotiat') || inputLower.includes('counteroffer')) {
+    reply = `When discussing compensation, never apologize for discussing numbers. Anchor your expectations to market benchmarks and the measurable value you provide.\n\n**Key Script:** *"Based on current industry benchmarks and the scope of responsibilities, I am targeting a compensation range between $X and $Y. However, I am eager to evaluate the total compensation package."*\n\nWould you like to roleplay a compensation call?`;
+    formalAlt = `How might I navigate compensation discussions diplomatically while highlighting my market value?`;
+    why = `Framing compensation discussions around "market value" and "scope of responsibilities" maintains executive poise.`;
+    grammarTag = 'Compensation Diplomacy';
+    suggestions = [
+      'Is there flexibility within the designated salary band?',
+      'Based on market research, I am targeting a base of $120,000.',
+      'How do I ask about performance bonuses and equity?'
+    ];
+  }
+  // 4. User is asking to review their self-introduction
+  else if (inputLower.includes('self-introduction') || inputLower.includes('self introduction') || inputLower.includes('introduce myself') || inputLower.includes('about yourself')) {
+    reply = `I would be delighted to review your self-introduction! A winning executive elevator pitch follows 3 clear pillars:\n1. **Your Core Identity & Expertise** (e.g., *"I am a Product Specialist with 6+ years in SaaS..."*)\n2. **Your Signature Achievement** (e.g., *"Recently, I spearheaded..."*)\n3. **Your Forward Outlook** (e.g., *"I am excited about this role because..."*)\n\nPlease share your draft introduction, and I will help refine it!`;
+    formalAlt = `Would you be willing to review my professional self-introduction and offer constructive feedback?`;
+    why = `Using "Would you be willing to review..." is a polite and engaging way to solicit feedback.`;
+    grammarTag = 'Self-Introduction Formulation';
+    suggestions = [
+      'I am a Senior Specialist with 5 years of experience in project delivery...',
+      'Throughout my career, I have focused on driving cross-functional alignment...',
+      'What are common mistakes to avoid during an elevator pitch?'
+    ];
+  }
+  // 5. User is asking about emails / written correspondence
+  else if (inputLower.includes('email') || inputLower.includes('write') || inputLower.includes('draft') || inputLower.includes('follow-up') || inputLower.includes('follow up') || inputLower.includes('overdue')) {
+    if (inputLower.includes('overdue') || inputLower.includes('follow-up') || inputLower.includes('follow up') || inputLower.includes('waiting')) {
+      reply = `Here is an elegant, polite follow-up email template for pending items:\n\n**Subject:** *Following Up: [Project Name] Update*\n\n*Dear [Name],*\n*I hope your week is going well. I am writing to gently follow up on our previous discussion regarding [Topic]. Could you please provide an update at your earliest convenience?*\n*Thank you for your continued support.*\n*Best regards,*\n*[Your Name]*\n\nWhat specific email would you like to draft next?`;
+      formalAlt = `I am writing to gently inquire about the status of our pending deliverable.`;
+      why = `Using "gently inquire" softens the urgency while clearly prompting action from the recipient.`;
+      grammarTag = 'Email Follow-Up';
+    } else if (inputLower.includes('decline') || inputLower.includes('say no') || inputLower.includes('reject')) {
+      reply = `Here is a diplomatic template to decline a meeting or request gracefully:\n\n*Dear [Name],*\n*Thank you for thinking of me for this initiative. Regrettably, due to prior project commitments, I am unable to take this on at this time. I would be happy to reconnect next month if circumstances allow.*\n*Best regards, [Your Name]*\n\nWould you like to practice tailoring this to a specific colleague?`;
+      formalAlt = `Regrettably, due to current project priorities, I will be unable to participate in this sync.`;
+      why = `Opening with "Regrettably" followed by a clear, objective reason maintains strong professional goodwill.`;
+      grammarTag = 'Diplomatic Refusal';
+    } else {
+      reply = `In professional email writing, the golden rule is clarity and positive framing (e.g., replace *"Sorry for the delay"* with *"Thank you for your patience"*). What email scenario or draft would you like to refine together?`;
+      formalAlt = `Thank you for your prompt response; please find the revised project brief attached for your review.`;
+      why = `Framing email correspondence with gratitude projects confidence and keeps focus on solutions.`;
+      grammarTag = 'Email Etiquette';
+    }
+    suggestions = [
+      'How do I write a polite follow-up for an overdue response?',
+      'How do I decline a meeting invitation courteously?',
+      'What is the best way to attach a formal report in an email?'
+    ];
+  }
+  // 6. User is asking about meeting diplomacy / disagreement / pushback
+  else if (inputLower.includes('disagree') || inputLower.includes('pushback') || inputLower.includes('meeting') || inputLower.includes('diplomatic') || inputLower.includes('say no')) {
+    reply = `To express diplomatic pushback in executive meetings without sounding confrontational, use the **Validate + Pivot** technique:\n1. *"I understand the strategic goal here; however, we might also consider the resource constraints."*\n2. *"That is an interesting angle; let us examine how it impacts our delivery timeline."*\n3. *"I have a slightly different perspective on how we should sequence these tasks."*\n\nWhich of these phrasing styles feels most natural for your team?`;
+    formalAlt = `I appreciate your perspective; however, I would like to propose an alternative approach that mitigates potential risks.`;
+    why = `The "Validate + Pivot" structure ensures your colleagues feel heard before introducing constructive feedback.`;
+    grammarTag = 'Diplomatic Disagreement';
+    suggestions = [
+      'I see where you are coming from, but we should evaluate the technical risks.',
+      'Could we explore a phased rollout instead of an immediate launch?',
+      'How do I interrupt a meeting politely?'
+    ];
+  }
+  // 7. General greetings
+  else if (inputLower.includes('hello') || inputLower.includes('hi') || inputLower.includes('good morning') || inputLower.includes('good afternoon') || inputLower.includes('hey')) {
     const greetings = [
-      `Good day! It is a pleasure to connect with you. How is your workday progressing, and what communication goal should we focus on today?`,
-      `Hello! I am glad to work with you on your English communication today. Which workplace scenario would you like to practice?`,
-      `Welcome! I am ready to help you elevate your executive vocabulary and conversation skills. Where shall we begin?`
+      `Good day! It is a pleasure to connect with you. What English communication goal should we focus on today? We can practice job interviews, formal email drafting, meeting diplomacy, or executive vocabulary.`,
+      `Hello! I am delighted to work with you on elevating your professional English today. Which workplace scenario would you like to tackle first?`,
+      `Welcome! I am ready to help you refine your business English fluency. Where shall we begin?`
     ];
     reply = greetings[turn % greetings.length];
     formalAlt = `Good morning / Good afternoon, thank you for connecting with me today.`;
     why = `Starting conversations with structured, warm greetings establishes instant rapport in global business settings.`;
     grammarTag = 'Professional Greetings';
     suggestions = [
-      'I would like to practice drafting formal emails.',
-      'Can we roleplay an interview scenario?',
-      'How do I sound more diplomatic in team meetings?'
+      'Could you ask me a standard interview question?',
+      'How do I write a polite email requesting an update?',
+      'How can I sound more diplomatic in team meetings?'
     ];
-  } else if (inputLower.includes('help') || inputLower.includes('learn') || inputLower.includes('improve') || inputLower.includes('practice')) {
-    const helpOptions = [
-      `I would be delighted to guide you. We can work on polishing your meeting contributions, crafting diplomatic email replies, or preparing for high-stakes interviews. Which area would you like to tackle first?`,
-      `You have come to the right place. We can practice expressing polite disagreement, negotiating terms, or summarizing project milestones concisely. What is on your agenda?`,
-      `Let us take your fluency to the next level. Would you prefer focusing on formal email templates, spontaneous speaking, or executive vocabulary?`
-    ];
-    reply = helpOptions[turn % helpOptions.length];
+  }
+  // 8. General help requests
+  else if (inputLower.includes('help') || inputLower.includes('learn') || inputLower.includes('improve') || inputLower.includes('practice')) {
+    reply = `I would be delighted to guide you! We can practice:\n• **Mock Job Interviews** (STAR framework & leadership questions)\n• **Executive Email Drafting** (polite requests & follow-ups)\n• **Meeting Diplomacy** (constructive pushback & presentation phrasing)\n• **Salary Negotiation** (anchoring & counter-offers)\n\nWhich area would you like to start with?`;
     formalAlt = `I would appreciate your guidance in refining my professional English communication skills.`;
-    why = `Using "I would appreciate your guidance" is a polite, proactive way to request mentorship.`;
+    why = `Using "I would appreciate your guidance" is a proactive, polite way to request mentorship.`;
     grammarTag = 'Polite Requests';
     suggestions = [
-      'Let us focus on formal email phrasing.',
-      'I want to practice speaking with senior leadership.',
-      'How can I answer salary negotiation questions?'
-    ];
-  } else if (inputLower.includes('interview') || inputLower.includes('job') || inputLower.includes('salary') || inputLower.includes('resume') || inputLower.includes('cv')) {
-    const interviewTips = [
-      `Career communication is one of the highest-leverage skills you can develop. When speaking to recruiters, structure your answers using the STAR method: Situation, Task, Action, and Result. Would you like to practice an interview question?`,
-      `In executive interviews, using proactive verbs like "spearheaded", "orchestrated", and "accelerated" immediately showcases your leadership value. Let us rehearse your self-introduction.`,
-      `When negotiating compensation, always anchor your discussion around market benchmarks and the measurable impact you deliver. Shall we simulate a compensation call?`
-    ];
-    reply = interviewTips[turn % interviewTips.length];
-    formalAlt = `Throughout my career, I have consistently delivered measurable outcomes and driven cross-functional team success.`;
-    why = `Action verbs and structured STAR responses demonstrate leadership and composure.`;
-    grammarTag = 'Interview Diplomacy';
-    suggestions = [
       'Could you ask me a standard interview question?',
-      'How do I discuss salary expectations politely?',
-      'Can you review my professional self-introduction?'
+      'Let us focus on formal email phrasing.',
+      'How do I negotiate salary diplomatically?'
     ];
-  } else if (inputLower.includes('email') || inputLower.includes('write') || inputLower.includes('send') || inputLower.includes('message')) {
-    const emailTips = [
-      `When writing professional emails, remember the golden rule: replace apologies with gratitude (for instance, "Thank you for your patience" instead of "Sorry for the delay"). What specific email draft are you working on?`,
-      `In corporate correspondence, opening with a clear purpose statement (e.g. "I am writing to provide an update regarding...") prevents miscommunication. What email scenario would you like to refine?`,
-      `To ensure prompt replies to your emails, state clear action items with specific dates (e.g., "Please review by Thursday at 3 PM"). Would you like to practice an email follow-up?`
-    ];
-    reply = emailTips[turn % emailTips.length];
-    formalAlt = `Thank you for your prompt response; please find the updated project milestones outlined below.`;
-    why = `Framing updates with gratitude enhances executive presence and keeps communication focused on solutions.`;
-    grammarTag = 'Email Etiquette';
-    suggestions = [
-      'How do I write a polite follow-up for an overdue response?',
-      'How do I decline a meeting invitation courteously?',
-      'What is the best way to attach a formal report in an email?'
-    ];
-  } else {
-    // Dynamically transform user's actual words into a formal phrasing
+  }
+  // 9. Contextual dynamic transformation of user's custom text
+  else {
     const words = trimmed.split(' ');
-    const firstWord = words[0]?.toLowerCase() || '';
     
     if (words.length <= 4) {
-      formalAlt = `I would like to respectfully share that ${trimmed.toLowerCase().replace(/[.!?]$/, '')}.`;
+      formalAlt = `I would like to respectfully note that ${trimmed.toLowerCase().replace(/[.!?]$/, '')}.`;
       why = 'Softening brief statements with polite introductory framing ensures a courteous, professional delivery.';
       grammarTag = 'Tone Softening';
     } else if (inputLower.startsWith('i want') || inputLower.startsWith('give me')) {
       formalAlt = `I would greatly appreciate if we could arrange ${trimmed.slice(6).trim()}.`;
-      why = 'Replacing direct demands with modal requests creates a cooperative workplace environment.';
+      why = 'Replacing direct demands with modal requests creates a cooperative, professional workplace environment.';
       grammarTag = 'Modal Verbs';
+    } else if (inputLower.startsWith('i think') || inputLower.startsWith('maybe we')) {
+      formalAlt = `Based on current observations, I would recommend that ${trimmed.slice(7).trim()}.`;
+      why = 'Replacing tentative phrasing ("I think") with assertive recommendations ("I would recommend") projects confidence.';
+      grammarTag = 'Executive Presence';
     } else {
-      formalAlt = `Regarding this matter, ${trimmed.charAt(0).toLowerCase() + trimmed.slice(1).replace(/[.!?]$/, '')}, which aligns with our strategic objectives.`;
-      why = 'Connecting operational details to overarching strategic objectives signals seniority and proactive alignment.';
+      formalAlt = `Regarding this matter, ${trimmed.charAt(0).toLowerCase() + trimmed.slice(1).replace(/[.!?]$/, '')}, which aligns with our overarching objectives.`;
+      why = 'Connecting operational details to overarching objectives signals seniority and proactive alignment.';
       grammarTag = 'Executive Communication';
     }
 
     const dynamicReflections = [
-      `That is an important point you noted regarding "${trimmed.slice(0, 36)}...". In formal English, articulating your thoughts with precision and modal verbs (such as "would", "could", and "might") creates a constructive and collaborative atmosphere.`,
-      `You expressed that clearly. When sharing updates like that with senior colleagues or international clients, adding a concise summary of the next step ensures complete alignment.`,
-      `I appreciate you bringing this up. Balancing brevity with courtesy is essential in executive correspondence. How would you phrase that in a high-stakes presentation?`,
-      `Thank you for sharing that thought. Practicing diverse phrasing for common workplace scenarios builds natural fluency and confidence over time.`
+      `Thank you for sharing that. You expressed your thought clearly! In formal English, using modal verbs like *"would"*, *"could"*, and *"might"* helps maintain a constructive and diplomatic tone. How would you apply this in a high-stakes meeting?`,
+      `That is a very relevant point. When communicating this to senior executives or global clients, adding a concise next-step summary ensures complete clarity. Would you like to practice drafting a follow-up on this?`,
+      `Understood! Refining your everyday phrasing into executive-level English builds natural confidence over time. Would you like to practice another workplace scenario, or try an interview question next?`
     ];
     reply = dynamicReflections[turn % dynamicReflections.length];
+    suggestions = [
+      'Could you ask me a standard interview question?',
+      'How would I phrase this in an executive email?',
+      'What is another way to say this more diplomatically?'
+    ];
   }
 
+  // Generate localized translation
   let translation = `Translation (${nativeLanguage}): ${reply}`;
   const lowerL = nativeLanguage.toLowerCase();
   if (lowerL.includes('spanish') || lowerL.includes('español')) {
-    translation = `Traducción (Español): ${reply.length > 80 ? 'Excelente punto en inglés profesional. Mantener un tono cortés, estructurado y enfocado en soluciones genera credibilidad inmediata.' : 'Buen punto. En el entorno laboral, expresarse con cortesía y claridad genera confianza.'}`;
+    translation = `Traducción (Español): ${reply.length > 90 ? 'Excelente punto en inglés profesional. Mantener un tono cortés, estructurado y enfocado en soluciones genera credibilidad inmediata.' : 'Buen punto. En el entorno laboral, expresarse con cortesía y claridad genera confianza.'}`;
   } else if (lowerL.includes('portuguese') || lowerL.includes('português')) {
     translation = `Tradução (Português): Ótimo ponto! No inglês profissional, manter um tom cortês e estruturado gera credibilidade com colegas e clientes.`;
   } else if (lowerL.includes('french') || lowerL.includes('français')) {
@@ -518,18 +613,22 @@ export async function getChatTutorResponse(params: ChatTutorParams): Promise<Cha
     coachPersona = 'Elena - Senior Executive English Coach' 
   } = params;
 
-  const systemInstruction = `You are ${coachPersona}, an elite AI English language tutor on Pro English Coach, specializing in teaching Basic & Formal English.
+  const systemInstruction = `You are ${coachPersona}, an expert AI English language coach on Pro English Coach, specializing in teaching Basic & Formal Workplace English.
 The learner's current English level is ${englishLevel} (CEFR).
 The learner's native language for translations and explanations is ${nativeLanguage}.
 
-CRITICAL ANTI-REPETITION DIRECTIVE:
-1. NEVER repeat previous responses, canned phrases, generic boilerplate greetings, or robotic templates.
-2. Formulate your reply directly in response to the specific subject, words, and context of the learner's message.
+CRITICAL ANTI-REPETITION & CONVERSATIONAL DIRECTIVES:
+1. NEVER repeat previous responses, canned phrases, or generic boilerplate lectures.
+2. Formulate your reply DIRECTLY in response to the specific subject, question, or request of the learner's message:
+   - If the learner asks for an interview question, ASK THEM A SPECIFIC, ENGAGING INTERVIEW QUESTION directly!
+   - If the learner provides an answer to a question or shares their experience, evaluate their answer, praise their points, give constructive feedback, and ask a relevant follow-up question.
+   - If the learner asks for email help, provide the exact email template immediately with subject line and body.
+   - If the learner asks about salary negotiation or pushback, give them exact actionable scripts.
 3. If correcting or formalizing their sentence:
-   - Provide an authentic, varied formal alternative tailored specifically to what the learner said.
+   - Provide an authentic, polished formal/executive English alternative tailored specifically to what the learner said.
    - Explain the nuance clearly in 1 brief sentence.
 4. Translate your conversational reply into natural ${nativeLanguage}.
-5. Give 3 diverse, contextually relevant suggestions for what the learner can say next.
+5. Give 3 diverse, contextually relevant follow-up suggestions for what the learner can say next.
 
 Respond strictly in valid JSON matching this schema:
 {
@@ -587,14 +686,14 @@ Respond strictly in valid JSON matching this schema:
     }
   }
 
-  // 2. Try Gemini candidate models
+  // 2. Try Gemini candidate models with robust schema configuration
   const gemini = getGeminiClient();
   if (gemini) {
     const conversationContext = messages
       .slice(-8)
-      .map(m => `${m.sender === 'user' ? 'User' : 'Tutor'}: ${m.text}`)
+      .map(m => `${m.sender === 'user' ? 'Learner' : 'Tutor'}: ${m.text}`)
       .join('\n');
-    const prompt = `${conversationContext ? `Conversation history:\n${conversationContext}\n\n` : ''}User's latest message: "${userInput}"`;
+    const prompt = `Learner's CEFR Level: ${englishLevel}\nLearner's Native Language: ${nativeLanguage}\n\n${conversationContext ? `Recent Dialogue:\n${conversationContext}\n\n` : ''}Learner's Latest Message: "${userInput}"\n\nProvide the next engaging, contextually tailored tutor response, translation, sentence improvement, and 3 smart follow-up suggestions in JSON format.`;
 
     const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
     for (const model of candidateModels) {
@@ -605,6 +704,28 @@ Respond strictly in valid JSON matching this schema:
           config: {
             systemInstruction,
             responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                reply: { type: Type.STRING },
+                translation: { type: Type.STRING },
+                formalCorrection: {
+                  type: Type.OBJECT,
+                  properties: {
+                    original: { type: Type.STRING },
+                    formalAlternative: { type: Type.STRING },
+                    why: { type: Type.STRING },
+                    grammarTag: { type: Type.STRING }
+                  },
+                  required: ['original', 'formalAlternative', 'why', 'grammarTag']
+                },
+                suggestions: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING }
+                }
+              },
+              required: ['reply', 'translation', 'suggestions']
+            }
           },
         });
 
