@@ -412,7 +412,7 @@ function generateDynamicFallbackChatResponse(
     grammarTag = 'Strategic Phrasing';
   }
 
-  let translation = `Traducción (${nativeLanguage}): ${reply}`;
+  let translation = `Translation (${nativeLanguage}): ${reply}`;
   const lowerL = nativeLanguage.toLowerCase();
   if (lowerL.includes('spanish') || lowerL.includes('español')) {
     translation = `¡Excelente punto! En inglés profesional, mantener un tono cortés, estructurado y enfocado en soluciones genera confianza inmediata.`;
@@ -422,6 +422,28 @@ function generateDynamicFallbackChatResponse(
     translation = `C'est un excellent point ! En anglais professionnel, maintenir un ton courtois et structuré renforce votre crédibilité.`;
   } else if (lowerL.includes('german') || lowerL.includes('deutsch')) {
     translation = `Ein hervorragender Punkt! Im geschäftlichen Englisch stärkt ein höflicher und lösungsorientierter Ton das Vertrauen.`;
+  } else if (lowerL.includes('hindi')) {
+    translation = `शानदार विचार! पेशेवर अंग्रेजी में विनम्र, संरचित और समाधान-उन्मुख भाषा का प्रयोग विश्वास पैदा करता है।`;
+  } else if (lowerL.includes('mandarin') || lowerL.includes('chinese')) {
+    translation = `非常好的观点！在专业英语沟通中，保持礼貌、清晰且以解决问题为导向的语调能够迅速建立信任。`;
+  } else if (lowerL.includes('japanese')) {
+    translation = `素晴らしい着眼点です。ビジネス英語では、丁寧で論理的かつ解決策を意識した表現を使うことで信頼関係が築かれます。`;
+  } else if (lowerL.includes('korean')) {
+    translation = `훌륭한 의견입니다! 비즈니스 영어에서는 정중하고 체계적이며 해결책 중심의 어조를 유지할 때 신뢰를 얻을 수 있습니다.`;
+  } else if (lowerL.includes('arabic')) {
+    translation = `نقطة ممتازة! في اللغة الإنجليزية المهنية، يساعد الحفاظ على نبرة مهذبة ومنظمة وتركز على الحلول في بناء الثقة الفورية.`;
+  } else if (lowerL.includes('russian')) {
+    translation = `Отличная мысль! В деловом английском вежливый, структурированный и ориентированный на результат тон создает доверие.`;
+  } else if (lowerL.includes('italian')) {
+    translation = `Ottimo punto! Nell'inglese professionale, mantenere un tono cortese, strutturato e orientato alle soluzioni crea fiducia immediata.`;
+  } else if (lowerL.includes('polish')) {
+    translation = `Świetna uwaga! W profesjonalnym angielskim uprzejmy, uporządkowany i nastawiony na rozwiązania ton buduje zaufanie.`;
+  } else if (lowerL.includes('turkish')) {
+    translation = `Harika bir nokta! Profesyonel İngilizcede nazik, yapılandırılmış ve çözüm odaklı bir üslup güven oluşturur.`;
+  } else if (lowerL.includes('vietnamese')) {
+    translation = `Ý kiến rất hay! Trong tiếng Anh công sở, việc duy trì giọng điệu lịch sự, mạch lạc và hướng đến giải pháp sẽ tạo dựng sự tin tưởng.`;
+  } else if (lowerL.includes('indonesian')) {
+    translation = `Poin yang luar biasa! Dalam bahasa Inggris profesional, mempertahankan nada yang sopan, terstruktur, dan berorientasi pada solusi membangun kepercayaan.`;
   }
 
   return {
@@ -696,9 +718,44 @@ Respond strictly in valid JSON matching:
   const nextCompletedId = unfinishedObjectives.length > 0 ? [unfinishedObjectives[0].id] : [];
   const isDone = unfinishedObjectives.length <= 1;
 
+  const partnerReply = `Thank you for explaining that in such clear, professional detail. That gives us a solid basis to proceed with the next milestone.`;
+  let roleplayTranslation = `Translation (${nativeLanguage}): ${partnerReply}`;
+  const lowerLang = nativeLanguage.toLowerCase();
+  if (lowerLang.includes('spanish') || lowerLang.includes('español')) {
+    roleplayTranslation = 'Traducción (Español): Gracias por explicar eso con tanto detalle y profesionalismo. Nos da una base sólida para continuar.';
+  } else if (lowerLang.includes('portuguese') || lowerLang.includes('português')) {
+    roleplayTranslation = 'Tradução (Português): Obrigado por explicar isso com tanto detalhe e profissionalismo. Isso nos dá uma base sólida para continuar.';
+  } else if (lowerLang.includes('french') || lowerLang.includes('français')) {
+    roleplayTranslation = 'Traduction (Français) : Merci d\'avoir expliqué cela de manière aussi claire et professionnelle. Cela nous donne une base solide pour continuer.';
+  } else if (lowerLang.includes('german') || lowerLang.includes('deutsch')) {
+    roleplayTranslation = 'Deutsche Übersetzung: Vielen Dank, dass Sie das so detailliert und professionell erklärt haben. Das bietet uns eine solide Grundlage für den nächsten Schritt.';
+  } else if (lowerLang.includes('hindi')) {
+    roleplayTranslation = 'हिन्दी अनुवाद: इतने स्पष्ट और पेशेवर विवरण के साथ समझाने के लिए धन्यवाद। इससे हमें अगले कदम के लिए एक ठोस आधार मिलता है।';
+  } else if (lowerLang.includes('mandarin') || lowerLang.includes('chinese')) {
+    roleplayTranslation = '中文翻译：非常感谢您如此清晰、专业且详尽的阐述，这为我们推进下一个里程碑奠定了坚实的基础。';
+  } else if (lowerLang.includes('japanese')) {
+    roleplayTranslation = '日本語訳：これほど明確かつ専門的にご説明いただきありがとうございます。次のマイルストーンに進むための強固な基盤となります。';
+  } else if (lowerLang.includes('korean')) {
+    roleplayTranslation = '한국어 번역: 이렇게 명확하고 전문적으로 설명해 주셔서 감사합니다. 다음 마일스톤을 추진하는 데 있어 든든한 기반이 됩니다.';
+  } else if (lowerLang.includes('arabic')) {
+    roleplayTranslation = 'الترجمة (العربية): شكراً لشرحك ذلك بمثل هذا التفصيل والاحترافية. هذا يمنحنا أساساً متيناً للمضي قدماً نحو المرحلة التالية.';
+  } else if (lowerLang.includes('russian')) {
+    roleplayTranslation = 'Перевод (Русский): Спасибо за такое четкое и профессиональное объяснение. Это дает нам прочную основу для следующего этапа.';
+  } else if (lowerLang.includes('italian')) {
+    roleplayTranslation = 'Traduzione (Italiano): Grazie per aver spiegato questo con tale chiarezza e professionalità. Ci offre una solida base per procedere.';
+  } else if (lowerLang.includes('polish')) {
+    roleplayTranslation = 'Tłumaczenie (Polski): Dziękuję za tak jasne i profesjonalne wyjaśnienie. Daje nam to solidną podstawę do przejścia do kolejnego etapu.';
+  } else if (lowerLang.includes('turkish')) {
+    roleplayTranslation = 'Türkçe Çeviri: Bunu bu kadar net ve profesyonel bir şekilde açıkladığınız için teşekkür ederiz. Bir sonraki aşamaya geçmemiz için sağlam bir temel oluşturuyor.';
+  } else if (lowerLang.includes('vietnamese')) {
+    roleplayTranslation = 'Bản dịch (Tiếng Việt): Cảm ơn bạn đã giải thích rõ ràng và chuyên nghiệp như vậy. Điều này mang lại cho chúng ta cơ sở vững chắc để tiếp tục.';
+  } else if (lowerLang.includes('indonesian')) {
+    roleplayTranslation = 'Terjemahan (Bahasa Indonesia): Terima kasih telah menjelaskan hal itu dengan begitu jelas dan profesional. Ini memberi kita dasar yang kuat untuk melanjutkan.';
+  }
+
   return {
-    partnerReply: `Thank you for explaining that in such clear, professional detail. That gives us a solid basis to proceed with the next milestone.`,
-    translation: `Traducción (${nativeLanguage}): Gracias por explicar eso con tanto detalle y profesionalismo. Nos da una base sólida para continuar.`,
+    partnerReply,
+    translation: roleplayTranslation,
     completedObjectiveIds: nextCompletedId,
     feedbackTip: `Using structured, solution-oriented explanations demonstrates strong executive presence.`,
     isScenarioComplete: isDone,

@@ -552,7 +552,7 @@ export function convertSavedPhrasesToFlashcards(savedPhrases: SavedPhrase[]): Fl
  */
 export function getFlashcardTranslation(
   card: Flashcard,
-  nativeLanguage: NativeLanguage | string = 'Spanish'
+  nativeLanguage: NativeLanguage | string
 ): string {
   return getTranslationFromService(card, nativeLanguage);
 }

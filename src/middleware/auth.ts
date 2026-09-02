@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { adminAuth } from '../lib/firebase-admin.ts';
+import { getAdminAuth } from '../lib/firebase-admin.ts';
 import { DecodedIdToken } from 'firebase-admin/auth';
 
 export interface AuthRequest extends Request {
@@ -18,6 +18,11 @@ export const requireAuth = async (
 
   const token = authHeader.split('Bearer ')[1];
   try {
+    const adminAuth = getAdminAuth();
+    if (!adminAuth) {
+      // Fallback decode if admin auth cannot verify or credentials not present in dev
+      return res.status(401).json({ error: 'Authentication service temporarily unavailable.' });
+    }
     const decodedToken = await adminAuth.verifyIdToken(token);
     req.user = decodedToken;
     next();
@@ -26,3 +31,4 @@ export const requireAuth = async (
     return res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
 };
+

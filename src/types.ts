@@ -108,6 +108,8 @@ export interface RoleplayObjective {
   id: string;
   text: string;
   completed: boolean;
+  suggestedPhrase?: string;
+  samplePhrases?: string[];
 }
 
 export interface RoleplayScenario {

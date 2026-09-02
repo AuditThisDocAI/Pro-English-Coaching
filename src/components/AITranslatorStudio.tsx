@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { NativeLanguage, SUPPORTED_LANGUAGES, SavedPhrase } from '../types';
 import { useTTS } from '../lib/useTTS';
+import { generateSmartRuleBasedTranslation } from '../lib/translationService';
 
 interface AITranslatorStudioProps {
   nativeLanguage: NativeLanguage;
@@ -106,7 +107,7 @@ export const AITranslatorStudio: React.FC<AITranslatorStudioProps> = ({
       setResult({
         original: trimmed,
         professional: `I would like to ensure this is communicated with high executive clarity. ${trimmed}`,
-        translation: `Traducción / Explicación (${nativeLanguage}): ${trimmed}`,
+        translation: generateSmartRuleBasedTranslation(trimmed, nativeLanguage),
         why: 'Framing thoughts clearly and concisely fosters trust and alignment in workplace environments.',
         practice: 'How would you follow up on this point in your next meeting?',
       });

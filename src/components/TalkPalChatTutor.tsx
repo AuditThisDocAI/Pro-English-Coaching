@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useTTS } from '../lib/useTTS';
 import { motion, AnimatePresence } from 'motion/react';
+import { generateSmartRuleBasedTranslation } from '../lib/translationService';
 
 interface TalkPalChatTutorProps {
   nativeLanguage: NativeLanguage;
@@ -330,6 +331,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
         id: `tutor-${Date.now()}`,
         sender: 'tutor',
         text: `I noticed you said: "${messageText}". In formal business English, a more polite phrasing would be: "I would appreciate your guidance on this matter."`,
+        translation: generateSmartRuleBasedTranslation('I would appreciate your guidance regarding this topic.', nativeLanguage),
         formalCorrection: {
           original: messageText,
           formalAlternative: 'I would appreciate your guidance regarding this topic.',

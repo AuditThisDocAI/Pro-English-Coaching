@@ -211,7 +211,8 @@ async function startServer() {
   app.post('/api/support', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const { email, name, category = 'General Question', message, recipient = 'ProEnglishAICoach@protonmail.com' } = req.body || {};
+      const { email, name, category = 'General Question', message } = req.body || {};
+      const targetRecipient = 'ProEnglishAICoach@protonmail.com';
 
       if (!email || typeof email !== 'string' || !email.includes('@')) {
         return res.status(400).json({ error: 'A valid email address is required.' });
@@ -226,7 +227,7 @@ async function startServer() {
 
       console.log('📬 [SUPPORT INBOX TICKET DISPATCHED]', {
         ticketId,
-        recipient: 'ProEnglishAICoach@protonmail.com',
+        recipient: targetRecipient,
         senderEmail: email.trim(),
         senderName: name?.trim() || 'Anonymous',
         category,
@@ -234,41 +235,6 @@ async function startServer() {
         timestamp,
         userAgent: req.headers['user-agent'],
       });
-
-      return res.json({
-        success: true,
-        ticketId,
-        recipient: 'ProEnglishAICoach@protonmail.com',
-        senderEmail: email.trim(),
-        message: 'Your message has been received and routed to ProEnglishAICoach@protonmail.com. Our support team will reply to you directly.',
-        timestamp,
-      });
-    } catch (error: any) {
-      console.error('Support ticket handling error:', error);
-      return res.status(500).json({ error: error?.message || 'Failed to process support request.' });
-    }
-  });
-
-  // Support Helpdesk Endpoint (ProEnglishAICoach@protonmail.com)
-  app.post('/api/support', async (req, res) => {
-    try {
-      const { email, name, category = 'General Question', message } = req.body || {};
-      const targetRecipient = 'ProEnglishAICoach@protonmail.com';
-
-      if (!email || !message) {
-        return res.status(400).json({ error: 'Please provide both your email and a message.' });
-      }
-
-      const ticketId = `PRO-${Date.now().toString().slice(-6)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-      const timestamp = new Date().toISOString();
-
-      console.log('=== [SUPPORT TICKET RECEIVED] ===');
-      console.log(`Ticket ID: ${ticketId}`);
-      console.log(`To: ${targetRecipient}`);
-      console.log(`From: ${name ? `${name} <${email}>` : email}`);
-      console.log(`Category: ${category}`);
-      console.log(`Message: ${message}`);
-      console.log('=================================');
 
       const subject = `[ProEnglish Support Ticket #${ticketId}] ${category} - ${name || email}`;
       const body = `Hello ProEnglish Support Team,\n\nTicket ID: ${ticketId}\nSender: ${name || 'User'} (${email})\nCategory: ${category}\nSubmitted At: ${timestamp}\n\nMessage:\n${message}\n\n---\nProEnglish AI Coach Support System`;
@@ -281,15 +247,16 @@ async function startServer() {
         success: true,
         ticketId,
         recipient: targetRecipient,
+        senderEmail: email.trim(),
         timestamp,
         mailtoUrl,
         gmailUrl,
         protonMailUrl,
-        message: 'Support request recorded and queued for ProEnglishAICoach@protonmail.com',
+        message: 'Your message has been received and routed to ProEnglishAICoach@protonmail.com. Our support team will reply to you directly.',
       });
-    } catch (err: any) {
-      console.error('Support endpoint error:', err);
-      return res.status(500).json({ error: err?.message || 'Failed to process support request.' });
+    } catch (error: any) {
+      console.error('Support ticket handling error:', error);
+      return res.status(500).json({ error: error?.message || 'Failed to process support request.' });
     }
   });
 

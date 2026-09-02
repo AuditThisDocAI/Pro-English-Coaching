@@ -22,9 +22,15 @@ import {
   Award, 
   Flame, 
   ChevronRight, 
+  ChevronDown,
+  ChevronUp,
   Clock, 
   AlertCircle,
-  RotateCcw
+  RotateCcw,
+  Lightbulb,
+  Check,
+  Copy,
+  MessageSquarePlus
 } from 'lucide-react';
 import { useTTS } from '../lib/useTTS';
 import { motion, AnimatePresence } from 'motion/react';
@@ -51,9 +57,36 @@ export const CURATED_SCENARIOS: RoleplayScenario[] = [
     description: 'You discovered a critical bug that requires 3 extra days of testing. You need to inform Victoria politely and agree on an updated delivery date without sounding disorganized.',
     initialMessage: "Hi there! I was reviewing our Q3 sprint schedule. Are we still on track to ship the product updates this Friday afternoon?",
     objectives: [
-      { id: 'obj-1', text: 'Politely acknowledge her question and state the current status', completed: false },
-      { id: 'obj-2', text: 'Explain the technical reason for the delay clearly without panic', completed: false },
-      { id: 'obj-3', text: 'Propose a specific new deadline (next Tuesday) with assurance of quality', completed: false }
+      { 
+        id: 'obj-1', 
+        text: 'Politely acknowledge her question and state the current status', 
+        completed: false,
+        suggestedPhrase: "Thank you for checking in, Victoria. We have made solid progress, but I wanted to give you a quick update regarding our release timeline.",
+        samplePhrases: [
+          "Thank you for following up, Victoria. We are in the final stretch, though we encountered an item that needs attention.",
+          "Hi Victoria, thanks for checking in. The core features are ready, but we have a crucial quality assurance update."
+        ]
+      },
+      { 
+        id: 'obj-2', 
+        text: 'Explain the technical reason for the delay clearly without panic', 
+        completed: false,
+        suggestedPhrase: "During our final regression testing this morning, our team discovered a rare edge-case bug in the payment gateway that requires 3 days of thorough verification.",
+        samplePhrases: [
+          "Our QA team identified an unexpected synchronization issue in staging that we need to resolve to ensure zero downtime.",
+          "To safeguard customer data integrity, we need to run an additional security and load test before deploying to production."
+        ]
+      },
+      { 
+        id: 'obj-3', 
+        text: 'Propose a specific new deadline (next Tuesday) with assurance of quality', 
+        completed: false,
+        suggestedPhrase: "To ensure everything runs seamlessly, I would like to propose moving our deployment to next Tuesday at 2:00 PM. We will deliver a flawless release.",
+        samplePhrases: [
+          "Could we schedule the official rollout for next Tuesday afternoon? This gives us the buffer needed for comprehensive QA.",
+          "I propose shifting the release window to next Tuesday, ensuring our users receive a stable and polished experience."
+        ]
+      }
     ],
     starterSuggestions: [
       'Thank you for checking in, Victoria. We have made great progress, but encountered a QA edge-case.',
@@ -73,9 +106,36 @@ export const CURATED_SCENARIOS: RoleplayScenario[] = [
     description: 'You have completed 4 rounds of interviews and received an offer. Practice negotiating the base salary politely based on market rate and your track record.',
     initialMessage: "We are thrilled by your background and would love to extend an offer with a base compensation of $110,000. How does that sound to you?",
     objectives: [
-      { id: 'obj-1', text: 'Express genuine gratitude and enthusiasm for the offer', completed: false },
-      { id: 'obj-2', text: 'Provide market or experience-based rationale for a higher band ($125k)', completed: false },
-      { id: 'obj-3', text: 'Maintain a courteous, collaborative tone leaving room for discussion', completed: false }
+      { 
+        id: 'obj-1', 
+        text: 'Express genuine gratitude and enthusiasm for the offer', 
+        completed: false,
+        suggestedPhrase: "Thank you so much for this offer, Marcus! I am genuinely thrilled about the team and the opportunity to drive impact here.",
+        samplePhrases: [
+          "I really appreciate the offer and kind words, Marcus. I am very excited about the prospect of joining the team.",
+          "Thank you, Marcus. I thoroughly enjoyed meeting everyone and am eager to contribute to the company's vision."
+        ]
+      },
+      { 
+        id: 'obj-2', 
+        text: 'Provide market or experience-based rationale for a higher band ($125k)', 
+        completed: false,
+        suggestedPhrase: "Based on my 6 years of specialized experience in cross-platform architecture and current market benchmarks, I was targeting a base closer to $125,000.",
+        samplePhrases: [
+          "Given the leadership scope of this role and my proven track record of scaling revenue, I was hoping for $125,000.",
+          "Considering the industry averages for this seniority level and my technical leadership skills, $125,000 feels more aligned."
+        ]
+      },
+      { 
+        id: 'obj-3', 
+        text: 'Maintain a courteous, collaborative tone leaving room for discussion', 
+        completed: false,
+        suggestedPhrase: "Is there flexibility within your compensation band, or perhaps through performance bonuses or equity, to reach that number?",
+        samplePhrases: [
+          "I would love to understand if there is room for flexibility in the total package so we can make this work smoothly.",
+          "I am very motivated to reach an agreement that works well for both of us—is there room to explore this further?"
+        ]
+      }
     ],
     starterSuggestions: [
       'Thank you so much for this offer, Marcus! I am truly excited about this opportunity.',
@@ -95,9 +155,36 @@ export const CURATED_SCENARIOS: RoleplayScenario[] = [
     description: 'A colleague proposes launching an unverified feature next week. You must disagree constructively without attacking their idea.',
     initialMessage: "I think we should launch the instant checkout button immediately on Monday to boost our weekend campaign numbers. Thoughts?",
     objectives: [
-      { id: 'obj-1', text: 'Validate their enthusiasm and objective (boosting revenue)', completed: false },
-      { id: 'obj-2', text: 'Highlight the risk of unverified payment gateway errors politely', completed: false },
-      { id: 'obj-3', text: 'Suggest a controlled A/B test or phased rollout instead', completed: false }
+      { 
+        id: 'obj-1', 
+        text: 'Validate their enthusiasm and objective (boosting revenue)', 
+        completed: false,
+        suggestedPhrase: "I completely appreciate your initiative, David, and I share your enthusiasm for maximizing our weekend campaign conversion numbers.",
+        samplePhrases: [
+          "I see great value in the goal of boosting our conversion rates for the weekend campaign.",
+          "I really appreciate you proactively looking for ways to accelerate revenue and engagement."
+        ]
+      },
+      { 
+        id: 'obj-2', 
+        text: 'Highlight the risk of unverified payment gateway errors politely', 
+        completed: false,
+        suggestedPhrase: "However, deploying an unverified payment flow on short notice poses a major risk of transaction drop-offs and negative customer feedback.",
+        samplePhrases: [
+          "My main concern is that launching without end-to-end gateway testing could cause friction during live checkouts.",
+          "If the checkout button encounters unexpected edge cases under load, it could jeopardize our user trust."
+        ]
+      },
+      { 
+        id: 'obj-3', 
+        text: 'Suggest a controlled A/B test or phased rollout instead', 
+        completed: false,
+        suggestedPhrase: "Could we consider doing a controlled 10% A/B test or phased rollout instead, so we can validate stability before opening it to all users?",
+        samplePhrases: [
+          "What if we conduct a staged canary rollout with real-time error tracking to balance speed and stability?",
+          "Would you be open to running a phased release starting with a small segment of users on Monday?"
+        ]
+      }
     ],
     starterSuggestions: [
       'I understand the desire to capture weekend traffic, but rushing without QA poses high risk.',
@@ -117,9 +204,36 @@ export const CURATED_SCENARIOS: RoleplayScenario[] = [
     description: 'Deliver a crisp, 60-second executive summary covering your present role, past achievements, and why this new role is the perfect match.',
     initialMessage: "Welcome! We're glad to have you with us today. To kick things off, could you tell us a bit about yourself and your professional journey?",
     objectives: [
-      { id: 'obj-1', text: 'Start with a confident, polite opening greeting', completed: false },
-      { id: 'obj-2', text: 'Summarize 2-3 key accomplishments using strong action verbs', completed: false },
-      { id: 'obj-3', text: 'Tie your background directly into why you are excited for this position', completed: false }
+      { 
+        id: 'obj-1', 
+        text: 'Start with a confident, polite opening greeting', 
+        completed: false,
+        suggestedPhrase: "Thank you, Sarah. It is a pleasure to meet you today, and I am delighted to share my professional journey with you.",
+        samplePhrases: [
+          "Thank you for having me, Sarah. I am very glad to be here and excited to discuss my background.",
+          "Good morning Sarah, thank you for the opportunity. I have been looking forward to our conversation."
+        ]
+      },
+      { 
+        id: 'obj-2', 
+        text: 'Summarize 2-3 key accomplishments using strong action verbs', 
+        completed: false,
+        suggestedPhrase: "Over the past 5 years, I spearheaded international team expansion and optimized delivery pipelines, resulting in a 35% increase in operational efficiency.",
+        samplePhrases: [
+          "In my current role, I led cross-functional squads to successfully launch 3 enterprise products and boosted customer retention by 28%.",
+          "I specialize in architecting scalable solutions and orchestrating cross-departmental initiatives with proven measurable impact."
+        ]
+      },
+      { 
+        id: 'obj-3', 
+        text: 'Tie your background directly into why you are excited for this position', 
+        completed: false,
+        suggestedPhrase: "I am particularly drawn to this role because your organization's emphasis on high-velocity innovation aligns directly with my core strengths.",
+        samplePhrases: [
+          "I see this position as the perfect opportunity to leverage my experience in global scaling while driving meaningful growth for your team.",
+          "Your mission to empower international teams resonates deeply with me, and I am eager to contribute immediately."
+        ]
+      }
     ],
     starterSuggestions: [
       'Thank you, Sarah. I have over 5 years of experience driving cross-functional projects in tech.',
@@ -139,9 +253,36 @@ export const CURATED_SCENARIOS: RoleplayScenario[] = [
     description: 'Practice polite dining conversation, discussing business informally over dinner, and expressing courteous compliments.',
     initialMessage: "Thank you for joining me tonight. Have you had a chance to look over the menu, or would you like a recommendation from the chef?",
     objectives: [
-      { id: 'obj-1', text: 'Thank the host courteously for the invitation', completed: false },
-      { id: 'obj-2', text: 'Ask politely for their recommendation or state your preference with formal etiquette', completed: false },
-      { id: 'obj-3', text: 'Initiate polite small talk regarding recent industry events', completed: false }
+      { 
+        id: 'obj-1', 
+        text: 'Thank the host courteously for the invitation', 
+        completed: false,
+        suggestedPhrase: "Thank you so much for the gracious invitation, Antoine. The ambiance here is exceptional, and it is a true pleasure to join you tonight.",
+        samplePhrases: [
+          "It is wonderful to be here, Antoine. Thank you very much for hosting us this evening.",
+          "Thank you for choosing such a fantastic venue, Antoine. I am honored to be here."
+        ]
+      },
+      { 
+        id: 'obj-2', 
+        text: 'Ask politely for their recommendation or state your preference with formal etiquette', 
+        completed: false,
+        suggestedPhrase: "I would appreciate your personal recommendation—what dish would you suggest starting with?",
+        samplePhrases: [
+          "Everything looks delightful. As you know the venue well, what would you recommend tonight?",
+          "I am leaning towards the seafood selection, but I would love to hear your chef recommendation first."
+        ]
+      },
+      { 
+        id: 'obj-3', 
+        text: 'Initiate polite small talk regarding recent industry events', 
+        completed: false,
+        suggestedPhrase: "By the way, how was your experience at the European Tech Summit earlier this month? I heard the keynote was very insightful.",
+        samplePhrases: [
+          "On another note, how has your team been navigating the recent Q3 market shifts?",
+          "Did you have a smooth journey traveling into the city this afternoon?"
+        ]
+      }
     ],
     starterSuggestions: [
       'Thank you for hosting, Antoine. I would love to hear your personal recommendation.',
@@ -169,14 +310,43 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
   const [isCompleted, setIsCompleted] = useState(false);
   const [score, setScore] = useState(0);
   const [feedbackTip, setFeedbackTip] = useState('');
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
+  const [expandedObjectiveId, setExpandedObjectiveId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showPhraseDrawer, setShowPhraseDrawer] = useState<boolean>(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const toastTimeoutRef = useRef<any>(null);
   const { speak, isSpeaking } = useTTS();
 
   const filteredScenarios = CURATED_SCENARIOS.filter(
     (s) => categoryFilter === 'all' || s.category === categoryFilter
   );
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
+
+  const handleSelectSentence = (obj: RoleplayObjective, specificPhrase?: string, autoSend: boolean = false) => {
+    const phrase = specificPhrase || obj.suggestedPhrase || obj.text;
+    setInput(phrase);
+    setSelectedObjectiveId(obj.id);
+    showToast(`Loaded sentence for: "${obj.text.slice(0, 32)}..." into reply box!`);
+
+    if (autoSend) {
+      handleSendResponse(phrase);
+    } else {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  };
 
   const startScenario = (scenario: RoleplayScenario) => {
     setActiveScenario(scenario);
@@ -191,6 +361,8 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
     setIsCompleted(false);
     setScore(0);
     setFeedbackTip('');
+    setSelectedObjectiveId(null);
+    setExpandedObjectiveId(null);
     speak(scenario.initialMessage, {
       gender: scenario.partnerGender,
       pitch: scenario.partnerGender === 'female' ? 1.08 : 0.95
@@ -487,31 +659,119 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-extrabold text-neutral-900">
                   <span>Scenario Objectives</span>
-                  <span className="text-indigo-600">
+                  <span className="text-indigo-600 font-black">
                     {objectives.filter(o => o.completed).length} / {objectives.length}
                   </span>
                 </div>
+                <p className="text-[11px] text-neutral-500 leading-tight">
+                  Click any objective or sentence button to choose and insert it into your reply:
+                </p>
 
-                <div className="space-y-2">
-                  {objectives.map((obj) => (
-                    <div
-                      key={obj.id}
-                      className={`p-3 rounded-2xl border transition-all flex items-start gap-2.5 text-xs ${
-                        obj.completed
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-medium'
-                          : 'bg-neutral-50 border-neutral-200 text-neutral-700'
-                      }`}
-                    >
-                      {obj.completed ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      ) : (
-                        <Circle className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
-                      )}
-                      <span className="leading-snug">{obj.text}</span>
-                    </div>
-                  ))}
+                <div className="space-y-2.5 pt-1">
+                  {objectives.map((obj) => {
+                    const isSelected = selectedObjectiveId === obj.id;
+                    const isExpanded = expandedObjectiveId === obj.id;
+                    return (
+                      <div
+                        key={obj.id}
+                        className={`rounded-2xl border transition-all text-xs overflow-hidden ${
+                          obj.completed
+                            ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950 shadow-xs'
+                            : isSelected
+                            ? 'bg-indigo-50/90 border-indigo-500 ring-2 ring-indigo-400/40 text-neutral-900 shadow-md'
+                            : 'bg-white hover:bg-neutral-50 border-neutral-200 text-neutral-800 hover:border-indigo-300 shadow-2xs'
+                        }`}
+                      >
+                        {/* Main Objective Card Click Area */}
+                        <div 
+                          onClick={() => handleSelectSentence(obj)}
+                          className="p-3 cursor-pointer flex items-start gap-2.5 transition-colors"
+                          title="Click to choose this sentence for your reply"
+                        >
+                          <div className="mt-0.5 shrink-0">
+                            {obj.completed ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            ) : isSelected ? (
+                              <div className="w-4 h-4 rounded-full border-2 border-indigo-600 flex items-center justify-center bg-indigo-600 text-white">
+                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                              </div>
+                            ) : (
+                              <Circle className="w-4 h-4 text-neutral-400 group-hover:text-indigo-500" />
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-1.5">
+                            <span className={`font-semibold leading-snug block ${obj.completed ? 'line-through text-emerald-800' : 'text-neutral-900'}`}>
+                              {obj.text}
+                            </span>
+
+                            {/* Action Buttons inside objective card */}
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSelectSentence(obj);
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-indigo-600 text-white shadow-xs'
+                                    : 'bg-indigo-100 hover:bg-indigo-200 text-indigo-800'
+                                }`}
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                <span>{isSelected ? 'Sentence Chosen' : 'Choose Sentence'}</span>
+                              </button>
+
+                              {obj.samplePhrases && obj.samplePhrases.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedObjectiveId(isExpanded ? null : obj.id);
+                                  }}
+                                  className="px-2 py-1 rounded-lg text-[11px] font-medium bg-neutral-100 hover:bg-neutral-200 text-neutral-700 flex items-center gap-1 cursor-pointer transition-all"
+                                >
+                                  <span>{obj.samplePhrases.length} Alternatives</span>
+                                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Expandable Alternative Phrasings */}
+                        {isExpanded && obj.samplePhrases && (
+                          <div className="p-3 bg-neutral-50/90 border-t border-neutral-100 space-y-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block">
+                              Alternative Professional Phrasings:
+                            </span>
+                            {obj.samplePhrases.map((phrase, pIdx) => (
+                              <div 
+                                key={pIdx}
+                                onClick={() => handleSelectSentence(obj, phrase)}
+                                className="p-2 rounded-xl bg-white hover:bg-indigo-50/70 border border-neutral-200/80 hover:border-indigo-300 text-[11px] text-neutral-800 leading-snug cursor-pointer transition-all flex items-start justify-between gap-2 group"
+                              >
+                                <span>"{phrase}"</span>
+                                <span className="text-[10px] font-bold text-indigo-600 opacity-0 group-hover:opacity-100 shrink-0 mt-0.5">
+                                  Use ↵
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+
+              {/* Toast / Notification pill */}
+              {toastMessage && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium flex items-center gap-2 animate-fade-in shadow-xs">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="leading-tight">{toastMessage}</span>
+                </div>
+              )}
 
               {/* Live Formal Feedback Tip */}
               {feedbackTip && (
@@ -623,24 +883,58 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Starter Suggestion Chips */}
-            {activeScenario.starterSuggestions.length > 0 && messages.length <= 2 && (
-              <div className="px-4 py-2 border-t border-neutral-100 bg-neutral-50/80 flex items-center gap-2 overflow-x-auto scrollbar-none">
-                <span className="text-[10px] font-extrabold uppercase text-neutral-400 shrink-0">
-                  Try saying:
-                </span>
-                {activeScenario.starterSuggestions.map((sugg, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleSendResponse(sugg)}
-                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-50 border border-neutral-200 hover:border-indigo-300 text-xs font-semibold text-neutral-700 hover:text-indigo-900 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
-                  >
-                    "{sugg}"
-                  </button>
-                ))}
+            {/* Interactive Sentence & Objective Suggestion Drawer */}
+            <div className="px-4 py-2.5 border-t border-neutral-200/80 bg-neutral-50/90 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-neutral-700">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Quick Sentence Options:</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPhraseDrawer(!showPhraseDrawer)}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                >
+                  {showPhraseDrawer ? 'Hide Sentences' : 'Show Sentences'}
+                </button>
               </div>
-            )}
+
+              {showPhraseDrawer && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {objectives.filter(o => !o.completed).map((obj, i) => (
+                    <button
+                      key={obj.id}
+                      type="button"
+                      onClick={() => handleSelectSentence(obj)}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer shadow-2xs transition-all flex items-center gap-1.5 ${
+                        selectedObjectiveId === obj.id
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                          : 'bg-white hover:bg-indigo-50 border-neutral-200 text-neutral-800 hover:border-indigo-300'
+                      }`}
+                      title={obj.suggestedPhrase || obj.text}
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span>{obj.text.length > 30 ? `${obj.text.slice(0, 30)}...` : obj.text}</span>
+                    </button>
+                  ))}
+
+                  {activeScenario.starterSuggestions.map((sugg, i) => (
+                    <button
+                      key={`sugg-${i}`}
+                      type="button"
+                      onClick={() => {
+                        setInput(sugg);
+                        showToast("Loaded starter suggestion into reply bar!");
+                        setTimeout(() => inputRef.current?.focus(), 50);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-neutral-100 border border-neutral-200 text-xs font-medium text-neutral-700 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs transition-all"
+                    >
+                      "{sugg.length > 35 ? `${sugg.slice(0, 35)}...` : sugg}"
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Input Bar */}
             <div className="p-4 bg-white border-t border-neutral-100">
@@ -665,10 +959,11 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                 </button>
 
                 <input
+                  ref={inputRef}
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={isRecording ? 'Listening... Speak clearly...' : `Reply politely to ${activeScenario.partnerName}...`}
+                  placeholder={isRecording ? 'Listening... Speak clearly...' : `Reply politely to ${activeScenario.partnerName}... (or click an objective sentence)`}
                   disabled={isLoading}
                   className="flex-1 px-4 py-3 rounded-2xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:border-indigo-600 focus:outline-hidden text-sm font-medium text-neutral-900 placeholder:text-neutral-400 transition-all"
                 />
@@ -681,6 +976,7 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                       ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 active:scale-95'
                       : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
                   }`}
+                  title="Send message"
                 >
                   <Send className="w-4 h-4" />
                 </button>
