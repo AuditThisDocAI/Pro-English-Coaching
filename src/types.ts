@@ -99,9 +99,13 @@ export interface CEFRLevelInfo {
 }
 
 export type EnglishGoal = 
+  | 'daily_conversation'
+  | 'travel_directions'
+  | 'food_shopping'
+  | 'making_friends'
+  | 'daily_polite'
   | 'workplace_formal'
   | 'interview_career'
-  | 'daily_polite'
   | 'grammar_etiquette';
 
 export interface RoleplayObjective {
@@ -115,7 +119,7 @@ export interface RoleplayObjective {
 export interface RoleplayScenario {
   id: string;
   title: string;
-  category: 'workplace' | 'interview' | 'daily_formal';
+  category: 'cafe_food' | 'travel_directions' | 'daily_life' | 'workplace' | 'interview' | 'daily_formal';
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   partnerName: string;
   partnerRole: string;

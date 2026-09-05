@@ -47,247 +47,247 @@ interface TalkPalRoleplaysProps {
 export const CURATED_SCENARIOS: RoleplayScenario[] = [
   {
     id: 'sc-1',
-    title: 'Negotiating Project Deadline Extension',
-    category: 'workplace',
-    level: 'Intermediate',
-    partnerName: 'Victoria Reynolds',
-    partnerRole: 'VP of Product Delivery',
-    partnerAvatar: '👩‍💼',
+    title: 'Ordering at a Cozy Café',
+    category: 'cafe_food',
+    level: 'Beginner',
+    partnerName: 'Emma Watson',
+    partnerRole: 'Friendly Barista',
+    partnerAvatar: '☕',
     partnerGender: 'female',
-    description: 'You discovered a critical bug that requires 3 extra days of testing. You need to inform Victoria politely and agree on an updated delivery date without sounding disorganized.',
-    initialMessage: "Hi there! I was reviewing our Q3 sprint schedule. Are we still on track to ship the product updates this Friday afternoon?",
+    description: 'You stepped into a lovely coffee shop on a sunny morning. Practice greeting Emma, ordering your favorite drink, and asking for the price politely.',
+    initialMessage: "Good morning! Welcome to Sunbeam Café. What can I get started for you today?",
     objectives: [
       { 
         id: 'obj-1', 
-        text: 'Politely acknowledge her question and state the current status', 
+        text: 'Say hello and order a coffee with your choice of milk', 
         completed: false,
-        suggestedPhrase: "Thank you for checking in, Victoria. We have made solid progress, but I wanted to give you a quick update regarding our release timeline.",
+        suggestedPhrase: "Good morning! Could I please have a medium latte with oat milk, to go?",
         samplePhrases: [
-          "Thank you for following up, Victoria. We are in the final stretch, though we encountered an item that needs attention.",
-          "Hi Victoria, thanks for checking in. The core features are ready, but we have a crucial quality assurance update."
+          "Hi! I would love a hot cappuccino with regular milk, please.",
+          "Good morning! Can I get an iced Americano with a splash of milk?"
         ]
       },
       { 
         id: 'obj-2', 
-        text: 'Explain the technical reason for the delay clearly without panic', 
+        text: 'Ask politely for a bakery snack or pastry recommendation', 
         completed: false,
-        suggestedPhrase: "During our final regression testing this morning, our team discovered a rare edge-case bug in the payment gateway that requires 3 days of thorough verification.",
+        suggestedPhrase: "Do you have any fresh croissants or blueberry muffins available today?",
         samplePhrases: [
-          "Our QA team identified an unexpected synchronization issue in staging that we need to resolve to ensure zero downtime.",
-          "To safeguard customer data integrity, we need to run an additional security and load test before deploying to production."
+          "What kind of fresh pastries do you have this morning?",
+          "Could you recommend a good snack to go with this coffee?"
         ]
       },
       { 
         id: 'obj-3', 
-        text: 'Propose a specific new deadline (next Tuesday) with assurance of quality', 
+        text: 'Ask how much it costs and if you can pay with card/contactless', 
         completed: false,
-        suggestedPhrase: "To ensure everything runs seamlessly, I would like to propose moving our deployment to next Tuesday at 2:00 PM. We will deliver a flawless release.",
+        suggestedPhrase: "How much is that in total, and can I tap to pay by card?",
         samplePhrases: [
-          "Could we schedule the official rollout for next Tuesday afternoon? This gives us the buffer needed for comprehensive QA.",
-          "I propose shifting the release window to next Tuesday, ensuring our users receive a stable and polished experience."
+          "What is the total, please? Can I pay with Apple Pay or contactless card?",
+          "How much does that come to? I have a credit card ready."
         ]
       }
     ],
     starterSuggestions: [
-      'Thank you for checking in, Victoria. We have made great progress, but encountered a QA edge-case.',
-      'I appreciate you following up. To ensure top quality, we would like to propose a 3-day extension.',
-      'I wanted to proactively inform you about a necessary adjustment to our timeline.'
+      'Good morning! Could I please get a medium latte with oat milk?',
+      'Do you have any fresh chocolate croissants today?',
+      'How much is that in total? Can I pay by contactless card?'
     ]
   },
   {
     id: 'sc-2',
-    title: 'Salary & Compensation Discussion with HR',
-    category: 'interview',
-    level: 'Advanced',
-    partnerName: 'Marcus Bennett',
-    partnerRole: 'Head of Global Talent Acquisition',
-    partnerAvatar: '👨‍💼',
+    title: 'Asking for Directions in the City',
+    category: 'travel_directions',
+    level: 'Beginner',
+    partnerName: 'David Miller',
+    partnerRole: 'Helpful Local Resident',
+    partnerAvatar: '🗺️',
     partnerGender: 'male',
-    description: 'You have completed 4 rounds of interviews and received an offer. Practice negotiating the base salary politely based on market rate and your track record.',
-    initialMessage: "We are thrilled by your background and would love to extend an offer with a base compensation of $110,000. How does that sound to you?",
+    description: 'You are visiting a new town and looking for the central train station. Practice stopping David politely, asking for directions, and thanking him.',
+    initialMessage: "Hello there! You look like you might be looking for something. Can I help you find your way around town?",
     objectives: [
       { 
         id: 'obj-1', 
-        text: 'Express genuine gratitude and enthusiasm for the offer', 
+        text: 'Politely say hello and ask where the central train station is', 
         completed: false,
-        suggestedPhrase: "Thank you so much for this offer, Marcus! I am genuinely thrilled about the team and the opportunity to drive impact here.",
+        suggestedPhrase: "Hi! Excuse me, could you please tell me how to get to the central train station from here?",
         samplePhrases: [
-          "I really appreciate the offer and kind words, Marcus. I am very excited about the prospect of joining the team.",
-          "Thank you, Marcus. I thoroughly enjoyed meeting everyone and am eager to contribute to the company's vision."
+          "Hello! Pardon me, do you know the best way to walk to the train station?",
+          "Good afternoon! I'm a bit lost—could you point me towards the train station?"
         ]
       },
       { 
         id: 'obj-2', 
-        text: 'Provide market or experience-based rationale for a higher band ($125k)', 
+        text: 'Ask if it is within walking distance or if you should take a bus', 
         completed: false,
-        suggestedPhrase: "Based on my 6 years of specialized experience in cross-platform architecture and current market benchmarks, I was targeting a base closer to $125,000.",
+        suggestedPhrase: "Is it close enough to walk, or would you recommend taking a local bus?",
         samplePhrases: [
-          "Given the leadership scope of this role and my proven track record of scaling revenue, I was hoping for $125,000.",
-          "Considering the industry averages for this seniority level and my technical leadership skills, $125,000 feels more aligned."
+          "How many minutes does it take on foot? Is it far from here?",
+          "Should I catch a bus at the corner, or is walking easy?"
         ]
       },
       { 
         id: 'obj-3', 
-        text: 'Maintain a courteous, collaborative tone leaving room for discussion', 
+        text: 'Thank him warmly and wish him a wonderful day', 
         completed: false,
-        suggestedPhrase: "Is there flexibility within your compensation band, or perhaps through performance bonuses or equity, to reach that number?",
+        suggestedPhrase: "Thank you so much for your help! Have a wonderful day!",
         samplePhrases: [
-          "I would love to understand if there is room for flexibility in the total package so we can make this work smoothly.",
-          "I am very motivated to reach an agreement that works well for both of us—is there room to explore this further?"
+          "That is very clear, thank you very much! Have a great afternoon!",
+          "I really appreciate your kindness. Have a fantastic day!"
         ]
       }
     ],
     starterSuggestions: [
-      'Thank you so much for this offer, Marcus! I am truly excited about this opportunity.',
-      'Based on the scope of the role and my track record, I was targeting closer to $125,000.',
-      'Is there flexibility in the compensation band given my specialized industry experience?'
+      'Excuse me, could you please tell me the way to the central train station?',
+      'Is it within walking distance, or should I take a bus?',
+      'Thank you so much for your help! Have a wonderful day!'
     ]
   },
   {
     id: 'sc-3',
-    title: 'Polite Pushback in a Team Meeting',
-    category: 'workplace',
-    level: 'Intermediate',
-    partnerName: 'David Chen',
-    partnerRole: 'Senior Marketing Manager',
-    partnerAvatar: '👨‍💻',
-    partnerGender: 'male',
-    description: 'A colleague proposes launching an unverified feature next week. You must disagree constructively without attacking their idea.',
-    initialMessage: "I think we should launch the instant checkout button immediately on Monday to boost our weekend campaign numbers. Thoughts?",
+    title: 'Checking into a Vacation Hotel',
+    category: 'travel_directions',
+    level: 'Beginner',
+    partnerName: 'Sofia Martinez',
+    partnerRole: 'Hotel Receptionist',
+    partnerAvatar: '🏨',
+    partnerGender: 'female',
+    description: 'You just arrived at your hotel after a trip. Greet Sofia, provide your reservation name, ask about breakfast hours, and get the Wi-Fi code.',
+    initialMessage: "Good afternoon! Welcome to the Grand Garden Hotel. Are you checking in with us today?",
     objectives: [
       { 
         id: 'obj-1', 
-        text: 'Validate their enthusiasm and objective (boosting revenue)', 
+        text: 'Confirm you are checking in and give your reservation name', 
         completed: false,
-        suggestedPhrase: "I completely appreciate your initiative, David, and I share your enthusiasm for maximizing our weekend campaign conversion numbers.",
+        suggestedPhrase: "Yes, hello! I have a reservation under the name Maria Garcia for three nights.",
         samplePhrases: [
-          "I see great value in the goal of boosting our conversion rates for the weekend campaign.",
-          "I really appreciate you proactively looking for ways to accelerate revenue and engagement."
+          "Good afternoon! Yes, checking in under Maria Garcia, please.",
+          "Hi! I booked a room for three nights under the name Maria Garcia."
         ]
       },
       { 
         id: 'obj-2', 
-        text: 'Highlight the risk of unverified payment gateway errors politely', 
+        text: 'Ask what time breakfast is served and where the dining room is', 
         completed: false,
-        suggestedPhrase: "However, deploying an unverified payment flow on short notice poses a major risk of transaction drop-offs and negative customer feedback.",
+        suggestedPhrase: "Could you please tell me what time breakfast is served in the morning?",
         samplePhrases: [
-          "My main concern is that launching without end-to-end gateway testing could cause friction during live checkouts.",
-          "If the checkout button encounters unexpected edge cases under load, it could jeopardize our user trust."
+          "Is breakfast included, and what hours is the dining room open?",
+          "What time does breakfast start tomorrow morning?"
         ]
       },
       { 
         id: 'obj-3', 
-        text: 'Suggest a controlled A/B test or phased rollout instead', 
+        text: 'Ask for the Wi-Fi password for your room and thank her', 
         completed: false,
-        suggestedPhrase: "Could we consider doing a controlled 10% A/B test or phased rollout instead, so we can validate stability before opening it to all users?",
+        suggestedPhrase: "Could I also get the Wi-Fi password for the room? Thank you so much!",
         samplePhrases: [
-          "What if we conduct a staged canary rollout with real-time error tracking to balance speed and stability?",
-          "Would you be open to running a phased release starting with a small segment of users on Monday?"
+          "How do I connect to the hotel Wi-Fi? Thank you for your assistance!",
+          "What is the network name and password for the Wi-Fi, please?"
         ]
       }
     ],
     starterSuggestions: [
-      'I understand the desire to capture weekend traffic, but rushing without QA poses high risk.',
-      'That is an interesting idea. Could we consider doing a 10% canary release first?',
-      'I see the potential upside; however, ensuring stability will protect our user experience.'
+      'Hello! Yes, I have a reservation under Maria Garcia for three nights.',
+      'Could you please tell me what time breakfast is served in the morning?',
+      'Could I also get the Wi-Fi password for our room? Thank you!'
     ]
   },
   {
     id: 'sc-4',
-    title: 'The Classic Interview: "Tell Me About Yourself"',
-    category: 'interview',
+    title: 'Grocery Shopping & Asking for Items',
+    category: 'daily_life',
     level: 'Beginner',
-    partnerName: 'Sarah Jenkins',
-    partnerRole: 'Lead Hiring Manager',
-    partnerAvatar: '👩‍🏫',
-    partnerGender: 'female',
-    description: 'Deliver a crisp, 60-second executive summary covering your present role, past achievements, and why this new role is the perfect match.',
-    initialMessage: "Welcome! We're glad to have you with us today. To kick things off, could you tell us a bit about yourself and your professional journey?",
+    partnerName: 'Lucas Brown',
+    partnerRole: 'Supermarket Assistant',
+    partnerAvatar: '🛒',
+    partnerGender: 'male',
+    description: 'You are shopping for dinner in an English supermarket. Ask Lucas where the fresh bakery section is and check for lactose-free milk.',
+    initialMessage: "Hi there! Welcome to FreshMart. Can I help you find anything on your grocery list today?",
     objectives: [
       { 
         id: 'obj-1', 
-        text: 'Start with a confident, polite opening greeting', 
+        text: 'Say hello and ask which aisle has the fresh bread and bakery', 
         completed: false,
-        suggestedPhrase: "Thank you, Sarah. It is a pleasure to meet you today, and I am delighted to share my professional journey with you.",
+        suggestedPhrase: "Hi! Excuse me, could you please tell me which aisle has the fresh bread?",
         samplePhrases: [
-          "Thank you for having me, Sarah. I am very glad to be here and excited to discuss my background.",
-          "Good morning Sarah, thank you for the opportunity. I have been looking forward to our conversation."
+          "Hello! Where can I find the bakery section with fresh bread?",
+          "Hi there! Could you point me to where the loaves of bread are?"
         ]
       },
       { 
         id: 'obj-2', 
-        text: 'Summarize 2-3 key accomplishments using strong action verbs', 
+        text: 'Ask if they have any oat milk or dairy-free options available', 
         completed: false,
-        suggestedPhrase: "Over the past 5 years, I spearheaded international team expansion and optimized delivery pipelines, resulting in a 35% increase in operational efficiency.",
+        suggestedPhrase: "Do you happen to carry oat milk or lactose-free milk in the dairy aisle?",
         samplePhrases: [
-          "In my current role, I led cross-functional squads to successfully launch 3 enterprise products and boosted customer retention by 28%.",
-          "I specialize in architecting scalable solutions and orchestrating cross-departmental initiatives with proven measurable impact."
+          "Where would I find plant-based milk like oat milk or almond milk?",
+          "Do you have dairy-free milk alternatives in stock?"
         ]
       },
       { 
         id: 'obj-3', 
-        text: 'Tie your background directly into why you are excited for this position', 
+        text: 'Thank him with a smile and say have a good day', 
         completed: false,
-        suggestedPhrase: "I am particularly drawn to this role because your organization's emphasis on high-velocity innovation aligns directly with my core strengths.",
+        suggestedPhrase: "Thank you so much, that was very helpful! Have a great day!",
         samplePhrases: [
-          "I see this position as the perfect opportunity to leverage my experience in global scaling while driving meaningful growth for your team.",
-          "Your mission to empower international teams resonates deeply with me, and I am eager to contribute immediately."
+          "Thanks a lot for your help, Lucas! Have a good one!",
+          "Perfect, I appreciate your assistance. Have a nice shift!"
         ]
       }
     ],
     starterSuggestions: [
-      'Thank you, Sarah. I have over 5 years of experience driving cross-functional projects in tech.',
-      'Throughout my career, I have specialized in optimizing operational workflows and team delivery.',
-      'I am particularly drawn to this position because of your team’s focus on international scalability.'
+      'Excuse me, which aisle has the fresh bread and bakery goods?',
+      'Do you happen to carry oat milk or lactose-free milk?',
+      'Thank you so much, that was very helpful! Have a great day!'
     ]
   },
   {
     id: 'sc-5',
-    title: 'Business Dinner & Formal Etiquette',
-    category: 'daily_formal',
+    title: 'Meeting a Friendly Neighbor at the Park',
+    category: 'daily_life',
     level: 'Beginner',
-    partnerName: 'Antoine Laurent',
-    partnerRole: 'Client Host & Managing Partner',
-    partnerAvatar: '🤵',
-    partnerGender: 'male',
-    description: 'Practice polite dining conversation, discussing business informally over dinner, and expressing courteous compliments.',
-    initialMessage: "Thank you for joining me tonight. Have you had a chance to look over the menu, or would you like a recommendation from the chef?",
+    partnerName: 'Maya Patel',
+    partnerRole: 'Friendly Park Visitor',
+    partnerAvatar: '🌳',
+    partnerGender: 'female',
+    description: 'You are taking a relaxing walk in the local park. Practice friendly casual small talk about the sunny weather, hobbies, and weekend plans.',
+    initialMessage: "Hi there! It’s such a gorgeous sunny afternoon today, isn't it? Enjoying your walk?",
     objectives: [
       { 
         id: 'obj-1', 
-        text: 'Thank the host courteously for the invitation', 
+        text: 'Agree enthusiastically about the nice weather and introduce yourself', 
         completed: false,
-        suggestedPhrase: "Thank you so much for the gracious invitation, Antoine. The ambiance here is exceptional, and it is a true pleasure to join you tonight.",
+        suggestedPhrase: "Yes, it really is beautiful outside! My name is Alex, nice to meet you.",
         samplePhrases: [
-          "It is wonderful to be here, Antoine. Thank you very much for hosting us this evening.",
-          "Thank you for choosing such a fantastic venue, Antoine. I am honored to be here."
+          "It's lovely! I'm Alex. So nice to meet you on such a sunny day.",
+          "Absolutely, the weather is wonderful today! By the way, I'm Alex."
         ]
       },
       { 
         id: 'obj-2', 
-        text: 'Ask politely for their recommendation or state your preference with formal etiquette', 
+        text: 'Share a simple hobby or what you enjoy doing on weekends', 
         completed: false,
-        suggestedPhrase: "I would appreciate your personal recommendation—what dish would you suggest starting with?",
+        suggestedPhrase: "I love coming out to the park to walk, read, and listen to music on weekends.",
         samplePhrases: [
-          "Everything looks delightful. As you know the venue well, what would you recommend tonight?",
-          "I am leaning towards the seafood selection, but I would love to hear your chef recommendation first."
+          "In my free time, I really enjoy walking outdoors and drinking coffee.",
+          "I love spending sunny afternoons outside with a good book."
         ]
       },
       { 
         id: 'obj-3', 
-        text: 'Initiate polite small talk regarding recent industry events', 
+        text: 'Ask Maya what her favorite spots or activities in the neighborhood are', 
         completed: false,
-        suggestedPhrase: "By the way, how was your experience at the European Tech Summit earlier this month? I heard the keynote was very insightful.",
+        suggestedPhrase: "What are some of your favorite places to visit around this neighborhood?",
         samplePhrases: [
-          "On another note, how has your team been navigating the recent Q3 market shifts?",
-          "Did you have a smooth journey traveling into the city this afternoon?"
+          "Do you know any cozy cafés or nice spots to visit nearby?",
+          "How long have you lived around here? Do you have any favorite places?"
         ]
       }
     ],
     starterSuggestions: [
-      'Thank you for hosting, Antoine. I would love to hear your personal recommendation.',
-      'It is a pleasure to be here. Everything on the menu looks exquisite.',
-      'How was your flight into the city this morning?'
+      'Yes, it really is a gorgeous day! My name is Alex, nice to meet you.',
+      'I love walking in the park and enjoying the fresh air on weekends.',
+      'What are some of your favorite cafés or places to visit around here?'
     ]
   }
 ];
@@ -300,7 +300,7 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
   onOpenPricing
 }) => {
   const [activeScenario, setActiveScenario] = useState<RoleplayScenario | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'workplace' | 'interview' | 'daily_formal'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'cafe_food' | 'travel_directions' | 'daily_life'>('all');
   const [messages, setMessages] = useState<{ sender: 'user' | 'tutor'; text: string; translation?: string }[]>([]);
   const [objectives, setObjectives] = useState<RoleplayObjective[]>([]);
   const [input, setInput] = useState('');
@@ -556,31 +556,31 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
       {!activeScenario ? (
         <div className="space-y-6">
           {/* Header Banner */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-teal-900 text-white shadow-xl relative overflow-hidden">
+          <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-700 via-teal-800 to-indigo-900 text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10 max-w-xl space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-teal-300 text-xs font-bold border border-white/15">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-emerald-300 text-xs font-bold border border-white/15">
                 <Sparkles className="w-3.5 h-3.5" />
-                Pro English Immersive Simulations
+                Real-Life English Practice
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Workplace & Formal English Roleplays
+                Everyday Real-Life Conversations
               </h2>
-              <p className="text-sm text-indigo-200">
-                Practice high-stakes meetings, salary reviews, and job interviews in safe, simulated conversations with AI characters.
+              <p className="text-sm text-emerald-100">
+                Practice ordering at a café, asking for directions, hotel check-ins, grocery shopping, and making friends in safe, friendly conversations.
               </p>
             </div>
             <div className="absolute right-4 bottom-2 text-8xl opacity-15 select-none pointer-events-none">
-              🎭
+              ☕
             </div>
           </div>
 
           {/* Category Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {[
-              { id: 'all', label: 'All Scenarios', count: CURATED_SCENARIOS.length },
-              { id: 'workplace', label: 'Workplace & Meetings', count: CURATED_SCENARIOS.filter(s => s.category === 'workplace').length },
-              { id: 'interview', label: 'Job Interviews', count: CURATED_SCENARIOS.filter(s => s.category === 'interview').length },
-              { id: 'daily_formal', label: 'Daily Formal & Dining', count: CURATED_SCENARIOS.filter(s => s.category === 'daily_formal').length }
+              { id: 'all', label: 'All Situations', count: CURATED_SCENARIOS.length },
+              { id: 'cafe_food', label: '☕ Café & Food', count: CURATED_SCENARIOS.filter(s => s.category === 'cafe_food').length },
+              { id: 'travel_directions', label: '🗺️ Directions & Travel', count: CURATED_SCENARIOS.filter(s => s.category === 'travel_directions').length },
+              { id: 'daily_life', label: '🛒 Daily Errands & Friends', count: CURATED_SCENARIOS.filter(s => s.category === 'daily_life').length }
             ].map((tab) => (
               <button
                 key={tab.id}

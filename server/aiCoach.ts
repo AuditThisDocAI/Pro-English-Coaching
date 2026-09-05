@@ -4,6 +4,14 @@ import OpenAI from 'openai';
 // Lazy-initialized AI clients
 let geminiClient: GoogleGenAI | null = null;
 let openaiClient: OpenAI | null = null;
+let openAIQuotaExceededUntil = 0;
+
+// Up-to-date Gemini models per Google AI Studio guidance
+export const GEMINI_CANDIDATE_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-flash-latest',
+  'gemini-3.1-flash-lite'
+];
 
 function getGeminiClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -24,6 +32,10 @@ function getGeminiClient(): GoogleGenAI | null {
 }
 
 function getOpenAIClient(): OpenAI | null {
+  // If OpenAI hit a quota/billing limit previously, avoid spamming failed requests
+  if (Date.now() < openAIQuotaExceededUntil) {
+    return null;
+  }
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return null;
@@ -32,6 +44,16 @@ function getOpenAIClient(): OpenAI | null {
     openaiClient = new OpenAI({ apiKey });
   }
   return openaiClient;
+}
+
+function handleOpenAIError(err: any): void {
+  const msg = String(err?.message || err);
+  if (msg.includes('429') || msg.includes('credits') || msg.includes('quota') || msg.includes('billing')) {
+    openAIQuotaExceededUntil = Date.now() + 15 * 60 * 1000; // Pause OpenAI attempts for 15 mins
+    console.warn('ℹ️ OpenAI credits exhausted or rate limit hit. Switching seamlessly to Google Gemini models.');
+  } else {
+    console.warn('OpenAI request failed:', msg);
+  }
 }
 
 export interface CoachParams {
@@ -213,44 +235,11 @@ Respond strictly in valid JSON matching this schema:
   "practice": "a follow-up question or scenario sentence for the user to practice"
 }`;
 
-  // 1. Try OpenAI if OPENAI_API_KEY is available
-  const openai = getOpenAIClient();
-  if (openai) {
-    try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemInstruction },
-          { role: 'user', content: trimmedInput }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.7,
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (content) {
-        const parsed = JSON.parse(cleanJsonOutput(content));
-        if (parsed && parsed.professional) {
-          return {
-            original: parsed.original || trimmedInput,
-            professional: parsed.professional,
-            translation: parsed.translation || `Translation into ${nativeLanguage}`,
-            why: parsed.why || 'Clear, concise phrasing improves workplace clarity and builds credibility.',
-            practice: parsed.practice || 'How would you follow up on this with your colleagues?',
-          };
-        }
-      }
-    } catch (err: any) {
-      console.warn('OpenAI coach attempt failed:', err?.message || err);
-    }
-  }
-
-  // 2. Try Gemini API candidate models
+  // 1. Try Google Gemini API candidate models first (Native to Google AI Studio)
   const gemini = getGeminiClient();
   if (gemini) {
-    const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
-    for (let i = 0; i < candidateModels.length; i++) {
-      const model = candidateModels[i];
+    for (let i = 0; i < GEMINI_CANDIDATE_MODELS.length; i++) {
+      const model = GEMINI_CANDIDATE_MODELS[i];
       try {
         const response = await gemini.models.generateContent({
           model,
@@ -287,10 +276,42 @@ Respond strictly in valid JSON matching this schema:
         }
       } catch (err: any) {
         console.warn(`Gemini Model ${model} coach attempt failed:`, err?.message || err);
-        if (i < candidateModels.length - 1) {
-          await delay(300);
+        if (i < GEMINI_CANDIDATE_MODELS.length - 1) {
+          await delay(150);
         }
       }
+    }
+  }
+
+  // 2. Try OpenAI as fallback if available and not quota-exhausted
+  const openai = getOpenAIClient();
+  if (openai) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: trimmedInput }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        const parsed = JSON.parse(cleanJsonOutput(content));
+        if (parsed && parsed.professional) {
+          return {
+            original: parsed.original || trimmedInput,
+            professional: parsed.professional,
+            translation: parsed.translation || `Translation into ${nativeLanguage}`,
+            why: parsed.why || 'Clear, concise phrasing improves workplace clarity and builds credibility.',
+            practice: parsed.practice || 'How would you follow up on this with your colleagues?',
+          };
+        }
+      }
+    } catch (err: any) {
+      handleOpenAIError(err);
     }
   }
 
@@ -302,7 +323,27 @@ export async function translatePhrase(text: string, targetLanguage: string): Pro
   const trimmed = text.trim();
   if (!trimmed) return '';
 
-  // 1. Try OpenAI if available
+  // 1. Try Gemini
+  const gemini = getGeminiClient();
+  if (gemini) {
+    for (const model of GEMINI_CANDIDATE_MODELS) {
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: `Translate the following workplace English phrase into natural, professional ${targetLanguage}. Return only the exact translation without quotation marks or commentary:\n\n"${trimmed}"`,
+        });
+
+        const translated = (response.text || '').trim().replace(/^["']|["']$/g, '');
+        if (translated) {
+          return translated;
+        }
+      } catch (err: any) {
+        console.warn(`Translate attempt with Gemini ${model} failed:`, err?.message || err);
+      }
+    }
+  }
+
+  // 2. Try OpenAI as fallback
   const openai = getOpenAIClient();
   if (openai) {
     try {
@@ -323,28 +364,7 @@ export async function translatePhrase(text: string, targetLanguage: string): Pro
         return translated;
       }
     } catch (err: any) {
-      console.warn('OpenAI translation attempt failed:', err?.message || err);
-    }
-  }
-
-  // 2. Try Gemini
-  const gemini = getGeminiClient();
-  if (gemini) {
-    const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
-    for (const model of candidateModels) {
-      try {
-        const response = await gemini.models.generateContent({
-          model,
-          contents: `Translate the following workplace English phrase into natural, professional ${targetLanguage}. Return only the exact translation without quotation marks or commentary:\n\n"${trimmed}"`,
-        });
-
-        const translated = (response.text || '').trim().replace(/^["']|["']$/g, '');
-        if (translated) {
-          return translated;
-        }
-      } catch (err: any) {
-        console.warn(`Translate attempt with Gemini ${model} failed:`, err?.message || err);
-      }
+      handleOpenAIError(err);
     }
   }
 
@@ -645,50 +665,7 @@ Respond strictly in valid JSON matching this schema:
   "suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3"]
 }`;
 
-  // 1. Try OpenAI if OPENAI_API_KEY is available
-  const openai = getOpenAIClient();
-  if (openai) {
-    try {
-      const openAiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-        { role: 'system', content: systemInstruction },
-        ...messages.slice(-8).map(m => ({
-          role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-          content: m.text
-        })),
-        { role: 'user', content: userInput }
-      ];
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: openAiMessages,
-        response_format: { type: 'json_object' },
-        temperature: 0.8,
-        presence_penalty: 0.6,
-        frequency_penalty: 0.7,
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (content) {
-        const parsed = JSON.parse(cleanJsonOutput(content));
-        if (parsed && parsed.reply) {
-          return {
-            reply: parsed.reply,
-            translation: parsed.translation || `Translation in ${nativeLanguage}`,
-            formalCorrection: parsed.formalCorrection && parsed.formalCorrection.formalAlternative ? parsed.formalCorrection : undefined,
-            suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0 ? parsed.suggestions.slice(0, 3) : [
-              'Could you clarify that in more detail?',
-              'I understand completely. What are our next steps?',
-              'Thank you for the guidance. I will keep that in mind.'
-            ],
-          };
-        }
-      }
-    } catch (err: any) {
-      console.warn('OpenAI chat tutor attempt failed:', err?.message || err);
-    }
-  }
-
-  // 2. Try Gemini candidate models with robust schema configuration
+  // 1. Try Gemini candidate models first (Native Google AI Studio models)
   const gemini = getGeminiClient();
   if (gemini) {
     const conversationContext = messages
@@ -697,8 +674,8 @@ Respond strictly in valid JSON matching this schema:
       .join('\n');
     const prompt = `Learner's CEFR Level: ${englishLevel}\nLearner's Native Language: ${nativeLanguage}\n\n${conversationContext ? `Recent Dialogue:\n${conversationContext}\n\n` : ''}Learner's Latest Message: "${userInput}"\n\nProvide the next engaging, contextually tailored tutor response, translation, sentence improvement, and 3 smart follow-up suggestions in JSON format.`;
 
-    const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
-    for (const model of candidateModels) {
+    for (let i = 0; i < GEMINI_CANDIDATE_MODELS.length; i++) {
+      const model = GEMINI_CANDIDATE_MODELS[i];
       try {
         const response = await gemini.models.generateContent({
           model,
@@ -749,8 +726,53 @@ Respond strictly in valid JSON matching this schema:
         }
       } catch (err: any) {
         console.warn(`Chat tutor attempt with Gemini ${model} failed:`, err?.message || err);
-        await delay(300);
+        if (i < GEMINI_CANDIDATE_MODELS.length - 1) {
+          await delay(150);
+        }
       }
+    }
+  }
+
+  // 2. Try OpenAI as fallback if available and not quota-exhausted
+  const openai = getOpenAIClient();
+  if (openai) {
+    try {
+      const openAiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+        { role: 'system', content: systemInstruction },
+        ...messages.slice(-8).map(m => ({
+          role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: m.text
+        })),
+        { role: 'user', content: userInput }
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: openAiMessages,
+        response_format: { type: 'json_object' },
+        temperature: 0.8,
+        presence_penalty: 0.6,
+        frequency_penalty: 0.7,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (content) {
+        const parsed = JSON.parse(cleanJsonOutput(content));
+        if (parsed && parsed.reply) {
+          return {
+            reply: parsed.reply,
+            translation: parsed.translation || `Translation in ${nativeLanguage}`,
+            formalCorrection: parsed.formalCorrection && parsed.formalCorrection.formalAlternative ? parsed.formalCorrection : undefined,
+            suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0 ? parsed.suggestions.slice(0, 3) : [
+              'Could you clarify that in more detail?',
+              'I understand completely. What are our next steps?',
+              'Thank you for the guidance. I will keep that in mind.'
+            ],
+          };
+        }
+      }
+    } catch (err: any) {
+      handleOpenAIError(err);
     }
   }
 
@@ -969,7 +991,48 @@ Respond strictly in valid JSON matching:
   "score": 88
 }`;
 
-  // 1. Try OpenAI if OPENAI_API_KEY is available
+  // 1. Try Gemini candidate models first (Native Google AI Studio models)
+  const gemini = getGeminiClient();
+  if (gemini) {
+    const convo = messages.map(m => `${m.sender === 'user' ? 'Learner' : partnerRole}: ${m.text}`).join('\n');
+    const prompt = `Roleplay Scenario: ${scenarioTitle}\nPartner: ${partnerRole}\n${convo ? `Conversation so far:\n${convo}\n` : ''}Learner's latest message: "${userInput}"\n\nProvide the next in-character response without repeating prior lines.`;
+
+    for (let i = 0; i < GEMINI_CANDIDATE_MODELS.length; i++) {
+      const model = GEMINI_CANDIDATE_MODELS[i];
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+          },
+        });
+
+        const text = (response.text || '').trim();
+        if (text) {
+          const parsed = JSON.parse(cleanJsonOutput(text));
+          if (parsed && parsed.partnerReply) {
+            return {
+              partnerReply: parsed.partnerReply,
+              translation: parsed.translation || '',
+              completedObjectiveIds: Array.isArray(parsed.completedObjectiveIds) ? parsed.completedObjectiveIds : [],
+              feedbackTip: parsed.feedbackTip || 'Great formal phrasing. Keep your sentences concise and courteous.',
+              isScenarioComplete: Boolean(parsed.isScenarioComplete),
+              score: typeof parsed.score === 'number' ? parsed.score : 88,
+            };
+          }
+        }
+      } catch (err: any) {
+        console.warn(`Roleplay attempt with Gemini ${model} failed:`, err?.message || err);
+        if (i < GEMINI_CANDIDATE_MODELS.length - 1) {
+          await delay(150);
+        }
+      }
+    }
+  }
+
+  // 2. Try OpenAI as fallback if available and not quota-exhausted
   const openai = getOpenAIClient();
   if (openai) {
     try {
@@ -1006,46 +1069,7 @@ Respond strictly in valid JSON matching:
         }
       }
     } catch (err: any) {
-      console.warn('OpenAI roleplay attempt failed:', err?.message || err);
-    }
-  }
-
-  // 2. Try Gemini
-  const gemini = getGeminiClient();
-  if (gemini) {
-    const convo = messages.map(m => `${m.sender === 'user' ? 'Learner' : partnerRole}: ${m.text}`).join('\n');
-    const prompt = `Roleplay Scenario: ${scenarioTitle}\nPartner: ${partnerRole}\n${convo ? `Conversation so far:\n${convo}\n` : ''}Learner's latest message: "${userInput}"\n\nProvide the next in-character response without repeating prior lines.`;
-
-    const candidateModels = ['gemini-3.7-flash', 'gemini-2.5-flash'];
-    for (const model of candidateModels) {
-      try {
-        const response = await gemini.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            systemInstruction,
-            responseMimeType: 'application/json',
-          },
-        });
-
-        const text = (response.text || '').trim();
-        if (text) {
-          const parsed = JSON.parse(cleanJsonOutput(text));
-          if (parsed && parsed.partnerReply) {
-            return {
-              partnerReply: parsed.partnerReply,
-              translation: parsed.translation || '',
-              completedObjectiveIds: Array.isArray(parsed.completedObjectiveIds) ? parsed.completedObjectiveIds : [],
-              feedbackTip: parsed.feedbackTip || 'Great formal phrasing. Keep your sentences concise and courteous.',
-              isScenarioComplete: Boolean(parsed.isScenarioComplete),
-              score: typeof parsed.score === 'number' ? parsed.score : 88,
-            };
-          }
-        }
-      } catch (err: any) {
-        console.warn(`Roleplay attempt with Gemini ${model} failed:`, err?.message || err);
-        await delay(300);
-      }
+      handleOpenAIError(err);
     }
   }
 

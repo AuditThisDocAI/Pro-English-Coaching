@@ -48,6 +48,7 @@ import {
   Home,
   MessageSquare,
   Briefcase,
+  Coffee,
   Phone,
   Layers,
   Flame,
@@ -106,8 +107,8 @@ export default function App() {
   const [trialStartDate, setTrialStartDate] = useState<string>(() => getUserTrialStartDate(auth.currentUser));
 
   // User Profile details
-  const [englishLevel, setEnglishLevel] = useState<EnglishCEFRLevel>('B1');
-  const [learningGoal, setLearningGoal] = useState<EnglishGoal>('workplace_formal');
+  const [englishLevel, setEnglishLevel] = useState<EnglishCEFRLevel>('A2');
+  const [learningGoal, setLearningGoal] = useState<EnglishGoal>('daily_conversation');
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number>(10);
   const [xpPoints, setXpPoints] = useState<number>(140);
   const [streakDays, setStreakDays] = useState<number>(3);
@@ -156,7 +157,7 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
   const [isFlashcardsModalOpen, setIsFlashcardsModalOpen] = useState(false);
-  const [flashcardDeckId, setFlashcardDeckId] = useState<string>('executive-email');
+  const [flashcardDeckId, setFlashcardDeckId] = useState<string>('daily-greetings');
   const [selectedAnalyticsCategory, setSelectedAnalyticsCategory] = useState<string | null>(null);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [chatInitialText, setChatInitialText] = useState('');
@@ -400,20 +401,20 @@ export default function App() {
           <button
             type="button"
             onClick={() => setActiveTab('landing')}
-            className="flex items-center gap-2.5 text-left group cursor-pointer"
+            className="flex items-center gap-3 text-left group cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-indigo-200/70 group-hover:scale-105 transition-transform shrink-0">
+              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <h1 className="font-black text-base tracking-tight text-neutral-900 flex items-center gap-1.5 leading-none">
-                Pro English Coach
+              <h1 className="font-black text-lg sm:text-xl tracking-tight text-neutral-900 flex items-center gap-2 leading-none">
+                Basic English Coach
                 <span className="hidden sm:inline-block text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                   Easy & Fun
                 </span>
               </h1>
-              <p className="text-[11px] text-neutral-500 hidden sm:block mt-0.5">
-                AI English Learning for All Non-English Speakers
+              <p className="text-xs text-neutral-500 hidden sm:block mt-0.5 font-medium">
+                Fun Everyday English for Non-English Speakers
               </p>
             </div>
           </button>
@@ -436,8 +437,8 @@ export default function App() {
             { id: 'lessons', label: 'Fun Lessons', icon: <BookOpen className="w-3.5 h-3.5 text-teal-600" /> },
             { id: 'chat', label: 'AI Chat Buddy', icon: <MessageSquare className="w-3.5 h-3.5 text-sky-600" /> },
             { id: 'game', label: 'Word Match', icon: <Gamepad2 className="w-3.5 h-3.5 text-amber-600" /> },
-            { id: 'flashcards', label: 'Sentence Cards', icon: <Layers className="w-3.5 h-3.5 text-purple-600" /> },
-            { id: 'roleplays', label: 'Real-Life Work', icon: <Briefcase className="w-3.5 h-3.5 text-rose-600" /> }
+            { id: 'flashcards', label: 'Everyday Cards', icon: <Layers className="w-3.5 h-3.5 text-purple-600" /> },
+            { id: 'roleplays', label: 'Daily Situations', icon: <Coffee className="w-3.5 h-3.5 text-rose-600" /> }
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -658,7 +659,7 @@ export default function App() {
           )
         )}
 
-        {/* 5. Career & Workplace Roleplays */}
+        {/* 5. Real-Life Daily Situations */}
         {activeTab === 'roleplays' && (
           trialInfo.canAccess ? (
             <TalkPalRoleplays
@@ -670,7 +671,7 @@ export default function App() {
             />
           ) : (
             <PaywallOverlay
-              featureName="Workplace & Career Roleplays"
+              featureName="Daily Situations & Real-Life Conversations"
               onUpgrade={() => navigate('/pricing')}
               onOpenSignIn={() => setIsAuthModalOpen(true)}
             />

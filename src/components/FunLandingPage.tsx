@@ -292,6 +292,22 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
 
           {/* Main Headline */}
           <div className="text-center max-w-3xl mx-auto space-y-4">
+            
+            {/* Prominent App Logo */}
+            <div className="inline-flex items-center justify-center gap-3.5 p-2.5 px-6 rounded-3xl bg-white/90 border border-indigo-100 shadow-sm mx-auto mb-1">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
+                <Sparkles className="w-8 h-8 sm:w-9 sm:h-9" />
+              </div>
+              <div className="text-left">
+                <span className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight block leading-tight">
+                  Basic English Coach
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-teal-700 block">
+                  Easy Everyday English for Everyone
+                </span>
+              </div>
+            </div>
+
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-neutral-900 tracking-tight leading-[1.15]">
               Learn English with <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-teal-600 to-emerald-600">
