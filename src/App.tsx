@@ -25,6 +25,10 @@ import { GrammarAnalyticsDashboard } from './components/GrammarAnalyticsDashboar
 import { SupportSection } from './components/SupportSection';
 import { TrialBanner } from './components/TrialBanner';
 import { PaywallOverlay } from './components/PaywallOverlay';
+import { FunLandingPage } from './components/FunLandingPage';
+import { FunLearningHub } from './components/FunLearningHub';
+import { FunWordMatchGame } from './components/FunWordMatchGame';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { 
   LandingHero, 
   HowItWorksSection, 
@@ -49,7 +53,9 @@ import {
   Flame,
   Award,
   TrendingUp,
-  Lock
+  Lock,
+  Gamepad2,
+  Smile
 } from 'lucide-react';
 import { auth, logout } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -90,8 +96,9 @@ export default function App() {
   
   const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
 
-  // Active navigation tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'roleplays' | 'call' | 'flashcards' | 'analytics'>('dashboard');
+  // Active navigation tab (Landing page is primary welcoming view)
+  const [activeTab, setActiveTab] = useState<'landing' | 'lessons' | 'chat' | 'game' | 'flashcards' | 'roleplays' | 'call' | 'dashboard' | 'analytics'>('landing');
+  const [selectedHubTopic, setSelectedHubTopic] = useState<string>('all');
 
   // Quota & Pro Subscription State
   const [chatCount, setChatCount] = useState<number>(() => loadUserChatCount(auth.currentUser));
@@ -153,17 +160,6 @@ export default function App() {
   const [selectedAnalyticsCategory, setSelectedAnalyticsCategory] = useState<string | null>(null);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [chatInitialText, setChatInitialText] = useState('');
-
-  // Check if first time user to optionally prompt onboarding
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hasCompleted = localStorage.getItem('proenglish_onboarding_completed');
-      if (!hasCompleted) {
-        // First time visitor: show onboarding
-        setIsOnboardingOpen(true);
-      }
-    }
-  }, []);
 
   // Listen to Firebase Auth state & isolate quotas per user
   useEffect(() => {
@@ -403,7 +399,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => setActiveTab('landing')}
             className="flex items-center gap-2.5 text-left group cursor-pointer"
           >
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
@@ -412,12 +408,12 @@ export default function App() {
             <div>
               <h1 className="font-black text-base tracking-tight text-neutral-900 flex items-center gap-1.5 leading-none">
                 Pro English Coach
-                <span className="hidden sm:inline-block text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-                  Basic & Formal
+                <span className="hidden sm:inline-block text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  Easy & Fun
                 </span>
               </h1>
               <p className="text-[11px] text-neutral-500 hidden sm:block mt-0.5">
-                AI Coach for Conversational & Workplace English
+                AI English Learning for All Non-English Speakers
               </p>
             </div>
           </button>
@@ -427,21 +423,21 @@ export default function App() {
             type="button"
             onClick={() => setIsOnboardingOpen(true)}
             className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold hover:bg-indigo-100 transition-colors cursor-pointer"
-            title="Click to adjust English CEFR level & goals"
+            title="Click to adjust English level (A1 to C2) & personal goals"
           >
-            <span>CEFR: {englishLevel}</span>
+            <span>Level: {englishLevel}</span>
           </button>
         </div>
 
         {/* Desktop Primary Nav Tabs */}
         <nav className="hidden lg:flex items-center gap-1 bg-neutral-100/80 p-1 rounded-2xl border border-neutral-200/80 text-xs font-bold">
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: <Home className="w-3.5 h-3.5" /> },
-            { id: 'chat', label: 'Chat Tutor', icon: <MessageSquare className="w-3.5 h-3.5" /> },
-            { id: 'roleplays', label: 'Roleplays', icon: <Briefcase className="w-3.5 h-3.5" /> },
-            { id: 'call', label: 'Voice Call', icon: <Phone className="w-3.5 h-3.5" /> },
-            { id: 'flashcards', label: 'Sentence Cards', icon: <Layers className="w-3.5 h-3.5" /> },
-            { id: 'analytics', label: 'Analytics', icon: <TrendingUp className="w-3.5 h-3.5" /> }
+            { id: 'landing', label: 'Home', icon: <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> },
+            { id: 'lessons', label: 'Fun Lessons', icon: <BookOpen className="w-3.5 h-3.5 text-teal-600" /> },
+            { id: 'chat', label: 'AI Chat Buddy', icon: <MessageSquare className="w-3.5 h-3.5 text-sky-600" /> },
+            { id: 'game', label: 'Word Match', icon: <Gamepad2 className="w-3.5 h-3.5 text-amber-600" /> },
+            { id: 'flashcards', label: 'Sentence Cards', icon: <Layers className="w-3.5 h-3.5 text-purple-600" /> },
+            { id: 'roleplays', label: 'Real-Life Work', icon: <Briefcase className="w-3.5 h-3.5 text-rose-600" /> }
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -595,16 +591,54 @@ export default function App() {
 
       {/* Main Dynamic View Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
-        {activeTab === 'dashboard' && (
-          <TalkPalDashboard
-            profile={userProfileObj}
-            trialInfo={trialInfo}
-            onNavigate={(tab) => setActiveTab(tab as any)}
-            onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        {/* 1. Welcoming Fun Landing Page */}
+        {activeTab === 'landing' && (
+          <FunLandingPage
+            nativeLanguage={nativeLanguage}
+            onLanguageChange={setNativeLanguage}
+            onStartLearning={(topic) => {
+              if (topic) setSelectedHubTopic(topic);
+              setActiveTab('lessons');
+            }}
+            onOpenChat={(prompt) => {
+              if (prompt) setChatInitialText(prompt);
+              setActiveTab('chat');
+            }}
+            onOpenGames={() => setActiveTab('game')}
             onOpenPricing={() => navigate('/pricing')}
+            isPro={isPro}
           />
         )}
 
+        {/* 2. Interactive Lessons Hub for Everyday Life */}
+        {activeTab === 'lessons' && (
+          <FunLearningHub
+            nativeLanguage={nativeLanguage}
+            onLanguageChange={setNativeLanguage}
+            onSendToChat={(text) => {
+              setChatInitialText(text);
+              setActiveTab('chat');
+            }}
+            onSavePhrase={handleSavePhrase}
+            onAddXP={handleAddXP}
+            initialTopic={selectedHubTopic}
+          />
+        )}
+
+        {/* 3. Interactive Word Match Game */}
+        {activeTab === 'game' && (
+          <FunWordMatchGame
+            nativeLanguage={nativeLanguage}
+            onLanguageChange={setNativeLanguage}
+            onAddXP={handleAddXP}
+            onOpenChat={(text) => {
+              if (text) setChatInitialText(text);
+              setActiveTab('chat');
+            }}
+          />
+        )}
+
+        {/* 4. AI Chat Tutor */}
         {activeTab === 'chat' && (
           trialInfo.canAccess ? (
             <TalkPalChatTutor
@@ -624,6 +658,7 @@ export default function App() {
           )
         )}
 
+        {/* 5. Career & Workplace Roleplays */}
         {activeTab === 'roleplays' && (
           trialInfo.canAccess ? (
             <TalkPalRoleplays
@@ -642,6 +677,7 @@ export default function App() {
           )
         )}
 
+        {/* 6. Voice Call Coach */}
         {activeTab === 'call' && (
           trialInfo.canAccess ? (
             <TalkPalCallMode
@@ -660,6 +696,7 @@ export default function App() {
           )
         )}
 
+        {/* 7. Sentence Cards Hub */}
         {activeTab === 'flashcards' && (
           trialInfo.canAccess ? (
             <div className="bg-neutral-900 rounded-3xl p-4 sm:p-6 shadow-xl overflow-hidden">
@@ -685,6 +722,18 @@ export default function App() {
           )
         )}
 
+        {/* 8. Dashboard Overview */}
+        {activeTab === 'dashboard' && (
+          <TalkPalDashboard
+            profile={userProfileObj}
+            trialInfo={trialInfo}
+            onNavigate={(tab) => setActiveTab(tab as any)}
+            onOpenOnboarding={() => setIsOnboardingOpen(true)}
+            onOpenPricing={() => navigate('/pricing')}
+          />
+        )}
+
+        {/* 9. Analytics */}
         {activeTab === 'analytics' && (
           trialInfo.canAccess ? (
             <div className="bg-neutral-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl space-y-6">
@@ -717,34 +766,85 @@ export default function App() {
         )}
       </main>
 
-      {/* Support and FAQ Section on Dashboard */}
-      {activeTab === 'dashboard' && (
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-12">
-          <HowItWorksSection />
-          <FeaturesSection />
-          <FAQSection />
-          <SupportSection
-            userEmail={currentUser?.email || undefined}
-            onOpenPricing={() => navigate('/pricing')}
-          />
-          <LandingFooter
-            onStartPracticing={() => setActiveTab('chat')}
-            onOpenPricing={() => navigate('/pricing')}
-            onOpenSupport={() => {
-              const el = document.getElementById('support');
-              el?.scrollIntoView({ behavior: 'smooth' });
-            }}
-          />
-        </section>
-      )}
+      {/* Global Comprehensive Legal & Trust Footer */}
+      <footer className="mt-auto bg-neutral-900 text-neutral-400 text-xs py-10 border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs">
+                PE
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm">Pro English Coach</p>
+                <p className="text-[11px] text-neutral-400">Easy, fun English learning for non-English speakers worldwide</p>
+              </div>
+            </div>
 
-      {/* Mobile Bottom Navigation Bar (TalkPal Style) */}
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setActiveTab('landing')}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Home
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('lessons')}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Lessons Hub
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('chat')}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                AI Tutor Chat
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('game')}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Word Match Game
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/pricing')}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Pro Plans
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-neutral-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-neutral-400">
+            <p className="max-w-xl text-center md:text-left leading-relaxed">
+              Order processing conducted by Freemius, our authorized Merchant of Record. 256-bit SSL encrypted. 30-day money-back guarantee.
+            </p>
+            <div className="flex items-center gap-4 flex-wrap justify-center font-medium">
+              <a href="/terms" className="hover:text-white hover:underline transition-colors">Terms of Service</a>
+              <a href="/privacy" className="hover:text-white hover:underline transition-colors">Privacy Policy</a>
+              <a href="/refund" className="hover:text-white hover:underline transition-colors">Refund & Cancellation</a>
+              <a href="mailto:ProEnglishAICoach@protonmail.com" className="hover:text-white hover:underline transition-colors">Contact Support</a>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-neutral-400 pt-2 border-t border-neutral-800/40">
+            <p>© {new Date().getFullYear()} Pro English Coach. All rights reserved.</p>
+            <p>AI Educational Assistant — Practice conversations with simulated bilingual guidance.</p>
+          </div>
+        </div>
+      </footer>
+
+      {/* Mobile Bottom Navigation Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-neutral-200 px-2 py-2 flex items-center justify-around shadow-lg">
         {[
-          { id: 'dashboard', label: 'Home', icon: <Home className="w-5 h-5" /> },
-          { id: 'chat', label: 'Chat', icon: <MessageSquare className="w-5 h-5" /> },
-          { id: 'roleplays', label: 'Roleplay', icon: <Briefcase className="w-5 h-5" /> },
-          { id: 'call', label: 'Call', icon: <Phone className="w-5 h-5" /> },
+          { id: 'landing', label: 'Home', icon: <Home className="w-5 h-5" /> },
+          { id: 'lessons', label: 'Lessons', icon: <BookOpen className="w-5 h-5" /> },
+          { id: 'chat', label: 'AI Chat', icon: <MessageSquare className="w-5 h-5" /> },
+          { id: 'game', label: 'Game', icon: <Gamepad2 className="w-5 h-5" /> },
           { id: 'flashcards', label: 'Cards', icon: <Layers className="w-5 h-5" /> }
         ].map((tab) => {
           const isActive = activeTab === tab.id;
@@ -818,6 +918,9 @@ export default function App() {
         onCancelSubscription={handleCancelSubscription}
         onOpenPaymentModal={() => navigate('/pricing')}
       />
+
+      {/* GDPR / CCPA Cookie Consent Banner */}
+      <CookieConsentBanner />
 
     </div>
   );

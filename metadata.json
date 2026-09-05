@@ -1,6 +1,6 @@
 {
   "name": "Pro English Coach",
-  "description": "Interactive workplace English coaching, basic to formal conversation tutor, AI roleplays, voice calls, and 3D flashcards.",
+  "description": "Fun and easy English learning for all non-English speakers. Interactive landing page, daily bite-sized conversation games, slow audio pronunciation, and bilingual AI tutor.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
