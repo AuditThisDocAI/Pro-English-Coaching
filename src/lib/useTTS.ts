@@ -3,15 +3,21 @@ import { tts } from './tts';
 
 export function useTTS() {
   const [speakingText, setSpeakingText] = useState<string | null>(tts.speakingText);
+  const [speed, setSpeedState] = useState<number>(tts.getSpeed());
 
   useEffect(() => {
     const unsubscribe = tts.subscribe(() => {
       setSpeakingText(tts.speakingText);
+      setSpeedState(tts.getSpeed());
     });
     return unsubscribe;
   }, []);
 
-  const speak = useCallback((text: string, options?: { rate?: number; pitch?: number; lang?: string; gender?: 'female' | 'male'; voiceName?: string; onStart?: () => void; onEnd?: () => void; onError?: (err: any) => void }) => {
+  const setSpeed = useCallback((newSpeed: number) => {
+    tts.setSpeed(newSpeed);
+  }, []);
+
+  const speak = useCallback((text: string, options?: { rate?: number; pitch?: number; lang?: string; gender?: 'female' | 'male'; voiceName?: string; forceAudioFallback?: boolean; onStart?: () => void; onEnd?: () => void; onError?: (err: any) => void }) => {
     tts.speak(text, options);
   }, []);
 
@@ -28,6 +34,8 @@ export function useTTS() {
     stop,
     isSpeaking,
     speakingText,
+    speed,
+    setSpeed,
     isSupported: tts.isSupported(),
   };
 }

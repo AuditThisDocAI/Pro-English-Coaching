@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { NativeLanguage, SUPPORTED_LANGUAGES, CoachResponse } from '../types';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
+import { useTTS } from '../lib/useTTS';
+import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 
 interface FunLearningHubProps {
   nativeLanguage: NativeLanguage;
@@ -57,9 +59,15 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'क्या मुझे कृपया ओट मिल्क के साथ एक बड़ा लाते मिल सकता है?',
       Mandarin: '请问可以给我一杯大杯燕麦奶拿铁吗？',
       Japanese: 'オーツミルク入りのラージラテを一杯いただけますか？',
+      Korean: '오트밀크가 들어간 라지 라떼 한 잔 주시겠어요?',
       Arabic: 'هل يمكنني الحصول على لاتيه كبير مع حليب الشوفان من فضلك؟',
+      Vietnamese: 'Cho tôi một ly latte lớn với sữa yến mạch được không?',
+      Tagalog: 'Puwede po ba akong humingi ng malaking latte na may oat milk?',
       Italian: 'Posso avere un latte grande con latte d\'avena, per favore?',
-      Russian: 'Можно мне, пожалуйста, большой латте на овсяном молоке?'
+      Russian: 'Можно мне, пожалуйста, большой латте на овсяном молоке?',
+      Turkish: 'Lütfen yulaf sütlü büyük boy latte alabilir miyim?',
+      Polish: 'Czy mogę poprosić o duże latte z mlekiem owsianym?',
+      Indonesian: 'Bolehkah saya minta latte besar dengan susu oat, tolong?'
     },
     why: 'Using "Can I please have..." is the most natural and polite way to order anywhere.',
     scenario: 'At a cafe or bakery counter.'
@@ -80,9 +88,15 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'जब आपके पास समय हो, क्या आप कृपया बिल ला सकते हैं?',
       Mandarin: '有空的时候可以帮我们买单吗？',
       Japanese: 'お時間のある時にお会計をお願いできますか？',
+      Korean: '시간 되실 때 계산서 좀 가져다주시겠어요?',
       Arabic: 'هل يمكننا الحصول على الفاتورة عندما يتوفر لديك وقت من فضلك؟',
+      Vietnamese: 'Khi nào rảnh, bạn có thể tính tiền cho chúng tôi được không?',
+      Tagalog: 'Puwede po ba naming makuha ang bill kapag may oras po kayo?',
       Italian: 'Potremmo avere il conto quando ha un momento, per favore?',
-      Russian: 'Не могли бы вы принести нам счёт, когда освободитесь?'
+      Russian: 'Не могли бы вы принести нам счёт, когда освободитесь?',
+      Turkish: 'Müsait olduğunuzda hesabı alabilir miyiz lütfen?',
+      Polish: 'Czy moglibyśmy prosić o rachunek, kiedy będzie miał pan/pani chwilę?',
+      Indonesian: 'Bisakah kami minta tagihannya saat Anda ada waktu luang?'
     },
     why: 'In American English use "the check", and in British English use "the bill". Both are polite!',
     scenario: 'Finishing a meal at a restaurant.'
@@ -103,9 +117,15 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'क्या यह व्यंजन तीखा है, और क्या इसे शाकाहारी बनाया जा सकता है?',
       Mandarin: '这道菜辣吗？可以做成素食的吗？',
       Japanese: 'この料理は辛いですか？ベジタリアン用に作ってもらえますか？',
+      Korean: '이 요리는 매운가요? 채식으로 만들어 주실 수 있나요?',
       Arabic: 'هل هذا الطبق حار وهل يمكن تحضيره نباتياً؟',
+      Vietnamese: 'Món này có cay không, và có thể làm món chay được không?',
+      Tagalog: 'Maanghang po ba ang pagkaing ito, at puwede po bang gawing vegetarian?',
       Italian: 'Questo piatto è piccante, e si può avere vegetariano?',
-      Russian: 'Это блюдо острое? Можно ли приготовить его вегетарианским?'
+      Russian: 'Это блюдо острое? Можно ли приготовить его вегетарианским?',
+      Turkish: 'Bu yemek acı mı ve vejetaryen olarak yapılabilir mi?',
+      Polish: 'Czy to danie jest pikantne i czy można je przygotować w wersji wegetariańskiej?',
+      Indonesian: 'Apakah hidangan ini pedas, dan bisakah dibuat vegetarian?'
     },
     why: 'Asking about ingredients prevents surprises with allergies or spice tolerance.',
     scenario: 'Asking questions to a restaurant waiter.'
@@ -128,9 +148,15 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'माफ़ कीजिए, न्यूयॉर्क के लिए उड़ान किस गेट से रवाना होती है?',
       Mandarin: '请问飞往纽约的航班在哪个登机口登机？',
       Japanese: 'すみません、ニューヨーク行きのフライトは何番ゲートから出発しますか？',
+      Korean: '실례합니다, 뉴욕행 비행기는 몇 번 탑승구에서 출발하나요?',
       Arabic: 'معذرة، من أي بوابة تغادر الرحلة إلى نيويورك؟',
+      Vietnamese: 'Xin lỗi, chuyến bay đi New York khởi hành từ cổng nào?',
+      Tagalog: 'Excuse me po, saang gate po aalis ang flight papuntang New York?',
       Italian: 'Mi scusi, da quale gate parte il volo per New York?',
-      Russian: 'Извините, от какого выхода вылетает рейс в Нью-Йорк?'
+      Russian: 'Извините, от какого выхода вылетает рейс в Нью-Йорк?',
+      Turkish: 'Afedersiniz, New York uçuşu hangi kapıdan kalkıyor?',
+      Polish: 'Przepraszam, z której bramki odlatuje lot do Nowego Jorku?',
+      Indonesian: 'Permisi, penerbangan ke New York berangkat dari gerbang mana?'
     },
     why: 'Airport personnel appreciate starting with "Excuse me" before asking questions.',
     scenario: 'Inside an international airport terminal.'
@@ -151,9 +177,15 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'नमस्ते, मेरे नाम पर दो रातों के लिए होटल का आरक्षण है।',
       Mandarin: '你好，我预订了两晚的房间，在我的名下。',
       Japanese: 'こんにちは、私の名前で2泊分の予約があります。',
+      Korean: '안녕하세요, 제 이름으로 2박 호텔 예약이 되어 있습니다.',
       Arabic: 'مرحباً، لدي حجز فندقي باسمي لمدة ليلتين.',
+      Vietnamese: 'Xin chào, tôi có đặt phòng khách sạn hai đêm dưới tên của tôi.',
+      Tagalog: 'Hello po, may reservation po ako sa hotel sa pangalan ko para sa dalawang gabi.',
       Italian: 'Salve, ho una prenotazione alberghiera a mio nome per due notti.',
-      Russian: 'Здравствуйте, у меня бронь на две ночи на моё имя.'
+      Russian: 'Здравствуйте, у меня бронь на две ночи на моё имя.',
+      Turkish: 'Merhaba, adıma iki gecelik otel rezervasyonu var.',
+      Polish: 'Dzień dobry, mam rezerwację hotelową na moje nazwisko na dwie noce.',
+      Indonesian: 'Halo, saya punya reservasi hotel atas nama saya untuk dua malam.'
     },
     why: 'Saying "under my name" is the exact native phrase hotel front desks look for.',
     scenario: 'Hotel check-in desk.'
@@ -174,9 +206,15 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'क्या आप मुझे निकटतम मेट्रो स्टेशन का रास्ता बता सकते हैं?',
       Mandarin: '请问你能指给我看最近的地铁站在哪个方向吗？',
       Japanese: '一番近い地下鉄の駅の方向を教えていただけますか？',
+      Korean: '가장 가까운 지하철역이 어느 방향인지 알려주실 수 있나요?',
       Arabic: 'هل يمكنك إرشادي إلى اتجاه أقرب محطة مترو من فضلك؟',
+      Vietnamese: 'Bạn có thể chỉ cho tôi hướng đến ga tàu điện ngầm gần nhất được không?',
+      Tagalog: 'Puwede niyo po bang ituro kung saang direksyon ang pinakamalapit na istasyon ng subway?',
       Italian: 'Potrebbe indicarmi la direzione per la stazione della metropolitana più vicina?',
-      Russian: 'Подскажите, пожалуйста, в какой стороне ближайшая станция метро?'
+      Russian: 'Подскажите, пожалуйста, в какой стороне ближайшая станция метро?',
+      Turkish: 'Lütfen bana en yakın metro istasyonunun yönünü gösterebilir misiniz?',
+      Polish: 'Czy mógłby mi pan/pani wskazać drogę do najbliższej stacji metra?',
+      Indonesian: 'Bisakah Anda menunjukkan arah ke stasiun kereta bawah tanah terdekat?'
     },
     why: '"Point me in the direction of..." sounds friendly, polite, and natural.',
     scenario: 'Asking pedestrians for directions in a new city.'
@@ -199,9 +237,15 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'नमस्ते! आपसे मिलकर बहुत अच्छा लगा। आप यहाँ कितने समय से रह रहे हैं?',
       Mandarin: '嗨！很高兴认识你。你在这里住了多久了？',
       Japanese: 'こんにちは！お会いできて嬉しいです。ここに住んでどれくらいですか？',
+      Korean: '안녕하세요! 만나서 정말 반가워요. 여기 사신 지 얼마나 되셨나요?',
       Arabic: 'مرحباً! رائع أن ألتقي بك. منذ متى وأنت تعيش هنا؟',
+      Vietnamese: 'Chào bạn! Rất vui được gặp bạn. Bạn đã sống ở đây bao lâu rồi?',
+      Tagalog: 'Kumusta! Napakasayang makilala ka. Gaano ka na katagal naninirahan dito?',
       Italian: 'Ciao! È un vero piacere conoscerti. Da quanto tempo vivi qui?',
-      Russian: 'Привет! Очень приятно познакомиться. Как давно ты здесь живёшь?'
+      Russian: 'Привет! Очень приятно познакомиться. Как давно ты здесь живёшь?',
+      Turkish: 'Merhaba! Tanıştığımıza çok memnun oldum. Ne zamandır burada yaşıyorsunuz?',
+      Polish: 'Cześć! Wspaniale cię poznać. Jak długo tu mieszkasz?',
+      Indonesian: 'Hai! Senang sekali bertemu dengan Anda. Sudah berapa lama Anda tinggal di sini?'
     },
     why: 'Asking about where someone lives opens up effortless, fun conversations.',
     scenario: 'Social gatherings, meetups, or parties.'
@@ -222,9 +266,15 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'मुझे हमारी बातचीत में बहुत मज़ा आया! क्या आप संपर्क में रहना चाहेंगे?',
       Mandarin: '我真的很享受我们的对话！你想保持联系吗？',
       Japanese: 'お話しできてとても楽しかったです！連絡先を交換しませんか？',
+      Korean: '오늘 대화 정말 즐거웠어요! 계속 연락하고 지낼래요?',
       Arabic: 'استمتعت حقاً بحديثنا! هل ترغب في البقاء على تواصل؟',
+      Vietnamese: 'Tôi rất thích cuộc trò chuyện của chúng ta! Bạn có muốn giữ liên lạc không?',
+      Tagalog: 'Talagang nag-enjoy ako sa usapan natin! Gusto mo bang manatiling may ugnayan tayo?',
       Italian: 'Mi è piaciuta molto la nostra conversazione! Ti andrebbe di rimanere in contatto?',
-      Russian: 'Мне было очень приятно пообщаться! Хочешь оставаться на связи?'
+      Russian: 'Мне было очень приятно пообщаться! Хочешь оставаться на связи?',
+      Turkish: 'Sohbetimizden gerçekten çok keyif aldım! İletişimde kalmak ister misiniz?',
+      Polish: 'Bardzo podobała mi się nasza rozmowa! Czy chciałbyś pozostać w kontakcie?',
+      Indonesian: 'Saya sangat menikmati percakapan kita! Apakah Anda ingin tetap saling berhubungan?'
     },
     why: '"Stay in touch" is the universal warm expression for making new friends.',
     scenario: 'Saying goodbye to someone you like.'
@@ -247,37 +297,49 @@ const LESSON_PHRASES: LessonPhrase[] = [
       Hindi: 'माफ़ कीजिए, इसे पहनकर देखने के लिए ट्रायल रूम कहाँ है?',
       Mandarin: '打扰一下，请问试衣间在哪里？我想试穿一下。',
       Japanese: 'すみません、これを試着できる試着室はどこにありますか？',
+      Korean: '실례합니다, 이것을 입어볼 수 있는 피팅룸이 어디에 있나요?',
       Arabic: 'معذرة، أين تقع غرف قياس الملابس لتجربة هذا؟',
+      Vietnamese: 'Xin lỗi, phòng thay đồ ở đâu để tôi thử món đồ này?',
+      Tagalog: 'Excuse me po, nasaan po ang fitting room para masukat ko ito?',
       Italian: 'Mi scusi, dove posso trovare i camerini per provare questo?',
-      Russian: 'Извините, где находятся примерочные, чтобы примерить это?'
+      Russian: 'Извините, где находятся примерочные, чтобы примерить это?',
+      Turkish: 'Afedersiniz, bunu denemek için soyunma kabinlerini nerede bulabilirim?',
+      Polish: 'Przepraszam, gdzie znajdę przymierzalnie, żeby to przymierzyć?',
+      Indonesian: 'Permisi, di mana saya bisa menemukan kamar pas untuk mencoba ini?'
     },
     why: '"Fitting rooms" is standard in clothing shops.',
     scenario: 'In a clothing store.'
   },
 
-  // POLITE WORKPLACE CHAT
+  // DAILY HELP & QUESTIONS
   {
-    id: 'wk-1',
-    topicId: 'work',
-    topicName: 'Polite Workplace Chat',
-    emoji: '💼',
+    id: 'hl-1',
+    topicId: 'daily_help',
+    topicName: 'Help & Daily Questions',
+    emoji: '🤝',
     level: 'everyday',
-    english: 'Thank you for your prompt response; I will review this by tomorrow morning.',
-    phonetic: 'θæŋk juː fɔːr jʊər prɒmpt rɪˈspɒns; aɪ wɪl rɪˈvjuː ðɪs baɪ təˈmɒroʊ ˈmɔːrnɪŋ.',
+    english: 'Could you please help me with this when you have a free moment?',
+    phonetic: 'kʊd juː pliːz hɛlp miː wɪð ðɪs wɛn juː hæv ə friː ˈmoʊmənt?',
     translations: {
-      Spanish: 'Gracias por su pronta respuesta; revisaré esto para mañana por la mañana.',
-      Portuguese: 'Obrigado pela sua resposta rápida; revisarei isso até amanhã de manhã.',
-      French: 'Merci pour votre réponse rapide ; je l\'examinerai d\'ici demain matin.',
-      German: 'Vielen Dank für Ihre schnelle Antwort; ich werde dies bis morgen früh prüfen.',
-      Hindi: 'त्वरित उत्तर के लिए धन्यवाद; मैं कल सुबह तक इसकी समीक्षा करूँगा।',
-      Mandarin: '感谢您的及时回复；我将在明天上午前进行查阅。',
-      Japanese: '迅速なご返信ありがとうございます。明日の朝までに確認いたします。',
-      Arabic: 'شكراً على ردك السريع؛ سأراجع هذا بحلول صباح الغد.',
-      Italian: 'Grazie per la pronta risposta; esaminerò questo entro domani mattina.',
-      Russian: 'Спасибо за оперативный ответ; я ознакомлюсь с этим до завтрашнего утра.'
+      Spanish: '¿Podrías ayudarme con esto cuando tengas un momento libre, por favor?',
+      Portuguese: 'Você poderia me ajudar com isso quando tiver um momento livre, por favor?',
+      French: 'Pourriez-vous m\'aider avec ceci lorsque vous aurez un moment de libre, s\'il vous plaît ?',
+      German: 'Könnten Sie mir bitte dabei helfen, wenn Sie einen Moment Zeit haben?',
+      Hindi: 'जब आपके पास खाली समय हो, क्या आप कृपया इसमें मेरी मदद कर सकते हैं?',
+      Mandarin: '有空的时候可以请你帮我看一下这个吗？',
+      Japanese: 'お時間のある時に、こちらを手伝っていただけますか？',
+      Korean: '시간 되실 때 이것 좀 도와주실 수 있나요?',
+      Arabic: 'هل يمكنك مساعدتي في هذا عندما يكون لديك وقت فراغ من فضلك؟',
+      Vietnamese: 'Bạn có thể giúp tôi việc này khi bạn rảnh rỗi được không?',
+      Tagalog: 'Maaari mo ba akong tulungan dito kapag may libreng oras ka?',
+      Italian: 'Potresti aiutarmi con questo quando hai un momento libero, per favore?',
+      Russian: 'Не могли бы вы помочь мне с этим, когда у вас будет свободная минута?',
+      Turkish: 'Boş bir vaktiniz olduğunda lütfen bana bu konuda yardımcı olabilir misiniz?',
+      Polish: 'Czy mógłbyś mi w tym pomóc, kiedy będziesz miał wolną chwilę?',
+      Indonesian: 'Bisakah Anda membantu saya dengan ini ketika Anda memiliki waktu luang?'
     },
-    why: 'Saying "Thank you for your prompt response" is a standard professional courtesy in emails.',
-    scenario: 'Replying to an email from a manager or client.'
+    why: '"When you have a free moment" is a polite, considerate way to ask anyone for assistance without pressure.',
+    scenario: 'Asking a neighbor, coworker, or friend for a quick favor.'
   }
 ];
 
@@ -293,6 +355,7 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'starter' | 'everyday' | 'confident'>('all');
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const { speed, speak, isSpeaking, stop } = useTTS();
 
   // Filter phrases
   const filteredPhrases = LESSON_PHRASES.filter((p) => {
@@ -301,20 +364,21 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
     return matchesTopic && matchesLevel;
   });
 
-  const handlePlayAudio = (phrase: LessonPhrase, speed: 0.8 | 1.0) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(phrase.english);
-    utterance.lang = 'en-US';
-    utterance.rate = speed;
-    utterance.pitch = 1.0;
-
-    utterance.onstart = () => setPlayingId(`${phrase.id}-${speed}`);
-    utterance.onend = () => setPlayingId(null);
-    utterance.onerror = () => setPlayingId(null);
-
-    window.speechSynthesis.speak(utterance);
+  const handlePlayAudio = (phrase: LessonPhrase, customSpeed?: number) => {
+    const rateToUse = customSpeed ?? speed;
+    const playKey = `${phrase.id}-${rateToUse}`;
+    if (playingId === playKey) {
+      stop();
+      setPlayingId(null);
+      return;
+    }
+    setPlayingId(playKey);
+    speak(phrase.english, {
+      rate: rateToUse,
+      onStart: () => setPlayingId(playKey),
+      onEnd: () => setPlayingId(null),
+      onError: () => setPlayingId(null)
+    });
   };
 
   const handleBookmarkPhrase = async (phrase: LessonPhrase) => {
@@ -361,22 +425,26 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
           </p>
         </div>
 
-        {/* Language selector */}
-        <div className="flex items-center gap-2 bg-neutral-50 px-3.5 py-2 rounded-2xl border border-neutral-200">
-          <Globe2 className="w-4 h-4 text-emerald-600" />
-          <span className="text-xs font-bold text-neutral-600">Translations:</span>
-          <select
-            aria-label="Select translation language"
-            value={nativeLanguage}
-            onChange={(e) => onLanguageChange(e.target.value as NativeLanguage)}
-            className="text-xs font-bold text-neutral-900 bg-transparent border-0 focus:ring-0 cursor-pointer outline-none"
-          >
-            {SUPPORTED_LANGUAGES.map((lang) => (
-              <option key={lang.name} value={lang.name}>
-                {lang.flag} {lang.label}
-              </option>
-            ))}
-          </select>
+        {/* Language selector & Speaker speed setting */}
+        <div className="flex flex-wrap items-center gap-2">
+          <SpeakerSpeedControl variant="header" idPrefix="lessons-hub-speed" />
+
+          <div className="flex items-center gap-2 bg-neutral-50 px-3 py-1.5 rounded-xl border border-neutral-200">
+            <Globe2 className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs font-bold text-neutral-600">Translations:</span>
+            <select
+              aria-label="Select translation language"
+              value={nativeLanguage}
+              onChange={(e) => onLanguageChange(e.target.value as NativeLanguage)}
+              className="text-xs font-bold text-neutral-900 bg-transparent border-0 focus:ring-0 cursor-pointer outline-none"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.name} value={lang.name}>
+                  {lang.flag} {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -388,7 +456,7 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
           { id: 'travel', label: 'Airport & Travel', emoji: '✈️' },
           { id: 'friends', label: 'Making Friends', emoji: '👋' },
           { id: 'shopping', label: 'Shopping & Clothes', emoji: '🛍️' },
-          { id: 'work', label: 'Polite Workplace Chat', emoji: '💼' }
+          { id: 'daily_help', label: 'Help & Daily Questions', emoji: '🤝' }
         ].map((cat) => (
           <button
             key={cat.id}
@@ -494,21 +562,21 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => handlePlayAudio(phrase, 1.0)}
+                    onClick={() => handlePlayAudio(phrase, speed)}
                     className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
-                    title="Listen normal speed (1.0x)"
+                    title={`Listen with speakerphone at chosen speed (${speed}x)`}
                   >
                     <Volume2 className="w-3.5 h-3.5" />
-                    <span>Listen</span>
+                    <span>Listen ({speed}x)</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handlePlayAudio(phrase, 0.8)}
+                    onClick={() => handlePlayAudio(phrase, speed <= 0.8 ? 1.0 : 0.75)}
                     className="px-2.5 py-1.5 rounded-xl bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold transition-all cursor-pointer"
-                    title="Listen slowly (0.8x) for clear pronunciation"
+                    title={speed <= 0.8 ? "Listen at normal speed (1.0x)" : "Listen slowly (0.75x) for clear pronunciation"}
                   >
-                    <span>🐢 Slow</span>
+                    <span>{speed <= 0.8 ? '🎯 1.0x' : '🐢 0.75x'}</span>
                   </button>
                 </div>
 

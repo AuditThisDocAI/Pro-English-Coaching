@@ -28,6 +28,7 @@ import { PaywallOverlay } from './components/PaywallOverlay';
 import { FunLandingPage } from './components/FunLandingPage';
 import { FunLearningHub } from './components/FunLearningHub';
 import { FunWordMatchGame } from './components/FunWordMatchGame';
+import { SpeakerSpeedControl } from './components/SpeakerSpeedControl';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { 
   LandingHero, 
@@ -127,6 +128,13 @@ export default function App() {
 
   // Compute live trial state
   const trialInfo = calculateTrialInfo(currentUser, isPro, trialStartDate, currentTick);
+
+  // Automatically detect when free trial is exhausted and redirect straight to the payment/pricing page
+  useEffect(() => {
+    if (trialInfo.isTrialExpired && !isPro) {
+      navigate('/pricing');
+    }
+  }, [trialInfo.isTrialExpired, isPro, navigate]);
 
   // Native Language for translation insights
   const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage>(() => {
@@ -407,15 +415,9 @@ export default function App() {
               <Sparkles className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <h1 className="font-black text-lg sm:text-xl tracking-tight text-neutral-900 flex items-center gap-2 leading-none">
-                Basic English Coach
-                <span className="hidden sm:inline-block text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  Easy & Fun
-                </span>
+              <h1 className="font-black text-lg sm:text-xl tracking-tight text-neutral-900 leading-none">
+                English Coach
               </h1>
-              <p className="text-xs text-neutral-500 hidden sm:block mt-0.5 font-medium">
-                Fun Everyday English for Non-English Speakers
-              </p>
             </div>
           </button>
 
@@ -490,6 +492,9 @@ export default function App() {
               ))}
             </select>
           </div>
+
+          {/* Speakerphone Voice Speed Setting */}
+          <SpeakerSpeedControl variant="header" idPrefix="header-speaker-speed" />
 
           {/* Saved Vault Button */}
           <button
@@ -773,10 +778,10 @@ export default function App() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs">
-                PE
+                EC
               </div>
               <div>
-                <p className="font-bold text-white text-sm">Pro English Coach</p>
+                <p className="font-bold text-white text-sm">English Coach</p>
                 <p className="text-[11px] text-neutral-400">Easy, fun English learning for non-English speakers worldwide</p>
               </div>
             </div>
@@ -815,7 +820,7 @@ export default function App() {
                 onClick={() => navigate('/pricing')}
                 className="hover:text-white transition-colors cursor-pointer"
               >
-                Pro Plans
+                Subscription
               </button>
             </div>
           </div>
@@ -833,7 +838,7 @@ export default function App() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-neutral-400 pt-2 border-t border-neutral-800/40">
-            <p>© {new Date().getFullYear()} Pro English Coach. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} English Coach. All rights reserved.</p>
             <p>AI Educational Assistant — Practice conversations with simulated bilingual guidance.</p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 {
-  "name": "Pro English Coach",
+  "name": "English Coach",
   "description": "Fun and easy English learning for all non-English speakers. Interactive landing page, daily bite-sized conversation games, slow audio pronunciation, and bilingual AI tutor.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

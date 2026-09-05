@@ -175,15 +175,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-indigo-100 text-xs font-semibold uppercase tracking-wider mb-2 pr-8">
               <ShieldCheck className="w-3.5 h-3.5" />
-              Pro English Coach Account
+              English Coach Account
             </div>
 
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1 pr-8">
-              {currentUser ? 'Your Pro English Profile' : 'Sign in to Pro English Coach'}
+              {currentUser ? 'Your English Coach Profile' : 'Sign in to English Coach'}
             </h2>
             <p className="text-indigo-100 text-xs leading-relaxed">
               {currentUser 
-                ? 'Manage your cloud saved phrases, trial status, and active Pro subscription.' 
+                ? 'Manage your cloud saved phrases, trial status, and active subscription.' 
                 : 'Sign in to access your 3-day free trial, sync saved phrases, and manage your account.'}
             </p>
           </div>

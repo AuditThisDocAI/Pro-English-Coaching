@@ -24,9 +24,11 @@ import {
   User, 
   Bot,
   Copy,
-  ChevronDown
+  ChevronDown,
+  Gauge
 } from 'lucide-react';
 import { useTTS } from '../lib/useTTS';
+import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateSmartRuleBasedTranslation } from '../lib/translationService';
 
@@ -43,36 +45,36 @@ const COACH_PERSONAS = [
   {
     id: 'elena',
     name: 'Elena',
-    role: 'Senior Executive & Recruiter Coach',
-    avatar: '👩‍💼',
-    desc: 'Expert talent partner specializing in confident interviews & workplace diplomacy',
+    role: 'Friendly Conversation Coach',
+    avatar: '👩',
+    desc: 'Warm tutor specializing in daily conversations, confidence & clear pronunciation',
     gender: 'female' as const,
     voicePitch: 1.12,
   },
   {
     id: 'emma',
     name: 'Emma',
-    role: 'Senior Executive English Coach',
+    role: 'Everyday English Tutor',
     avatar: '👩‍🏫',
-    desc: 'Expert in corporate diplomacy, high-level meetings & polite updates',
+    desc: 'Helpful buddy for practical vocabulary, real-life expressions & listening',
     gender: 'female' as const,
     voicePitch: 1.08,
   },
   {
     id: 'sophia',
     name: 'Sophia',
-    role: 'Daily Formal & Polite English Guide',
+    role: 'Travel & Social Guide',
     avatar: '👩‍💻',
-    desc: 'Friendly guidance on polite greetings, small talk & casual business etiquette',
+    desc: 'Friendly guide for coffee orders, dining out, making friends & exploring',
     gender: 'female' as const,
     voicePitch: 1.08,
   },
   {
     id: 'david',
     name: 'David',
-    role: 'Job Interview & Career Strategist',
-    avatar: '👨‍💼',
-    desc: 'Specializes in STAR method, salary negotiation & confident pitches',
+    role: 'Practical Speaking Partner',
+    avatar: '👨',
+    desc: 'Warm partner for natural chit-chat, hobbies, storytelling & daily fluency',
     gender: 'male' as const,
     voicePitch: 0.95,
   }
@@ -80,76 +82,79 @@ const COACH_PERSONAS = [
 
 const STARTER_TOPICS = [
   {
-    title: 'Polite Meeting Disagreement',
-    prompt: 'How can I politely disagree with my manager during a product roadmap meeting?',
-    category: 'Workplace'
+    title: 'Ordering at a Cafe',
+    prompt: 'Can you help me practice ordering food and drinks at a local coffee shop?',
+    category: 'Everyday'
   },
   {
-    title: 'Salary & Compensation Review',
-    prompt: 'I want to ask HR for a compensation review based on my recent performance.',
-    category: 'Interview'
+    title: 'Making New Friends',
+    prompt: 'What are friendly conversation starters to introduce myself and make new friends?',
+    category: 'Social'
   },
   {
-    title: 'Asking for a Deadline Extension',
-    prompt: 'How do I draft a professional email requesting 3 extra days on a client report?',
-    category: 'Emails'
+    title: 'Asking for Directions',
+    prompt: 'How do I ask someone politely for directions when I am exploring a city?',
+    category: 'Travel'
   },
   {
-    title: 'Introducing Myself Professionally',
-    prompt: 'How should I introduce myself on my first day in a remote team Slack channel?',
-    category: 'Daily'
+    title: 'Talking About Hobbies',
+    prompt: 'Let us practice talking about weekend hobbies, favorite music, and movies!',
+    category: 'Casual'
   }
 ];
 
 export function getWelcomeTranslation(personaName: string, lang: NativeLanguage | string): string {
   const normalized = (lang || 'Spanish').toLowerCase();
   if (normalized.includes('spanish') || normalized.includes('español')) {
-    return `¡Hola! Soy ${personaName}, tu tutora de inglés con IA en Pro English Coach. Estoy aquí para ayudarte a practicar inglés formal y profesional. ¿Qué te gustaría practicar hoy?`;
+    return `¡Hola! Soy ${personaName}, tu tutora de inglés con IA en English Coach. Estoy aquí para ayudarte a practicar inglés conversacional y cotidiano con confianza. ¿Qué te gustaría practicar hoy?`;
   }
   if (normalized.includes('french') || normalized.includes('français')) {
-    return `Bonjour ! Je suis ${personaName}, votre coach d'anglais IA sur Pro English Coach. Je suis là pour vous aider à pratiquer l'anglais basique et professionnel. Que souhaitez-vous travailler aujourd'hui ?`;
+    return `Bonjour ! Je suis ${personaName}, votre coach d'anglais IA sur English Coach. Je suis là pour vous aider à pratiquer l'anglais du quotidien en toute confiance. Que souhaitez-vous pratiquer aujourd'hui ?`;
   }
   if (normalized.includes('portuguese') || normalized.includes('português')) {
-    return `Olá! Eu sou ${personaName}, sua tutora de inglês com IA no Pro English Coach. Estou aqui para ajudar você a praticar inglês básico e formal. O que gostaria de praticar hoje?`;
+    return `Olá! Eu sou ${personaName}, sua tutora de inglês com IA no English Coach. Estou aqui para ajudar você a praticar inglês do dia a dia com segurança. O que gostaria de praticar hoje?`;
   }
   if (normalized.includes('german') || normalized.includes('deutsch')) {
-    return `Hallo! Ich bin ${personaName}, dein KI-Englisch-Coach bei Pro English Coach. Ich helfe dir dabei, formelles und geschäftliches Englisch zu üben. Was möchtest du heute üben?`;
+    return `Hallo! Ich bin ${personaName}, dein KI-Englisch-Coach bei English Coach. Ich helfe dir dabei, alltagsnahes Englisch mit Freude zu üben. Was möchtest du heute üben?`;
   }
   if (normalized.includes('hindi')) {
-    return `नमस्ते! मैं Pro English Coach पर आपकी AI अंग्रेज़ी कोच ${personaName} हूँ। मैं आपको बुनियादी और औपचारिक अंग्रेज़ी सीखने में मदद करूँगी। आज आप क्या अभ्यास करना चाहेंगे?`;
+    return `नमस्ते! मैं English Coach पर आपकी AI अंग्रेज़ी कोच ${personaName} हूँ। मैं आपको रोज़मर्रा की बातचीत में आत्मविश्वास से अंग्रेज़ी बोलने में मदद करूँगी। आज आप क्या अभ्यास करना चाहेंगे?`;
   }
   if (normalized.includes('mandarin') || normalized.includes('chinese')) {
-    return `你好！我是 Pro English Coach 的 AI 英语教练 ${personaName}。我将协助你练习基础与职场商务英语。今天你想练习什么内容？`;
+    return `你好！我是 English Coach 的 AI 英语教练 ${personaName}。我将协助你轻松练习实用日常英语。今天你想聊些什么？`;
   }
   if (normalized.includes('japanese')) {
-    return `こんにちは！Pro English Coach のAI英語コーチ、${personaName}です。日常会話からビジネス英語までサポートします。本日は何を練習しますか？`;
+    return `こんにちは！English Coach のAI英語コーチ、${personaName}です。日常英会話をリラックスして楽しく練習しましょう。今日はどんなことを練習しますか？`;
   }
   if (normalized.includes('korean')) {
-    return `안녕하세요! Pro English Coach의 AI 영어 코치 ${personaName}입니다. 기초 및 비즈니스 영어 회화 실력 향상을 도와드립니다. 오늘 어떤 것을 연습해 볼까요?`;
+    return `안녕하세요! English Coach의 AI 영어 코치 ${personaName}입니다. 일상 속에서 자신감 있게 영어를 구사할 수 있도록 도와드릴게요. 오늘 어떤 대화를 나눠볼까요?`;
   }
   if (normalized.includes('arabic')) {
-    return `مرحباً! أنا ${personaName}، مدربتك للغة الإنجليزية بالذكاء الاصطناعي في Pro English Coach. أنا هنا لمساعدتك في إتقان الإنجليزية الرسمية والمهنية. ماذا تود أن تتدرب عليه اليوم؟`;
+    return `مرحباً! أنا ${personaName}، مدربتك للغة الإنجليزية في English Coach. أنا هنا لمساعدتك في ممارسة الإنجليزية اليومية بكل ثقة وسهولة. ماذا تود أن نتدرب عليه اليوم؟`;
   }
   if (normalized.includes('italian')) {
-    return `Ciao! Sono ${personaName}, il tuo tutor AI di inglese su Pro English Coach. Sono qui per aiutarti a perfezionare il tuo inglese formale e professionale. Cosa vorresti esercitare oggi?`;
+    return `Ciao! Sono ${personaName}, il tuo tutor AI di inglese su English Coach. Sono qui per aiutarti a praticare l'inglese quotidiano in modo semplice e naturale. Cosa vorresti praticare oggi?`;
   }
   if (normalized.includes('russian')) {
-    return `Здравствуйте! Я ${personaName}, ваш ИИ-преподаватель английского в Pro English Coach. Я помогу вам освоить деловой и базовый английский. Что вы хотите попрактиковать сегодня?`;
+    return `Здравствуйте! Я ${personaName}, ваш ИИ-преподаватель английского в English Coach. Я помогу вам уверенно заговорить на повседневном английском. Что вы хотите попрактиковать сегодня?`;
   }
   if (normalized.includes('turkish')) {
-    return `Merhaba! Ben Pro English Coach'taki yapay zeka İngilizce koçunuz ${personaName}. Temel ve resmi İngilizce pratiği yapmanız için buradayım. Bugün ne üzerine çalışmak istersiniz?`;
+    return `Merhaba! Ben English Coach'taki yapay zeka İngilizce koçunuz ${personaName}. Günlük İngilizceyi özgüvenle konuşmanız için buradayım. Bugün ne üzerine çalışmak istersiniz?`;
   }
   if (normalized.includes('vietnamese')) {
-    return `Xin chào! Tôi là ${personaName}, huấn luyện viên tiếng Anh AI của bạn tại Pro English Coach. Tôi ở đây để giúp bạn luyện tập tiếng Anh giao tiếp và công sở. Bạn muốn luyện tập gì hôm nay?`;
+    return `Xin chào! Tôi là ${personaName}, huấn luyện viên tiếng Anh AI của bạn tại English Coach. Tôi ở đây để giúp bạn luyện tập tiếng Anh giao tiếp hàng ngày thật tự tin. Bạn muốn luyện gì hôm nay?`;
+  }
+  if (normalized.includes('tag') || normalized.includes('filip')) {
+    return `Kumusta! Ako si ${personaName}, ang iyong AI English coach sa English Coach. Narito ako upang tulungan kang magsanay ng pang-araw-araw na English upang makapagsalita ka nang may kumpiyansa. Ano ang gusto mong sanayin ngayon?`;
   }
   if (normalized.includes('polish')) {
-    return `Cześć! Jestem ${personaName}, Twoim nauczycielem angielskiego AI w Pro English Coach. Pomogę Ci w nauce podstawowego i formalnego angielskiego. Co chciałbyś dzisiaj przećwiczyć?`;
+    return `Cześć! Jestem ${personaName}, Twoim nauczycielem angielskiego AI w English Coach. Pomogę Ci w nauce codziennego angielskiego z pewnością siebie. Co chciałbyś dzisiaj przećwiczyć?`;
   }
   if (normalized.includes('indonesian')) {
-    return `Halo! Saya ${personaName}, tutor bahasa Inggris AI Anda di Pro English Coach. Saya di sini untuk membantu Anda berlatih bahasa Inggris formal dan profesional. Apa yang ingin Anda latih hari ini?`;
+    return `Halo! Saya ${personaName}, tutor bahasa Inggris AI Anda di English Coach. Saya di sini untuk membantu Anda berlatih percakapan bahasa Inggris sehari-hari dengan percaya diri. Apa yang ingin Anda latih hari ini?`;
   }
 
-  return `Hello! I am ${personaName}, your AI English coach on Pro English Coach. I am here to help you practice basic and formal English. What would you like to practice today?`;
+  return `Hello! I am ${personaName}, your AI English coach on English Coach. I am here to help you practice natural, everyday English with confidence. What would you like to practice today?`;
 }
 
 export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
@@ -165,12 +170,12 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
     {
       id: 'welcome-1',
       sender: 'tutor',
-      text: `Hello! I'm ${COACH_PERSONAS[0].name}, your AI English coach on Pro English Coach. I'm here to help you practice basic and formal English so you can speak confidently in meetings, emails, and job interviews. What would you like to practice today?`,
+      text: `Hello! I'm ${COACH_PERSONAS[0].name}, your AI English coach on English Coach. I'm here to help you practice natural, everyday English so you can speak confidently in daily life, travel, and conversations. What would you like to practice today?`,
       translation: getWelcomeTranslation(COACH_PERSONAS[0].name, nativeLanguage),
       suggestions: [
-        'How do I write a polite email requesting an update?',
-        'Help me introduce myself in a job interview.',
-        'How do I politely push back on unrealistic deadlines?'
+        'Can you help me practice ordering at a coffee shop?',
+        'What are friendly ways to introduce myself to new people?',
+        'How do I politely ask for directions when traveling?'
       ],
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
@@ -183,7 +188,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
         return [
           {
             ...prev[0],
-            text: `Hello! I'm ${selectedPersona.name}, your AI English coach on Pro English Coach. I'm here to help you practice basic and formal English so you can speak confidently in meetings, emails, and job interviews. What would you like to practice today?`,
+            text: `Hello! I'm ${selectedPersona.name}, your AI English coach on English Coach. I'm here to help you practice natural, everyday English so you can speak confidently in daily life, travel, and conversations. What would you like to practice today?`,
             translation: getWelcomeTranslation(selectedPersona.name, nativeLanguage)
           }
         ];
@@ -197,13 +202,12 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
   const [savedMessageIds, setSavedMessageIds] = useState<Set<string>>(new Set());
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
-  const { speak, isSpeaking, stop } = useTTS();
+  const { speed, setSpeed, speak, isSpeaking, stop } = useTTS();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -321,7 +325,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
 
       // Auto-pronounce tutor's response for immersion
       speak(tutorMessage.text, { 
-        rate: playbackSpeed,
+        rate: speed,
         gender: selectedPersona.gender,
         pitch: selectedPersona.voicePitch
       });
@@ -365,12 +369,6 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const cycleSpeed = () => {
-    const speeds = [0.8, 1.0, 1.25];
-    const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
-    setPlaybackSpeed(speeds[nextIdx]);
-  };
-
   return (
     <div className="flex flex-col h-[780px] max-h-[85vh] bg-white rounded-3xl border border-neutral-200 shadow-xl overflow-hidden">
       
@@ -394,17 +392,9 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
           </div>
         </div>
 
-        {/* Coach Switching Pills & Audio Speed Toggle */}
+        {/* Coach Switching Pills & Audio Speed Setting */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={cycleSpeed}
-            className="px-2.5 py-1.5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-xs font-bold text-neutral-700 flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
-            title="Toggle Pronunciation Speed"
-          >
-            <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
-            <span>{playbackSpeed}x</span>
-          </button>
+          <SpeakerSpeedControl variant="header" idPrefix="chat-tutor-speed" />
 
           <div className="hidden sm:flex items-center gap-1 bg-neutral-200/60 p-1 rounded-xl">
             {COACH_PERSONAS.map((p) => (
@@ -432,7 +422,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
         {messages.length <= 1 && (
           <div className="space-y-2 mb-4">
             <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block text-center">
-              Suggested Basic & Formal Practice Topics
+              Suggested Everyday Practice Topics
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {STARTER_TOPICS.map((topic, i) => (
@@ -484,11 +474,11 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                   {/* Audio & Actions toolbar for tutor */}
                   {!isUser && (
                     <div className="mt-3 pt-2.5 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => speak(msg.text, { 
-                            rate: playbackSpeed,
+                            rate: speed,
                             gender: selectedPersona.gender,
                             pitch: selectedPersona.voicePitch
                           })}
@@ -502,6 +492,26 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                           <Volume2 className="w-3.5 h-3.5" />
                           <span>{isCurrentSpeaking ? 'Speaking...' : 'Listen'}</span>
                         </button>
+
+                        {/* Speakerphone Speed Controls */}
+                        <div className="flex items-center gap-0.5 bg-neutral-100 px-1 py-0.5 rounded-lg border border-neutral-200 text-[10px] font-bold text-neutral-600">
+                          <Gauge className="w-2.5 h-2.5 text-indigo-500 ml-0.5" />
+                          {[0.8, 1.0, 1.2].map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setSpeed(s as any)}
+                              className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                                Math.abs(speed - s) < 0.05
+                                  ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
+                                  : 'hover:text-indigo-700 hover:bg-neutral-200/50'
+                              }`}
+                              title={`Speakerphone speed: ${s}x`}
+                            >
+                              {s}x
+                            </button>
+                          ))}
+                        </div>
 
                         {msg.translation && (
                           <button
@@ -558,7 +568,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 font-black text-amber-900">
                       <Sparkles className="w-4 h-4 text-amber-600" />
-                      <span>Formal & Polite Phrasing Upgrade</span>
+                      <span>Natural Everyday Phrasing Upgrade</span>
                     </div>
                     {msg.formalCorrection.grammarTag && (
                       <span className="px-2 py-0.5 rounded-md bg-white border border-amber-200 text-amber-800 font-extrabold text-[10px]">
@@ -568,7 +578,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-white border border-amber-100 shadow-2xs space-y-1">
-                    <span className="text-[10px] text-neutral-400 font-bold uppercase block">Recommended Executive Phrasing:</span>
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase block">Recommended Natural Phrasing:</span>
                     <p className="font-bold text-neutral-900 text-xs sm:text-sm">
                       "{msg.formalCorrection.formalAlternative}"
                     </p>
@@ -581,10 +591,10 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                   <div className="pt-1 flex items-center justify-between">
                     <button
                       type="button"
-                      onClick={() => speak(msg.formalCorrection!.formalAlternative, { rate: playbackSpeed })}
+                      onClick={() => speak(msg.formalCorrection!.formalAlternative, { rate: speed })}
                       className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
                     >
-                      <Volume2 className="w-3.5 h-3.5" /> Listen to formal version
+                      <Volume2 className="w-3.5 h-3.5" /> Listen to improved phrase
                     </button>
 
                     <button
@@ -610,7 +620,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
         {isLoading && (
           <div className="flex items-center gap-2 text-neutral-400 text-xs font-bold pl-10 animate-pulse">
             <Bot className="w-4 h-4 text-indigo-600 animate-spin" />
-            <span>{selectedPersona.name} is drafting formal guidance...</span>
+            <span>{selectedPersona.name} is thinking of a friendly reply...</span>
           </div>
         )}
 
@@ -665,7 +675,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isRecording ? 'Listening... speak now...' : 'Type in basic or casual English to practice formal phrasing...'}
+            placeholder={isRecording ? 'Listening... speak now...' : 'Type or speak in English to practice chatting...'}
             disabled={isLoading}
             className="flex-1 px-4 py-3 rounded-2xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:border-indigo-600 focus:outline-hidden text-sm font-medium text-neutral-900 placeholder:text-neutral-400 transition-all"
           />

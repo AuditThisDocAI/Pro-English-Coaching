@@ -45,7 +45,7 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
             Unlock Full Access to {featureName}
           </h2>
           <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
-            Your 3-day complimentary trial has ended. Subscribe to Pro to continue practicing conversational and workplace English with instant AI feedback.
+            Your 3-day complimentary trial has ended. Activate your subscription to continue practicing conversational and everyday English with instant AI feedback.
           </p>
         </div>
 
@@ -53,8 +53,8 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-lg mx-auto py-2">
           {[
             'Unlimited 1-on-1 AI Chat Tutor & Voice Call',
-            'Real-world Workplace & Interview Roleplays',
-            'Instant Grammar & Formal Polish Feedback',
+            'Real-world Daily Situations & Conversations',
+            'Instant Natural Phrasing & Grammar Feedback',
             'Sentence Card Hub & Spaced Repetition',
             '15+ Native Language Translation Support',
             'Multi-Device Cloud Sync & Progress History',
@@ -70,7 +70,7 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
         <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/80 max-w-md mx-auto space-y-3">
           <div className="flex items-center justify-between">
             <div className="text-left">
-              <div className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Pro Membership</div>
+              <div className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Subscription Plan</div>
               <div className="text-2xl font-black text-neutral-900">$19.99 <span className="text-xs font-semibold text-neutral-500">/ month</span></div>
             </div>
             <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full">
@@ -84,7 +84,7 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
             className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-teal-600 hover:opacity-95 text-white font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Zap className="w-4 h-4 fill-white" />
-            <span>Subscribe to Pro ($19.99/mo)</span>
+            <span>Get Subscription ($19.99/mo)</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

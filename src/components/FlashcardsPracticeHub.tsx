@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTTS } from '../lib/useTTS';
+import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 import { 
   getAllDecks, 
   loadMasteryMap, 
@@ -100,7 +101,7 @@ export function FlashcardsPracticeHub({
   isPro = false,
 }: Props) {
   const currentUser = auth.currentUser;
-  const { speak, isSpeaking, isSupported } = useTTS();
+  const { speak, isSpeaking, isSupported, speed } = useTTS();
 
   const [masteryMap, setMasteryMap] = useState<Record<string, FlashcardMastery>>(() =>
     loadMasteryMap(currentUser)
@@ -132,7 +133,6 @@ export function FlashcardsPracticeHub({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterMastery, setFilterMastery] = useState<'all' | FlashcardMastery>('all');
   const [filterLevel, setFilterLevel] = useState<'all' | 'Beginner' | 'Intermediate' | 'Advanced'>('all');
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [copiedCardId, setCopiedCardId] = useState<string | null>(null);
 
   // New Card Form State
@@ -323,13 +323,7 @@ export function FlashcardsPracticeHub({
 
   // Audio Pronunciation
   const handleSpeak = (text: string) => {
-    speak(text, { rate: playbackSpeed });
-  };
-
-  const cycleSpeed = () => {
-    const speeds = [0.75, 1, 1.25];
-    const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
-    setPlaybackSpeed(speeds[nextIdx]);
+    speak(text, { rate: speed });
   };
 
   const handleCopy = (card: Flashcard) => {
@@ -543,11 +537,11 @@ export function FlashcardsPracticeHub({
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-extrabold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
-              Pro English Coaching Hub
+              English Coaching Hub
             </span>
             {isPro ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-300/30 text-amber-300 text-[10px] font-bold">
-                <Zap className="w-3 h-3 fill-amber-300" /> Pro Tier: 100+ Monthly Cards
+                <Zap className="w-3 h-3 fill-amber-300" /> Subscription: 100+ Monthly Cards
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-400/20 border border-emerald-300/30 text-emerald-200 text-[10px] font-bold">
@@ -859,13 +853,7 @@ export function FlashcardsPracticeHub({
                       {/* Playback speed & Shuffle */}
                       <div className="flex items-center gap-2">
                         {isSupported && (
-                          <button
-                            onClick={cycleSpeed}
-                            className="px-2.5 py-1 text-xs font-bold text-neutral-700 hover:text-emerald-700 bg-white border border-neutral-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-                            title="Cycle audio playback speed (0.75x, 1x, 1.25x)"
-                          >
-                            {playbackSpeed}x Speed
-                          </button>
+                          <SpeakerSpeedControl variant="compact" idPrefix="flashcards-card-speed" />
                         )}
                         <button
                           onClick={handleShuffle}

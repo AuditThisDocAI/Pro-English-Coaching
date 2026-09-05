@@ -6,9 +6,10 @@ import { auth } from '../lib/firebase';
 import { syncUserProfile } from '../lib/firestoreService';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 import { validateFreemiusConfig } from '../lib/freemius';
+import { calculateTrialInfo } from '../lib/trialService';
 
 export interface Tier {
-  name: 'Pro';
+  name: 'Subscription';
   description: string;
   features: string[];
   planId: string;
@@ -18,14 +19,14 @@ export interface Tier {
 
 export const TIERS: Tier[] = [
   {
-    name: 'Pro',
-    description: 'Complete coaching suite with 1000 sessions per month, voice dictation, and all industry modules.',
+    name: 'Subscription',
+    description: 'Complete coaching suite with 1000 sessions per month, voice dictation, speaker speed controls, and all practice modules.',
     features: [
       '1000 AI coaching sessions per month',
       'Live speech-to-text voice dictation',
-      'All 8 industry-specific AI modes',
+      'All everyday English AI practice modes',
+      'Speakerphone pronunciation with custom speed controls',
       'Unlimited saved phrase vault',
-      'Google Chat & Workspace webhook export',
       '3-day free trial included',
     ],
     highlight: true,
@@ -43,6 +44,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
   const { openCheckout } = useFreemius();
   const [isOpeningCheckout, setIsOpeningCheckout] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const currentUser = auth.currentUser;
+  const isPro = typeof window !== 'undefined'
+    ? localStorage.getItem(currentUser ? `proenglish_user_${currentUser.uid}_is_pro` : 'proenglish_guest_is_pro') === 'true'
+    : false;
+  const trialInfo = calculateTrialInfo(currentUser, isPro);
 
   const handleSubscribe = async (tier: Tier) => {
     // 1. Log button clicked
@@ -127,7 +134,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
             href="/"
             className="inline-flex items-center gap-2 text-xs font-bold text-neutral-600 hover:text-emerald-700 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to ProEnglish AI Coach
+            <ArrowLeft className="w-4 h-4" /> Back to English Coach
           </a>
           <div className="flex items-center gap-4 text-xs font-semibold text-neutral-600">
             <a href="/terms" className="hover:text-emerald-700 hover:underline">
@@ -144,15 +151,24 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
 
         {/* Hero Title */}
         <div className="text-center max-w-3xl mx-auto">
+          {trialInfo.isTrialExpired && !isPro && (
+            <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex items-center justify-center gap-3 shadow-xs animate-in fade-in duration-300">
+              <Lock className="w-5 h-5 text-amber-600 shrink-0" />
+              <div className="text-xs sm:text-sm font-semibold">
+                <span className="font-extrabold text-amber-900">Your 3-day free trial has expired.</span> Activate your subscription below to continue using English Coach.
+              </div>
+            </div>
+          )}
+
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold mb-4 border border-emerald-200/60">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Risk-Free 3-Day Trial on Pro Plan</span>
+            <span>Risk-Free 3-Day Trial on Subscription Plan</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
-            Predictable, transparent coaching plans
+            Predictable, transparent coaching subscription
           </h1>
           <p className="mt-3 text-base text-neutral-600">
-            1000 AI coaching sessions per month with live speech-to-text dictation, pronunciation audio speed controls, and all industry specializations.
+            1000 AI coaching sessions per month with live speech-to-text dictation, pronunciation audio speed controls, and all practice modules.
           </p>
         </div>
 

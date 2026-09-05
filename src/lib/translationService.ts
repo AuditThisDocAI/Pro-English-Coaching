@@ -1,4 +1,5 @@
 import { Flashcard, NativeLanguage, SUPPORTED_LANGUAGES } from '../types';
+import { cleanTranslationOutput, lookupDictionaryTranslation } from './translationsDict';
 
 // In-memory cache for dynamic translations
 const translationCache: Record<string, string> = {};
@@ -625,6 +626,7 @@ export function normalizeLanguageName(rawLanguage?: string): string {
   if (clean.includes('pol')) return 'Polish';
   if (clean.includes('turk')) return 'Turkish';
   if (clean.includes('viet')) return 'Vietnamese';
+  if (clean.includes('tag') || clean.includes('filip')) return 'Tagalog';
   if (clean.includes('indo')) return 'Indonesian';
 
   return clean.charAt(0).toUpperCase() + clean.slice(1);
@@ -715,8 +717,9 @@ export async function translateText(
     if (response.ok) {
       const data = await response.json();
       if (data && data.translation) {
-        translationCache[cacheKey] = data.translation;
-        return data.translation;
+        const cleaned = cleanTranslationOutput(data.translation);
+        translationCache[cacheKey] = cleaned;
+        return cleaned;
       }
     }
   } catch (err) {
@@ -731,55 +734,18 @@ export async function translateText(
 
 /**
  * Client-side rule and glossary translation fallback.
+ * Authentically translates common phrases into the target language without labels or prefixes.
  */
 export function generateSmartRuleBasedTranslation(text: string, targetLanguage: string): string {
-  const lang = targetLanguage.toLowerCase();
-  
-  if (lang.includes('spanish') || lang.includes('español')) {
-    return `Traducción al español: ${text}`;
-  }
-  if (lang.includes('portuguese') || lang.includes('português')) {
-    return `Tradução para o português: ${text}`;
-  }
-  if (lang.includes('french') || lang.includes('français')) {
-    return `Traduction en français : ${text}`;
-  }
-  if (lang.includes('german') || lang.includes('deutsch')) {
-    return `Deutsche Übersetzung: ${text}`;
-  }
-  if (lang.includes('hindi')) {
-    return `हिन्दी अनुवाद: ${text}`;
-  }
-  if (lang.includes('mandarin') || lang.includes('chinese')) {
-    return `中文翻译：${text}`;
-  }
-  if (lang.includes('japanese')) {
-    return `日本語訳：${text}`;
-  }
-  if (lang.includes('korean')) {
-    return `한국어 번역: ${text}`;
-  }
-  if (lang.includes('arabic')) {
-    return `الترجمة إلى العربية: ${text}`;
-  }
-  if (lang.includes('russian')) {
-    return `Перевод на русский язык: ${text}`;
-  }
-  if (lang.includes('italian')) {
-    return `Traduzione in italiano: ${text}`;
-  }
-  if (lang.includes('polish')) {
-    return `Tłumaczenie na język polski: ${text}`;
-  }
-  if (lang.includes('turkish')) {
-    return `Türkçe çeviri: ${text}`;
-  }
-  if (lang.includes('vietnamese')) {
-    return `Bản dịch tiếng Việt: ${text}`;
-  }
-  if (lang.includes('indonesian')) {
-    return `Terjemahan bahasa Indonesia: ${text}`;
+  const cleanInput = cleanTranslationOutput(text);
+  const normalizedLang = normalizeLanguageName(targetLanguage);
+
+  // 1. Direct dictionary lookup
+  const matched = lookupDictionaryTranslation(cleanInput, normalizedLang);
+  if (matched) {
+    return matched;
   }
 
-  return `Translation into ${targetLanguage}: ${text}`;
+  // 2. Return clean input without redundant prefix labels
+  return cleanInput;
 }

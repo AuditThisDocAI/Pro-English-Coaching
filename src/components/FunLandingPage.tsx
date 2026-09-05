@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { NativeLanguage, SUPPORTED_LANGUAGES } from '../types';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
+import { useTTS } from '../lib/useTTS';
+import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 import { Link } from 'react-router-dom';
 
 interface FunLandingPageProps {
@@ -86,6 +88,36 @@ const LOCALIZED_HERO_CONTENT: Record<string, { welcome: string; subtitle: string
     welcome: 'Учите английский легко, весело и без стресса!',
     subtitle: 'Самый дружелюбный способ заговорить по-английски для путешествий, работы и жизни.',
     tryPrompt: 'Попробуйте полезную фразу прямо сейчас:'
+  },
+  Korean: {
+    welcome: '쉽고 재미있게, 자신감 넘치게 영어를 배워보세요!',
+    subtitle: '일상 대화, 카페 주문, 여행 및 실생활 영어를 부담 없이 즐겁게 배울 수 있습니다.',
+    tryPrompt: '지금 바로 유용한 일상 표현을 연습해 보세요:'
+  },
+  Vietnamese: {
+    welcome: 'Học tiếng Anh thật vui, dễ dàng và đầy tự tin!',
+    subtitle: 'Cách học thân thiện nhất để nói tiếng Anh tự nhiên trong giao tiếp hàng ngày, du lịch và đời sống.',
+    tryPrompt: 'Hãy thử ngay một câu giao tiếp thú vị:'
+  },
+  Tagalog: {
+    welcome: 'Matutong mag-English nang masaya, madali, at may kumpiyansa!',
+    subtitle: 'Ang pinakamadaling paraan upang magsalita ng English sa araw-araw na pamumuhay, paglalakbay, at pakikipagkaibigan.',
+    tryPrompt: 'Subukan ang isang kapaki-pakinabang na pangungusap ngayon:'
+  },
+  Turkish: {
+    welcome: 'İngilizceyi keyifle, kolayca ve özgüvenle öğrenin!',
+    subtitle: 'Günlük yaşamda, seyahatte ve arkadaş ortamında doğal İngilizce konuşmanın en samimi yolu.',
+    tryPrompt: 'Şimdi pratik ve eğlenceli bir cümle deneyin:'
+  },
+  Polish: {
+    welcome: 'Ucz się angielskiego z radością, łatwością i pewnością siebie!',
+    subtitle: 'Najbardziej przyjazny sposób na swobodną rozmowę po angielsku w życiu codziennym i podróżach.',
+    tryPrompt: 'Wypróbuj przydatne codzienne zdanie już teraz:'
+  },
+  Indonesian: {
+    welcome: 'Belajar bahasa Inggris dengan mudah, menyenangkan, dan percaya diri!',
+    subtitle: 'Cara paling ramah bagi penutur non-Inggris untuk berbicara lancar dalam kehidupan sehari-hari dan perjalanan.',
+    tryPrompt: 'Coba satu kalimat sehari-hari yang seru sekarang:'
   }
 };
 
@@ -116,9 +148,15 @@ const FUN_PRACTICE_ITEMS: MiniPracticeItem[] = [
       Hindi: 'क्या मुझे कृपया ओट मिल्क (जई के दूध) के साथ गर्म कैपुचीनो मिल सकता है?',
       Mandarin: '请问可以给我一杯加燕麦奶的温卡布奇诺吗？',
       Japanese: 'オーツミルク入りの温かいカプチーノを一杯いただけますか？',
+      Korean: '따뜻한 오트밀크 카푸치노 한 잔 주시겠어요?',
       Arabic: 'هل يمكنني الحصول على كابتشينو دافئ مع حليب الشوفان من فضلك؟',
+      Vietnamese: 'Cho tôi một ly cappuccino ấm với sữa yến mạch được không?',
+      Tagalog: 'Puwede po ba akong humingi ng mainit na cappuccino na may oat milk?',
       Italian: 'Posso avere un cappuccino caldo con latte d\'avena, per favore?',
-      Russian: 'Можно мне, пожалуйста, тёплый капучино на овсяном молоке?'
+      Russian: 'Можно мне, пожалуйста, тёплый капучино на овсяном молоке?',
+      Turkish: 'Lütfen yulaf sütlü sıcak bir cappuccino alabilir miyim?',
+      Polish: 'Czy mogę poprosić o ciepłe cappuccino z mlekiem owsianym?',
+      Indonesian: 'Bolehkah saya minta cappuccino hangat dengan susu oat, tolong?'
     },
     quizQuestion: 'What does "oat milk" mean in this phrase?',
     quizOptions: ['Cow milk', 'Plant-based oat milk', 'Cold water'],
@@ -138,9 +176,15 @@ const FUN_PRACTICE_ITEMS: MiniPracticeItem[] = [
       Hindi: 'नमस्ते! आपसे मिलकर बहुत अच्छा लगा। आपका दिन कैसा बीत रहा है?',
       Mandarin: '嗨！很高兴认识你。你今天过得怎么样？',
       Japanese: 'こんにちは！お会いできて嬉しいです。今日はいかがお過ごしですか？',
+      Korean: '안녕하세요! 만나서 정말 반가워요. 오늘 하루 어떠세요?',
       Arabic: 'مرحباً! تشرفت بلقائك كثيراً. كيف يسير يومك؟',
+      Vietnamese: 'Xin chào! Rất vui được gặp bạn. Ngày hôm nay của bạn thế nào?',
+      Tagalog: 'Kumusta! Ikinagagalak kitang makilala. Kamusta ang araw mo?',
       Italian: 'Ciao! Che piacere conoscerti. Come sta andando la tua giornata?',
-      Russian: 'Привет! Очень приятно познакомиться. Как проходит твой день?'
+      Russian: 'Привет! Очень приятно познакомиться. Как проходит твой день?',
+      Turkish: 'Merhaba! Sizinle tanışmak çok güzel. Gününüz nasıl geçiyor?',
+      Polish: 'Cześć! Bardzo miło cię poznać. Jak ci mija dzień?',
+      Indonesian: 'Hai! Senang sekali bertemu dengan Anda. Bagaimana hari Anda?'
     },
     quizQuestion: 'How should you answer "How is your day going?"',
     quizOptions: ['"It is going great, thank you!"', '"I am at the airport"', '"Yes, I do"'],
@@ -160,9 +204,15 @@ const FUN_PRACTICE_ITEMS: MiniPracticeItem[] = [
       Hindi: 'माफ़ कीजिए, क्या आप मुझे बता सकते हैं कि सबसे नज़दीकी ट्रेन स्टेशन कहाँ है?',
       Mandarin: '打扰一下，请问最近的火车站怎么走？',
       Japanese: 'すみません、一番近い電車の駅はどこか教えていただけますか？',
+      Korean: '실례합니다, 가장 가까운 기차역이 어디인지 알려주실 수 있나요?',
       Arabic: 'معذرة، هل يمكنك إخباري بأقرب محطة قطار؟',
+      Vietnamese: 'Xin lỗi, bạn có thể chỉ cho tôi ga xe lửa gần nhất ở đâu không?',
+      Tagalog: 'Excuse me po, puwede niyo po bang sabihin kung nasaan ang pinakamalapit na estasyon ng tren?',
       Italian: 'Mi scusi, potrebbe dirmi dov\'è la stazione ferroviaria più vicina?',
-      Russian: 'Извините, вы не подскажете, где находится ближайший вокзал?'
+      Russian: 'Извините, вы не подскажете, где находится ближайший вокзал?',
+      Turkish: 'Afedersiniz, en yakın tren istasyonunun nerede olduğunu söyleyebilir misiniz?',
+      Polish: 'Przepraszam, czy mógłby mi pan/pani powiedzieć, gdzie jest najbliższa stacja kolejowa?',
+      Indonesian: 'Permisi, bisakah Anda memberi tahu saya di mana stasiun kereta terdekat?'
     },
     quizQuestion: 'What does "nearest" mean?',
     quizOptions: ['Far away', 'Closest to you', 'Most expensive'],
@@ -182,9 +232,15 @@ const FUN_PRACTICE_ITEMS: MiniPracticeItem[] = [
       Hindi: 'माफ़ कीजिए, यह कितने का है, और क्या आपके पास यह मीडियम साइज़ में है?',
       Mandarin: '打扰一下，请问这个多少钱？有中码（M码）吗？',
       Japanese: 'すみません、これはいか發ですか？Mサイズはありますか？',
+      Korean: '실례합니다, 이것은 얼마인가요? 그리고 미디엄 사이즈도 있나요?',
       Arabic: 'معذرة، كم سعر هذا وهل يتوفر بمقاس متوسط؟',
+      Vietnamese: 'Xin lỗi, cái này giá bao nhiêu và bạn có size M không?',
+      Tagalog: 'Excuse me po, magkano po ito, at mayroon po ba kayong medium?',
       Italian: 'Mi scusi, quanto costa questo, e ce l\'ha in taglia media?',
-      Russian: 'Извините, сколько это стоит и есть ли у вас средний размер (M)?'
+      Russian: 'Извините, сколько это стоит и есть ли у вас средний размер (M)?',
+      Turkish: 'Afedersiniz, bunun fiyatı ne kadar ve orta (M) bedeni var mı?',
+      Polish: 'Przepraszam, ile to kosztuje i czy mają państwo rozmiar M?',
+      Indonesian: 'Permisi, berapa harganya ini, dan apakah ada ukuran sedang (M)?'
     },
     quizQuestion: 'When buying clothes, "medium" refers to:',
     quizOptions: ['The color', 'The size', 'The store location'],
@@ -204,36 +260,30 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
 }) => {
   const [currentPracticeIndex, setCurrentPracticeIndex] = useState(0);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [audioSpeed, setAudioSpeed] = useState<0.8 | 1.0>(1.0);
   const [showQuiz, setShowQuiz] = useState(false);
   const [selectedQuizOption, setSelectedQuizOption] = useState<number | null>(null);
   const [quizResult, setQuizResult] = useState<'correct' | 'wrong' | null>(null);
   const [hasCompletedPractice, setHasCompletedPractice] = useState(false);
 
+  const { speed, speak, stop, isSpeaking } = useTTS();
+
   const practiceItem = FUN_PRACTICE_ITEMS[currentPracticeIndex];
   const heroContent = LOCALIZED_HERO_CONTENT[nativeLanguage] || LOCALIZED_HERO_CONTENT.Spanish;
   const currentTranslation = practiceItem.translations[nativeLanguage] || practiceItem.translations.Spanish;
 
-  // Speak audio using Web Speech API
-  const handlePlayAudio = (speed: 0.8 | 1.0) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(practiceItem.english);
-    utterance.lang = 'en-US';
-    utterance.rate = speed;
-    utterance.pitch = 1.0;
-
-    utterance.onstart = () => setIsPlayingAudio(true);
-    utterance.onend = () => setIsPlayingAudio(false);
-    utterance.onerror = () => setIsPlayingAudio(false);
-
-    setAudioSpeed(speed);
-    window.speechSynthesis.speak(utterance);
+  // Speak audio using TTS Engine with user's selected speed
+  const handlePlayAudio = (overrideSpeed?: number) => {
+    const rateToUse = overrideSpeed ?? speed;
+    speak(practiceItem.english, {
+      rate: rateToUse,
+      onStart: () => setIsPlayingAudio(true),
+      onEnd: () => setIsPlayingAudio(false),
+      onError: () => setIsPlayingAudio(false)
+    });
   };
 
   const handleNextPhrase = () => {
-    window.speechSynthesis?.cancel();
+    stop();
     setIsPlayingAudio(false);
     setShowQuiz(false);
     setSelectedQuizOption(null);
@@ -295,15 +345,12 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
             
             {/* Prominent App Logo */}
             <div className="inline-flex items-center justify-center gap-3.5 p-2.5 px-6 rounded-3xl bg-white/90 border border-indigo-100 shadow-sm mx-auto mb-1">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
-                <Sparkles className="w-8 h-8 sm:w-9 sm:h-9" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
+                <Sparkles className="w-7 h-7 sm:w-8 sm:h-8" />
               </div>
               <div className="text-left">
                 <span className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight block leading-tight">
-                  Basic English Coach
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-teal-700 block">
-                  Easy Everyday English for Everyone
+                  English Coach
                 </span>
               </div>
             </div>
@@ -395,29 +442,31 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
                   </p>
                 </div>
 
-                {/* Audio Buttons */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Normal Speed 1.0x */}
+                {/* Audio Buttons & Speed Setting */}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <SpeakerSpeedControl variant="compact" idPrefix="landing-hero-speed" />
+
+                  {/* Speakerphone Listen at Chosen Speed */}
                   <button
                     type="button"
-                    onClick={() => handlePlayAudio(1.0)}
-                    disabled={isPlayingAudio}
+                    onClick={() => handlePlayAudio(speed)}
+                    disabled={isPlayingAudio || isSpeaking()}
                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                    title="Listen at normal speed"
+                    title={`Listen at your speaker speed (${speed}x)`}
                   >
                     <Volume2 className="w-4 h-4" />
-                    <span>Listen (1.0x)</span>
+                    <span>Listen ({speed}x)</span>
                   </button>
 
-                  {/* Slow Speed 0.8x */}
+                  {/* Quick Slow / Normal Toggle */}
                   <button
                     type="button"
-                    onClick={() => handlePlayAudio(0.8)}
-                    disabled={isPlayingAudio}
+                    onClick={() => handlePlayAudio(speed <= 0.8 ? 1.0 : 0.75)}
+                    disabled={isPlayingAudio || isSpeaking()}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
-                    title="Listen slowly to hear pronunciation clearly"
+                    title={speed <= 0.8 ? "Listen at normal speed (1.0x)" : "Listen slowly (0.75x) to hear pronunciation clearly"}
                   >
-                    <span>🐢 Slow (0.8x)</span>
+                    <span>{speed <= 0.8 ? '🎯 1.0x' : '🐢 0.75x'}</span>
                   </button>
                 </div>
               </div>
@@ -517,7 +566,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
             Designed For Everyday People
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-            How Pro English Coach Makes Learning Easy
+            How English Coach Makes Learning Easy
           </h2>
           <p className="text-xs sm:text-sm text-neutral-500">
             No boring grammar drills. No confusing textbooks. Just real English you can use immediately.
@@ -814,7 +863,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
                 AI Educational Notice
               </h5>
               <p className="text-[11px] text-neutral-400">
-                Pro English Coach uses advanced AI (Google Gemini) for conversational language simulations. AI responses are for educational practice and do not constitute certified legal or medical advice.
+                English Coach uses advanced AI (Google Gemini) for conversational language simulations. AI responses are for educational practice and do not constitute certified legal or medical advice.
               </p>
             </div>
 
@@ -824,7 +873,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
                 Risk-Free 3-Day Trial
               </h5>
               <p className="text-[11px] text-neutral-400">
-                Free sessions are always accessible. Pro plans include a 3-day complimentary trial with a 14-day money-back guarantee, easily cancellable anytime with 1 click.
+                Free sessions are always accessible. Subscription includes a 3-day complimentary trial with a 14-day money-back guarantee, easily cancellable anytime with 1 click.
               </p>
             </div>
           </div>
@@ -850,7 +899,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
             </div>
 
             <p className="text-[11px] text-neutral-500">
-              © 2026 Pro English Coach. All rights reserved.
+              © 2026 English Coach. All rights reserved.
             </p>
           </div>
         </div>

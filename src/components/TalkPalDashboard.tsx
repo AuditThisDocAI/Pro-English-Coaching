@@ -143,7 +143,7 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-teal-300 text-xs font-extrabold border border-white/15 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                Pro English Coach
+                English Coach
               </span>
               <span className="px-3 py-1 rounded-full bg-indigo-500/30 text-indigo-200 text-xs font-bold border border-white/10">
                 CEFR: {cefrLevel} Intermediate
@@ -154,7 +154,7 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
               Welcome back{profile.displayName ? `, ${profile.displayName}` : ''}!
             </h1>
             <p className="text-sm text-indigo-200 leading-relaxed">
-              Your personalized curriculum is set for <strong>Basic to Formal English</strong> with native explanations in <strong>{nativeLang}</strong>.
+              Your personalized curriculum is set for <strong>Everyday English</strong> with native explanations in <strong>{nativeLang}</strong>.
             </p>
           </div>
 
@@ -216,13 +216,13 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
         </button>
       </div>
 
-      {/* Primary Learning Mode Cards (Pro English Coach Grid) */}
+      {/* Primary Learning Mode Cards (English Coach Grid) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-extrabold text-neutral-900 tracking-tight">
-            Core Pro English Modes
+            Core English Modes
           </h2>
-          <span className="text-xs text-neutral-500 font-medium">All specialized in Basic & Formal English</span>
+          <span className="text-xs text-neutral-500 font-medium">Specialized in natural everyday English</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

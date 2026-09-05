@@ -33,40 +33,40 @@ interface TalkPalCallModeProps {
 
 const CALL_SCENARIOS = [
   {
-    id: 'call-recruiter',
-    title: 'Recruiter Screening Call',
-    callerName: 'Elena Rostova',
-    role: 'Senior Talent Partner at FinTech Corp',
-    avatar: '👩‍💼',
+    id: 'call-cafe',
+    title: 'Cafe & Coffee Shop Order',
+    callerName: 'Emma Watson',
+    role: 'Friendly Cafe Barista',
+    avatar: '☕',
     gender: 'female' as const,
-    voicePitch: 1.12,
-    voiceRate: 0.93,
-    desc: 'Practice answering common screening questions: current role, salary expectations, and reason for seeking a new role.',
-    intro: "Hello! Thank you for taking my call today. I'm Elena from FinTech Corp. Could you briefly tell me about your background and what you're currently working on?"
+    voicePitch: 1.05,
+    voiceRate: 0.95,
+    desc: 'Practice ordering drinks, asking for extra milk or snacks, and paying casually.',
+    intro: "Hi there! Welcome to Central Cafe. What can I get started for you today?"
   },
   {
-    id: 'call-standup',
-    title: 'Team Standup & Status Sync',
-    callerName: 'Liam Carter',
-    role: 'Engineering Team Lead',
-    avatar: '👨‍💻',
+    id: 'call-hotel',
+    title: 'Hotel & Travel Booking',
+    callerName: 'David Wilson',
+    role: 'Front Desk Host',
+    avatar: '🏨',
+    gender: 'male' as const,
+    voicePitch: 0.96,
+    voiceRate: 0.95,
+    desc: 'Check room availability, inquire about check-in hours, and ask about airport transportation.',
+    intro: "Good day! Thank you for calling Seaside Hotel. How may I assist you with your reservation today?"
+  },
+  {
+    id: 'call-neighbor',
+    title: 'Friendly Neighbor & Daily Chat',
+    callerName: 'Lucas Green',
+    role: 'Friendly Neighbor',
+    avatar: '🏡',
     gender: 'male' as const,
     voicePitch: 0.95,
     voiceRate: 0.95,
-    desc: 'Deliver a concise 60-second status update on what you completed yesterday, what you are tackling today, and any blockers.',
-    intro: "Hey everyone! Let's do a quick round for today's standup. Could you share your key updates and let us know if anything is blocking you?"
-  },
-  {
-    id: 'call-vendor',
-    title: 'Vendor Negotiation & Pricing Call',
-    callerName: 'Arthur Vance',
-    role: 'Enterprise Account Executive',
-    avatar: '👨‍💼',
-    gender: 'male' as const,
-    voicePitch: 0.92,
-    voiceRate: 0.92,
-    desc: 'Negotiate contract terms and ask for a 15% volume discount for your company with polite executive diplomacy.',
-    intro: "Good morning! Thanks for joining this call. I've sent over the initial software licensing proposal. Did you have any questions regarding the pricing tiers?"
+    desc: 'Practice friendly small talk, discussing neighborhood events, and making weekend plans.',
+    intro: "Hey! Good to catch you on the phone. How is your week going so far?"
   }
 ];
 
@@ -188,13 +188,13 @@ export const TalkPalCallMode: React.FC<TalkPalCallModeProps> = ({
     setCallFeedback({
       score: 88,
       formalPhrases: [
-        'Thank you for reaching out, Elena.',
-        'In my current role, I lead cross-functional delivery.',
-        'I would appreciate discussing the compensation range in more detail.'
+        'Could I please order an iced latte?',
+        'Thank you so much, that sounds wonderful.',
+        'Could you tell me what time check-in begins?'
       ],
       improvements: [
-        'Replace "I want more money" with "I am targeting a compensation tier aligned with market rates."',
-        'Use "I look forward to our next discussion" as a strong call wrap-up.'
+        'Replace "Give me coffee" with "Could I please get an iced latte?" for friendlier tone.',
+        'Use "Have a great rest of your day!" as a friendly call wrap-up.'
       ]
     });
 
@@ -286,7 +286,7 @@ export const TalkPalCallMode: React.FC<TalkPalCallModeProps> = ({
             <div className="space-y-2 max-w-lg">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-emerald-300 text-xs font-bold border border-white/15">
                 <Phone className="w-3.5 h-3.5" />
-                Pro English Real-Time Voice Call
+                English Real-Time Voice Call
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Simulated English Phone Call Mode
@@ -500,7 +500,7 @@ export const TalkPalCallMode: React.FC<TalkPalCallModeProps> = ({
 
           <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-extrabold text-sm text-indigo-900">Formal Fluency Score</span>
+              <span className="font-extrabold text-sm text-indigo-900">Fluency Score</span>
               <span className="text-lg font-black text-indigo-600">{callFeedback?.score}%</span>
             </div>
             <div className="h-2 w-full bg-indigo-200 rounded-full overflow-hidden">
@@ -509,7 +509,7 @@ export const TalkPalCallMode: React.FC<TalkPalCallModeProps> = ({
           </div>
 
           <div className="space-y-3">
-            <h4 className="text-xs font-extrabold uppercase text-neutral-400">Formal Phrases Used</h4>
+            <h4 className="text-xs font-extrabold uppercase text-neutral-400">Great Phrases Used</h4>
             <div className="space-y-1.5">
               {callFeedback?.formalPhrases.map((p, i) => (
                 <div key={i} className="p-3 rounded-xl bg-emerald-50 text-emerald-950 text-xs font-medium flex items-center gap-2">

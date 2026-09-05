@@ -33,6 +33,7 @@ import {
   MessageSquarePlus
 } from 'lucide-react';
 import { useTTS } from '../lib/useTTS';
+import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 
@@ -886,12 +887,16 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                 </span>
               </div>
 
-              {isCompleted && (
-                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5 animate-bounce">
-                  <Trophy className="w-4 h-4 text-emerald-600" />
-                  <span>Completed! ({score}%)</span>
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                <SpeakerSpeedControl variant="header" idPrefix="roleplay-speaker-speed" />
+
+                {isCompleted && (
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5 animate-bounce">
+                    <Trophy className="w-4 h-4 text-emerald-600" />
+                    <span>Completed! ({score}%)</span>
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Messages Flow */}

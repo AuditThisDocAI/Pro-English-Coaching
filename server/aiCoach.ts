@@ -368,7 +368,7 @@ export async function translatePhrase(text: string, targetLanguage: string): Pro
     }
   }
 
-  return `${trimmed} (${targetLanguage})`;
+  return trimmed;
 }
 
 export interface ChatTutorParams {

@@ -325,6 +325,92 @@ async function startServer() {
     return res.json({ country: typeof country === 'string' ? country.toUpperCase() : '' });
   });
 
+  // Mobile-ready Text-to-Speech proxy endpoint
+  app.get('/api/tts', async (req, res) => {
+    try {
+      const rawText = (req.query.text as string || '').trim();
+      const lang = (req.query.lang as string || 'en').trim();
+
+      if (!rawText) {
+        return res.status(400).json({ error: 'Text parameter required' });
+      }
+
+      const cleanText = rawText
+        .replace(/[*_#`~[\]()]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const maxChunkLength = 180;
+      const chunks: string[] = [];
+
+      if (cleanText.length <= maxChunkLength) {
+        chunks.push(cleanText);
+      } else {
+        const sentences = cleanText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleanText];
+        let currentChunk = '';
+
+        for (const sentence of sentences) {
+          const s = sentence.trim();
+          if (!s) continue;
+          if (currentChunk.length + s.length + 1 <= maxChunkLength) {
+            currentChunk += (currentChunk ? ' ' : '') + s;
+          } else {
+            if (currentChunk) chunks.push(currentChunk);
+            if (s.length <= maxChunkLength) {
+              currentChunk = s;
+            } else {
+              const words = s.split(' ');
+              let wordChunk = '';
+              for (const word of words) {
+                if (wordChunk.length + word.length + 1 <= maxChunkLength) {
+                  wordChunk += (wordChunk ? ' ' : '') + word;
+                } else {
+                  if (wordChunk) chunks.push(wordChunk);
+                  wordChunk = word;
+                }
+              }
+              currentChunk = wordChunk;
+            }
+          }
+        }
+        if (currentChunk) chunks.push(currentChunk);
+      }
+
+      const chunksToFetch = chunks.slice(0, 6);
+      const audioBuffers: Buffer[] = [];
+
+      for (const chunk of chunksToFetch) {
+        const encoded = encodeURIComponent(chunk);
+        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=${encodeURIComponent(lang)}&client=tw-ob`;
+
+        const fetchResponse = await fetch(ttsUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
+            'Referer': 'https://translate.google.com/'
+          }
+        });
+
+        if (fetchResponse.ok) {
+          const arrayBuffer = await fetchResponse.arrayBuffer();
+          audioBuffers.push(Buffer.from(arrayBuffer));
+        }
+      }
+
+      if (audioBuffers.length === 0) {
+        return res.status(502).json({ error: 'Failed to generate audio' });
+      }
+
+      const fullAudio = Buffer.concat(audioBuffers);
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', fullAudio.length);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(fullAudio);
+    } catch (err: any) {
+      console.error('TTS endpoint error:', err);
+      return res.status(500).json({ error: 'Internal speech generation error' });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

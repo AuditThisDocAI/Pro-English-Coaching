@@ -177,7 +177,7 @@ export const CookieConsentBanner: React.FC = () => {
             </div>
 
             <p className="text-xs text-neutral-600 leading-relaxed">
-              Customize how Pro English Coach uses cookies and local device storage. Essential cookies are required to deliver lessons, language selections, and secure sessions.
+              Customize how English Coach uses cookies and local device storage. Essential cookies are required to deliver lessons, language selections, and secure sessions.
             </p>
 
             <div className="space-y-3">

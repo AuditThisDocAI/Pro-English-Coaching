@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { NativeLanguage, SUPPORTED_LANGUAGES } from '../types';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
+import { useTTS } from '../lib/useTTS';
+import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 
 interface FunWordMatchGameProps {
   nativeLanguage: NativeLanguage;
@@ -40,9 +42,15 @@ const GAME_PAIRS: MatchPair[] = [
       Hindi: 'शुभ प्रभात',
       Mandarin: '早上好',
       Japanese: 'おはようございます',
+      Korean: '좋은 아침이에요',
       Arabic: 'صباح الخير',
+      Vietnamese: 'Chào buổi sáng',
+      Tagalog: 'Magandang umaga',
       Italian: 'Buongiorno',
-      Russian: 'Доброе утро'
+      Russian: 'Доброе утро',
+      Turkish: 'Günaydın',
+      Polish: 'Dzień dobry',
+      Indonesian: 'Selamat pagi'
     }
   },
   {
@@ -57,9 +65,15 @@ const GAME_PAIRS: MatchPair[] = [
       Hindi: 'बहुत-बहुत धन्यवाद',
       Mandarin: '非常感谢',
       Japanese: 'どうもありがとうございます',
+      Korean: '정말 감사합니다',
       Arabic: 'شكراً جزيلاً',
+      Vietnamese: 'Cảm ơn bạn rất nhiều',
+      Tagalog: 'Maraming salamat',
       Italian: 'Grazie mille',
-      Russian: 'Большое спасибо'
+      Russian: 'Большое спасибо',
+      Turkish: 'Çok teşekkür ederim',
+      Polish: 'Bardzo dziękuję',
+      Indonesian: 'Terima kasih banyak'
     }
   },
   {
@@ -74,9 +88,15 @@ const GAME_PAIRS: MatchPair[] = [
       Hindi: 'इसकी कीमत क्या है?',
       Mandarin: '这个多少钱？',
       Japanese: 'これはいくらですか？',
+      Korean: '이것은 얼마인가요?',
       Arabic: 'كم تبلغ تكلفة هذا؟',
+      Vietnamese: 'Cái này giá bao nhiêu?',
+      Tagalog: 'Magkano po ito?',
       Italian: 'Quanto costa?',
-      Russian: 'Сколько это стоит?'
+      Russian: 'Сколько это стоит?',
+      Turkish: 'Bunun fiyatı ne kadar?',
+      Polish: 'Ile to kosztuje?',
+      Indonesian: 'Berapa harganya ini?'
     }
   },
   {
@@ -91,9 +111,15 @@ const GAME_PAIRS: MatchPair[] = [
       Hindi: 'शौचालय कहाँ है?',
       Mandarin: '洗手间在哪里？',
       Japanese: 'お手洗いはどこですか？',
+      Korean: '화장실이 어디에 있나요?',
       Arabic: 'أين يوجد الحمام؟',
+      Vietnamese: 'Nhà vệ sinh ở đâu?',
+      Tagalog: 'Nasaan po ang banyo?',
       Italian: 'Dov\'è il bagno?',
-      Russian: 'Где находится туалет?'
+      Russian: 'Где находится туалет?',
+      Turkish: 'Tuvalet nerede?',
+      Polish: 'Gdzie jest łazienka?',
+      Indonesian: 'Di mana kamar mandinya?'
     }
   },
   {
@@ -108,9 +134,15 @@ const GAME_PAIRS: MatchPair[] = [
       Hindi: 'आपसे मिलकर खुशी हुई',
       Mandarin: '很高兴认识你',
       Japanese: 'はじめまして',
+      Korean: '만나서 반가워요',
       Arabic: 'تشرفت بمعرفتك',
+      Vietnamese: 'Rất vui được gặp bạn',
+      Tagalog: 'Ikinagagalak kitang makilala',
       Italian: 'Piacere di conoscerti',
-      Russian: 'Приятно познакомиться'
+      Russian: 'Приятно познакомиться',
+      Turkish: 'Tanıştığımıza memnun oldum',
+      Polish: 'Miło cię poznać',
+      Indonesian: 'Senang berkenalan dengan Anda'
     }
   },
   {
@@ -125,9 +157,15 @@ const GAME_PAIRS: MatchPair[] = [
       Hindi: 'क्या आप कृपया मेरी मदद कर सकते हैं?',
       Mandarin: '请问你能帮帮我吗？',
       Japanese: '助けていただけますか？',
+      Korean: '저 좀 도와주실 수 있나요?',
       Arabic: 'هل يمكنك مساعدتي من فضلك؟',
+      Vietnamese: 'Bạn có thể giúp tôi được không?',
+      Tagalog: 'Maaari mo ba akong tulungan?',
       Italian: 'Potrebbe aiutarmi, per favore?',
-      Russian: 'Не могли бы вы мне помочь?'
+      Russian: 'Не могли бы вы мне помочь?',
+      Turkish: 'Lütfen bana yardım edebilir misiniz?',
+      Polish: 'Czy mógłbyś mi pomóc?',
+      Indonesian: 'Bisakah Anda membantu saya?'
     }
   }
 ];
@@ -143,15 +181,11 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
   const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set());
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const { speed, speak } = useTTS();
 
   // Play audio
   const handlePlayAudio = (text: string) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
+    speak(text, { rate: speed });
   };
 
   const handleSelectEnglish = (pair: MatchPair) => {
@@ -232,6 +266,8 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
+          <SpeakerSpeedControl variant="header" idPrefix="match-game-speed" />
+
           <div className="bg-indigo-50 px-3.5 py-2 rounded-2xl border border-indigo-100 text-center">
             <span className="text-[10px] font-bold text-indigo-700 uppercase block">Score</span>
             <span className="text-base font-black text-indigo-900">+{score} XP</span>

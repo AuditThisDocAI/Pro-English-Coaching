@@ -216,7 +216,7 @@ export const TalkPalOnboarding: React.FC<TalkPalOnboardingProps> = ({
               )}
               <div>
                 <span className="text-[11px] font-bold tracking-wider uppercase text-indigo-600 block">
-                  Pro English Coach • Step {step} of {totalSteps}
+                  English Coach • Step {step} of {totalSteps}
                 </span>
                 <span className="text-xs font-semibold text-neutral-700">
                   {step === 1 && 'Learning Language'}
@@ -296,7 +296,7 @@ export const TalkPalOnboarding: React.FC<TalkPalOnboardingProps> = ({
                   <div className="mt-4 p-4 rounded-xl bg-neutral-50 border border-neutral-200/80 text-xs text-neutral-600 flex items-start gap-3">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>
-                      <strong>Pro English Coach Focus:</strong> You will practice real-world workplace scenarios, simulated phone calls, and formal sentence restructuring with instant feedback.
+                      <strong>English Coach Focus:</strong> You will practice real-world daily scenarios, friendly conversations, and improved sentence phrasing with instant feedback.
                     </span>
                   </div>
                 </div>
