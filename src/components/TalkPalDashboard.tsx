@@ -33,7 +33,6 @@ interface TalkPalDashboardProps {
   profile: UserProfile;
   trialInfo?: TrialInfo;
   onNavigate: (tab: string) => void;
-  onOpenOnboarding: () => void;
   onOpenPricing?: () => void;
 }
 
@@ -41,7 +40,6 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
   profile,
   trialInfo,
   onNavigate,
-  onOpenOnboarding,
   onOpenPricing
 }) => {
   const cefrLevel = profile.englishLevel || 'B1';
@@ -284,10 +282,10 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
               </div>
               <div>
                 <h3 className="font-extrabold text-sm text-neutral-900 group-hover:text-teal-600 transition-colors">
-                  Workplace Roleplays
+                  Daily Situations & Roleplays
                 </h3>
                 <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
-                  Simulated scenarios for salary reviews, project delays, client emails & job interviews with objective checklists.
+                  Interactive scenarios for ordering at cafés, asking directions, making new friends & polite daily conversations.
                 </p>
               </div>
             </div>
@@ -420,16 +418,16 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
               Learning in {nativeLang}
             </h4>
             <p className="text-xs text-neutral-500">
-              You can adjust your native language, English goals, or retake the onboarding wizard at any time.
+              You can adjust your native language and CEFR level anytime in the top navigation bar.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={onOpenOnboarding}
+            onClick={() => onNavigate('lessons')}
             className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-100 border border-neutral-200 text-xs font-bold text-neutral-700 transition-colors cursor-pointer"
           >
-            Customize English Plan
+            Explore Everyday Lessons
           </button>
         </div>
 

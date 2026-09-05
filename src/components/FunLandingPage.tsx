@@ -700,11 +700,11 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({
               phrases: ['"Can I try this on?"', '"Do you accept credit cards?"']
             },
             {
-              id: 'work',
-              title: 'Polite Workplace Chat',
-              emoji: '💼',
-              desc: 'Writing courteous emails, saying thank you, and asking questions nicely.',
-              phrases: ['"Thank you for your help."', '"Could you review this update?"']
+              id: 'polite',
+              title: 'Everyday Polite Chat',
+              emoji: '🤝',
+              desc: 'Friendly greetings, saying thank you, and asking questions nicely.',
+              phrases: ['"Thank you so much for your help!"', '"Could you please repeat that?"']
             },
             {
               id: 'help',

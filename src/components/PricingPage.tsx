@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Check, Sparkles, Shield, ArrowLeft, RefreshCw, Zap, Lock, Loader2, AlertTriangle, XCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Check, Sparkles, Shield, ArrowLeft, RefreshCw, Zap, Lock, Loader2, AlertTriangle, XCircle, Home } from 'lucide-react';
 import { useFreemius } from '../context/FreemiusContext';
 import { auth } from '../lib/firebase';
 import { syncUserProfile } from '../lib/firestoreService';
@@ -129,23 +129,30 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
     <div className="min-h-screen bg-neutral-50/60 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Navigation & Header */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-neutral-200">
-          <a
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-neutral-600 hover:text-emerald-700 transition-colors"
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8 pb-4 border-b border-neutral-200">
+          <Link
+            to="/"
+            id="back-to-coach-top-btn"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/');
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-neutral-300 hover:border-emerald-600 hover:bg-emerald-50/60 active:scale-95 text-xs sm:text-sm font-extrabold text-neutral-800 hover:text-emerald-800 transition-all shadow-2xs cursor-pointer min-h-[44px] w-fit"
+            aria-label="Back to English Coach main app"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to English Coach
-          </a>
-          <div className="flex items-center gap-4 text-xs font-semibold text-neutral-600">
-            <a href="/terms" className="hover:text-emerald-700 hover:underline">
+            <ArrowLeft className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span>Back to English Coach</span>
+          </Link>
+          <div className="flex items-center gap-4 text-xs font-semibold text-neutral-600 pl-1 sm:pl-0">
+            <Link to="/terms" className="hover:text-emerald-700 hover:underline py-1">
               Terms
-            </a>
-            <a href="/privacy" className="hover:text-emerald-700 hover:underline">
+            </Link>
+            <Link to="/privacy" className="hover:text-emerald-700 hover:underline py-1">
               Privacy
-            </a>
-            <a href="/refund" className="hover:text-emerald-700 hover:underline">
+            </Link>
+            <Link to="/refund" className="hover:text-emerald-700 hover:underline py-1">
               Refund Policy
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -303,24 +310,48 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
           </div>
         </div>
 
+        {/* Mobile-Friendly Return to Coach CTA Button */}
+        <div className="mt-8 pt-4 border-t border-neutral-200 sm:hidden">
+          <button
+            id="mobile-bottom-back-to-coach-btn"
+            type="button"
+            onClick={() => navigate('/')}
+            className="w-full min-h-[48px] py-3.5 px-4 rounded-2xl bg-neutral-900 hover:bg-neutral-800 active:scale-98 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+            aria-label="Back to English Coach main app"
+          >
+            <ArrowLeft className="w-4 h-4 text-emerald-400" />
+            <span>Back to English Coach</span>
+          </button>
+        </div>
+
         {/* Merchant of Record & Legal Notice */}
         <div className="mt-12 pt-8 border-t border-neutral-200 text-center text-xs text-neutral-500 space-y-3">
           <p className="max-w-2xl mx-auto leading-relaxed">
             Our order process is conducted by our online reseller <strong>Freemius</strong>. Freemius is the Merchant of Record for all our orders. Freemius provides all customer service inquiries and handles returns.
           </p>
-          <div className="flex justify-center gap-6 text-neutral-600 font-medium">
-            <a href="/terms" className="hover:underline hover:text-emerald-700">
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-neutral-600 font-medium">
+            <Link
+              to="/"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/');
+              }}
+              className="hover:underline text-emerald-700 font-bold py-1 inline-flex items-center gap-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to App
+            </Link>
+            <Link to="/terms" className="hover:underline hover:text-emerald-700 py-1">
               Terms of Service
-            </a>
-            <a href="/privacy" className="hover:underline hover:text-emerald-700">
+            </Link>
+            <Link to="/privacy" className="hover:underline hover:text-emerald-700 py-1">
               Privacy Policy
-            </a>
-            <a href="/refund" className="hover:underline hover:text-emerald-700">
+            </Link>
+            <Link to="/refund" className="hover:underline hover:text-emerald-700 py-1">
               Refund & Cancellation
-            </a>
+            </Link>
             <a
               href="mailto:ProEnglishAICoach@protonmail.com"
-              className="hover:underline hover:text-emerald-700"
+              className="hover:underline hover:text-emerald-700 py-1"
             >
               Support
             </a>

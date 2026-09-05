@@ -20,16 +20,17 @@ const LegalHeader: React.FC<{ title: string; subtitle: string; icon: React.React
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-neutral-100">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8 pb-4 border-b border-neutral-100">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-sm text-emerald-700 font-semibold hover:text-emerald-800 transition-colors"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-neutral-200 hover:border-emerald-600 hover:bg-emerald-50/50 text-sm text-emerald-800 font-extrabold transition-all shadow-2xs min-h-[44px] w-fit cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to ProEnglish AI Coach
+          <ArrowLeft className="w-4 h-4 text-emerald-700 shrink-0" />
+          <span>Back to English Coach</span>
         </Link>
         <Link
           to="/pricing"
-          className="text-xs font-bold text-neutral-600 hover:text-neutral-900 transition-colors"
+          className="text-xs font-bold text-neutral-600 hover:text-neutral-900 transition-colors py-1"
         >
           View Plans & Pricing →
         </Link>

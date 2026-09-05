@@ -137,11 +137,11 @@ export function FlashcardsPracticeHub({
 
   // New Card Form State
   const [newFront, setNewFront] = useState('');
-  const [newFrontContext, setNewFrontContext] = useState('Workplace Communication');
+  const [newFrontContext, setNewFrontContext] = useState('Everyday Conversation');
   const [newBackProfessional, setNewBackProfessional] = useState('');
   const [newBackWhy, setNewBackWhy] = useState('');
   const [newBackTranslation, setNewBackTranslation] = useState('');
-  const [newCategory, setNewCategory] = useState('Workplace English');
+  const [newCategory, setNewCategory] = useState('Everyday English');
   const [newGrammarNote, setNewGrammarNote] = useState('');
   const [isAutoTranslating, setIsAutoTranslating] = useState(false);
 
@@ -345,7 +345,7 @@ export function FlashcardsPracticeHub({
         body: JSON.stringify({
           input: trimmed,
           mode: 'general',
-          jobType: 'Workplace',
+          jobType: 'Everyday English',
           nativeLanguage,
         }),
       });
@@ -354,10 +354,10 @@ export function FlashcardsPracticeHub({
         const data = await response.json();
         if (data.professional) {
           setNewBackProfessional(data.professional);
-          setNewBackWhy(data.why || 'Enhanced for executive clarity and professional workplace impact.');
+          setNewBackWhy(data.why || 'Natural everyday phrasing for friendly and fluent communication.');
           setNewBackTranslation(data.translation || '');
-          if (!newFrontContext || newFrontContext === 'Workplace Communication') {
-            setNewFrontContext('Workplace Communication');
+          if (!newFrontContext || newFrontContext === 'Everyday Conversation') {
+            setNewFrontContext('Everyday Conversation');
           }
         }
       }
@@ -376,13 +376,13 @@ export function FlashcardsPracticeHub({
     const newCard: Flashcard = {
       id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       deckId: 'custom-deck',
-      category: newCategory || 'Workplace English',
-      frontContext: newFrontContext.trim() || 'Workplace Scenario',
+      category: newCategory || 'Everyday English',
+      frontContext: newFrontContext.trim() || 'Daily Life',
       front: newFront.trim(),
       backProfessional: newBackProfessional.trim(),
-      backWhy: newBackWhy.trim() || 'Custom formulated executive phrasing.',
+      backWhy: newBackWhy.trim() || 'Natural everyday phrasing.',
       backTranslation: newBackTranslation.trim() || undefined,
-      backPractice: 'Practice speaking this aloud in your next meeting.',
+      backPractice: 'Practice saying this aloud with clear pronunciation.',
       grammarNote: newGrammarNote.trim() || undefined,
       level: 'Intermediate',
       tier: 'free',
@@ -550,10 +550,10 @@ export function FlashcardsPracticeHub({
             )}
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Workplace & Interview Practice Flashcards
+            Everyday English Practice Flashcards
           </h2>
           <p className="text-xs sm:text-sm text-neutral-300 max-w-xl mt-1 leading-relaxed">
-            Master polite emails, STAR interview questions, daily conversational English, and diplomatic idioms with 3D flip study, instant quizzes, and mistakes review.
+            Master everyday greetings, café ordering, travel directions, and friendly conversations with 3D flip study, instant quizzes, and mistakes review.
           </p>
         </div>
 
@@ -1519,23 +1519,23 @@ export function FlashcardsPracticeHub({
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-neutral-800"
                   >
-                    <option value="Workplace English">Workplace English</option>
-                    <option value="Interview English">Interview English</option>
                     <option value="Everyday English">Everyday English</option>
+                    <option value="Café & Food">Café & Food</option>
+                    <option value="Travel & Directions">Travel & Directions</option>
+                    <option value="Shopping & Daily Life">Shopping & Daily Life</option>
                     <option value="Grammar & Vocab">Grammar & Vocabulary Boosters</option>
-                    <option value="Client Care & Empathy">Client Care & Empathy</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Context / Topic (e.g. Email Request, Team Standup, Salary Negotiation)
+                    Context / Topic (e.g. Asking for Directions, Ordering Coffee)
                   </label>
                   <input
                     type="text"
                     value={newFrontContext}
                     onChange={(e) => setNewFrontContext(e.target.value)}
-                    placeholder="e.g. Negotiation with Client"
+                    placeholder="e.g. Ordering at a Café"
                     className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>

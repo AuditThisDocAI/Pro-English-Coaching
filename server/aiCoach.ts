@@ -6,12 +6,39 @@ let geminiClient: GoogleGenAI | null = null;
 let openaiClient: OpenAI | null = null;
 let openAIQuotaExceededUntil = 0;
 
-// Up-to-date Gemini models per Google AI Studio guidance
+// Up-to-date Gemini models per Google AI Studio guidance with broad resilience against temporary spikes
 export const GEMINI_CANDIDATE_MODELS = [
-  'gemini-3.8-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.5-flash-lite',
   'gemini-flash-latest',
-  'gemini-3.1-flash-lite'
+  'gemini-3.8-flash',
 ];
+
+// Track models that are temporarily unavailable (503 high demand or 429 quota)
+const modelCooldowns: Record<string, number> = {};
+
+function getActiveCandidateModels(): string[] {
+  const now = Date.now();
+  const available = GEMINI_CANDIDATE_MODELS.filter((m) => (modelCooldowns[m] || 0) <= now);
+  // If all models are cooled down, return all so we at least try rather than skipping completely
+  return available.length > 0 ? available : GEMINI_CANDIDATE_MODELS;
+}
+
+function markModelTemporaryCooldown(model: string, durationMs: number = 30000): void {
+  modelCooldowns[model] = Date.now() + durationMs;
+}
+
+function handleGeminiModelError(model: string, err: any): void {
+  const msg = String(err?.message || err);
+  if (msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+    // Put model on temporary 60-second cooldown so subsequent requests don't waste time on it
+    markModelTemporaryCooldown(model, 60000);
+    console.warn(`⏳ Gemini model ${model} experienced temporary high demand/rate-limit. Put on cooldown.`);
+  } else {
+    console.warn(`Gemini model ${model} error:`, msg);
+  }
+}
 
 function getGeminiClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -238,8 +265,9 @@ Respond strictly in valid JSON matching this schema:
   // 1. Try Google Gemini API candidate models first (Native to Google AI Studio)
   const gemini = getGeminiClient();
   if (gemini) {
-    for (let i = 0; i < GEMINI_CANDIDATE_MODELS.length; i++) {
-      const model = GEMINI_CANDIDATE_MODELS[i];
+    const candidateModels = getActiveCandidateModels();
+    for (let i = 0; i < candidateModels.length; i++) {
+      const model = candidateModels[i];
       try {
         const response = await gemini.models.generateContent({
           model,
@@ -275,8 +303,8 @@ Respond strictly in valid JSON matching this schema:
           }
         }
       } catch (err: any) {
-        console.warn(`Gemini Model ${model} coach attempt failed:`, err?.message || err);
-        if (i < GEMINI_CANDIDATE_MODELS.length - 1) {
+        handleGeminiModelError(model, err);
+        if (i < candidateModels.length - 1) {
           await delay(150);
         }
       }
@@ -326,11 +354,13 @@ export async function translatePhrase(text: string, targetLanguage: string): Pro
   // 1. Try Gemini
   const gemini = getGeminiClient();
   if (gemini) {
-    for (const model of GEMINI_CANDIDATE_MODELS) {
+    const candidateModels = getActiveCandidateModels();
+    for (let i = 0; i < candidateModels.length; i++) {
+      const model = candidateModels[i];
       try {
         const response = await gemini.models.generateContent({
           model,
-          contents: `Translate the following workplace English phrase into natural, professional ${targetLanguage}. Return only the exact translation without quotation marks or commentary:\n\n"${trimmed}"`,
+          contents: `Translate the following phrase into natural, everyday ${targetLanguage}. If the input is in a non-English language and targetLanguage is English, translate it into natural conversational English. Return only the exact translation without quotation marks or commentary:\n\n"${trimmed}"`,
         });
 
         const translated = (response.text || '').trim().replace(/^["']|["']$/g, '');
@@ -338,7 +368,10 @@ export async function translatePhrase(text: string, targetLanguage: string): Pro
           return translated;
         }
       } catch (err: any) {
-        console.warn(`Translate attempt with Gemini ${model} failed:`, err?.message || err);
+        handleGeminiModelError(model, err);
+        if (i < candidateModels.length - 1) {
+          await delay(150);
+        }
       }
     }
   }
@@ -352,7 +385,7 @@ export async function translatePhrase(text: string, targetLanguage: string): Pro
         messages: [
           { 
             role: 'system', 
-            content: `You are an expert translator. Translate the given English phrase into natural, professional ${targetLanguage}. Return ONLY the direct translation without quotation marks or explanations.` 
+            content: `You are an expert translator. Translate the given phrase into natural, everyday ${targetLanguage}. If the input is non-English and targetLanguage is English, provide a natural everyday conversational English translation. Return ONLY the direct translation without quotation marks or explanations.` 
           },
           { role: 'user', content: trimmed }
         ],
@@ -674,8 +707,9 @@ Respond strictly in valid JSON matching this schema:
       .join('\n');
     const prompt = `Learner's CEFR Level: ${englishLevel}\nLearner's Native Language: ${nativeLanguage}\n\n${conversationContext ? `Recent Dialogue:\n${conversationContext}\n\n` : ''}Learner's Latest Message: "${userInput}"\n\nProvide the next engaging, contextually tailored tutor response, translation, sentence improvement, and 3 smart follow-up suggestions in JSON format.`;
 
-    for (let i = 0; i < GEMINI_CANDIDATE_MODELS.length; i++) {
-      const model = GEMINI_CANDIDATE_MODELS[i];
+    const candidateModels = getActiveCandidateModels();
+    for (let i = 0; i < candidateModels.length; i++) {
+      const model = candidateModels[i];
       try {
         const response = await gemini.models.generateContent({
           model,
@@ -725,8 +759,8 @@ Respond strictly in valid JSON matching this schema:
           }
         }
       } catch (err: any) {
-        console.warn(`Chat tutor attempt with Gemini ${model} failed:`, err?.message || err);
-        if (i < GEMINI_CANDIDATE_MODELS.length - 1) {
+        handleGeminiModelError(model, err);
+        if (i < candidateModels.length - 1) {
           await delay(150);
         }
       }
@@ -997,8 +1031,9 @@ Respond strictly in valid JSON matching:
     const convo = messages.map(m => `${m.sender === 'user' ? 'Learner' : partnerRole}: ${m.text}`).join('\n');
     const prompt = `Roleplay Scenario: ${scenarioTitle}\nPartner: ${partnerRole}\n${convo ? `Conversation so far:\n${convo}\n` : ''}Learner's latest message: "${userInput}"\n\nProvide the next in-character response without repeating prior lines.`;
 
-    for (let i = 0; i < GEMINI_CANDIDATE_MODELS.length; i++) {
-      const model = GEMINI_CANDIDATE_MODELS[i];
+    const candidateModels = getActiveCandidateModels();
+    for (let i = 0; i < candidateModels.length; i++) {
+      const model = candidateModels[i];
       try {
         const response = await gemini.models.generateContent({
           model,
@@ -1024,8 +1059,8 @@ Respond strictly in valid JSON matching:
           }
         }
       } catch (err: any) {
-        console.warn(`Roleplay attempt with Gemini ${model} failed:`, err?.message || err);
-        if (i < GEMINI_CANDIDATE_MODELS.length - 1) {
+        handleGeminiModelError(model, err);
+        if (i < candidateModels.length - 1) {
           await delay(150);
         }
       }

@@ -173,13 +173,13 @@ export const AITranslatorStudio: React.FC<AITranslatorStudioProps> = ({
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-1.5">
             <Languages className="w-3.5 h-3.5" />
-            AI Language Translator & Workplace Coach
+            AI English Translator & Coach
           </div>
           <h3 className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
-            Translate & Polish Any Thought for the Workplace
+            Translate & Practice Any Thought in Natural English
           </h3>
           <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
-            Enter a casual thought or native language phrase to get instant executive English and bilingual coaching in {nativeLanguage}.
+            Enter a phrase or native language sentence to get natural everyday English and friendly coaching in {nativeLanguage}.
           </p>
         </div>
 
@@ -208,7 +208,7 @@ export const AITranslatorStudio: React.FC<AITranslatorStudioProps> = ({
         {/* Mode Selector */}
         <div>
           <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-2">
-            Select Workplace Context:
+            Select Practice Context:
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             <button
@@ -348,7 +348,7 @@ export const AITranslatorStudio: React.FC<AITranslatorStudioProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider">
-                Polished Workplace Result
+                Natural English Phrasing
               </span>
               <span className="text-xs text-neutral-400">
                 Mode: {selectedMode.toUpperCase()}

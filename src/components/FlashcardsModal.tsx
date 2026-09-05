@@ -88,7 +88,7 @@ export function FlashcardsModal({
 
   // New Card Form State
   const [newFront, setNewFront] = useState('');
-  const [newFrontContext, setNewFrontContext] = useState('Workplace Communication');
+  const [newFrontContext, setNewFrontContext] = useState('Everyday Conversation');
   const [newBackProfessional, setNewBackProfessional] = useState('');
   const [newBackWhy, setNewBackWhy] = useState('');
   const [newCategory, setNewCategory] = useState('General');

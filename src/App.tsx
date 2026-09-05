@@ -15,7 +15,6 @@ import { TalkPalDashboard } from './components/TalkPalDashboard';
 import { TalkPalChatTutor } from './components/TalkPalChatTutor';
 import { TalkPalRoleplays } from './components/TalkPalRoleplays';
 import { TalkPalCallMode } from './components/TalkPalCallMode';
-import { TalkPalOnboarding } from './components/TalkPalOnboarding';
 import { FlashcardsPracticeHub } from './components/FlashcardsPracticeHub';
 import { SavedPhrasesModal } from './components/SavedPhrasesModal';
 import { GoogleChatModal } from './components/GoogleChatModal';
@@ -113,7 +112,6 @@ export default function App() {
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number>(10);
   const [xpPoints, setXpPoints] = useState<number>(140);
   const [streakDays, setStreakDays] = useState<number>(3);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Live timer tick to continuously evaluate 3-day trial expiration in real time
   const [currentTick, setCurrentTick] = useState<number>(() => Date.now());
@@ -128,13 +126,6 @@ export default function App() {
 
   // Compute live trial state
   const trialInfo = calculateTrialInfo(currentUser, isPro, trialStartDate, currentTick);
-
-  // Automatically detect when free trial is exhausted and redirect straight to the payment/pricing page
-  useEffect(() => {
-    if (trialInfo.isTrialExpired && !isPro) {
-      navigate('/pricing');
-    }
-  }, [trialInfo.isTrialExpired, isPro, navigate]);
 
   // Native Language for translation insights
   const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage>(() => {
@@ -283,30 +274,6 @@ export default function App() {
     });
   };
 
-  const handleCompleteOnboarding = (data: {
-    nativeLanguage: NativeLanguage;
-    englishLevel: EnglishCEFRLevel;
-    learningGoal: EnglishGoal;
-    dailyGoalMinutes: number;
-  }) => {
-    setNativeLanguage(data.nativeLanguage);
-    setEnglishLevel(data.englishLevel);
-    setLearningGoal(data.learningGoal);
-    setDailyGoalMinutes(data.dailyGoalMinutes);
-    setIsOnboardingOpen(false);
-    localStorage.setItem('proenglish_onboarding_completed', 'true');
-
-    if (currentUser) {
-      syncUserProfile(currentUser.uid, {
-        nativeLanguage: data.nativeLanguage,
-        englishLevel: data.englishLevel,
-        learningGoal: data.learningGoal,
-        dailyGoalMinutes: data.dailyGoalMinutes,
-        onboardingCompleted: true
-      }).catch(console.error);
-    }
-  };
-
   const handleSavePhrase = async (data: CoachResponse): Promise<boolean | void> => {
     const isAlreadySaved = savedPhrases.some(p => p.professional === data.professional);
     
@@ -421,15 +388,27 @@ export default function App() {
             </div>
           </button>
 
-          {/* CEFR Level Badge */}
-          <button
-            type="button"
-            onClick={() => setIsOnboardingOpen(true)}
-            className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold hover:bg-indigo-100 transition-colors cursor-pointer"
-            title="Click to adjust English level (A1 to C2) & personal goals"
-          >
-            <span>Level: {englishLevel}</span>
-          </button>
+          {/* CEFR Level Selector */}
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold" title="Select your English proficiency level">
+            <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-extrabold">Level:</span>
+            <select
+              value={englishLevel}
+              onChange={(e) => {
+                const newLvl = e.target.value as EnglishCEFRLevel;
+                setEnglishLevel(newLvl);
+                if (currentUser) {
+                  syncUserProfile(currentUser.uid, { englishLevel: newLvl }).catch(console.error);
+                }
+              }}
+              className="bg-transparent font-black text-indigo-900 focus:outline-none cursor-pointer text-xs"
+            >
+              <option value="A1">A1 Beginner</option>
+              <option value="A2">A2 Elementary</option>
+              <option value="B1">B1 Intermediate</option>
+              <option value="B2">B2 Upper</option>
+              <option value="C1">C1 Advanced</option>
+            </select>
+          </div>
         </div>
 
         {/* Desktop Primary Nav Tabs */}
@@ -654,6 +633,8 @@ export default function App() {
               isPro={isPro}
               onOpenPricing={() => navigate('/pricing')}
               onAddXP={handleAddXP}
+              onLanguageChange={setNativeLanguage}
+              initialText={chatInitialText}
             />
           ) : (
             <PaywallOverlay
@@ -734,7 +715,6 @@ export default function App() {
             profile={userProfileObj}
             trialInfo={trialInfo}
             onNavigate={(tab) => setActiveTab(tab as any)}
-            onOpenOnboarding={() => setIsOnboardingOpen(true)}
             onOpenPricing={() => navigate('/pricing')}
           />
         )}
@@ -871,15 +851,6 @@ export default function App() {
           );
         })}
       </div>
-
-      {/* TalkPal Onboarding Wizard Modal */}
-      {isOnboardingOpen && (
-        <TalkPalOnboarding
-          initialLanguage={nativeLanguage}
-          onComplete={handleCompleteOnboarding}
-          onClose={() => setIsOnboardingOpen(false)}
-        />
-      )}
 
       {/* Flashcards Modal */}
       <FlashcardsModal
