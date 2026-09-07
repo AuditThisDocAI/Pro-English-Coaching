@@ -372,16 +372,16 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 px-4 sm:px-6 py-3 flex items-center justify-between shadow-2xs">
         
         {/* Brand Logo & Tagline */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('landing')}
-            className="flex items-center gap-3 text-left group cursor-pointer"
+            className="flex items-center gap-2 sm:gap-3 text-left group cursor-pointer"
           >
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-indigo-200/70 group-hover:scale-105 transition-transform shrink-0">
-              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8" />
+            <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-indigo-200/70 group-hover:scale-105 transition-transform shrink-0">
+              <Sparkles className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
-            <div>
+            <div className="hidden sm:block">
               <h1 className="font-black text-lg sm:text-xl tracking-tight text-neutral-900 leading-none">
                 English Coach
               </h1>
@@ -444,8 +444,8 @@ export default function App() {
         <div className="flex items-center gap-2 sm:gap-3">
           
           {/* Daily Streak Flame */}
-          <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs font-black" title="Current Daily Practice Streak">
-            <Flame className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
+          <div className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-[10px] sm:text-xs font-black shrink-0" title="Current Daily Practice Streak">
+            <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500 animate-pulse" />
             <span>{streakDays}d</span>
           </div>
 
@@ -456,12 +456,12 @@ export default function App() {
           </div>
 
           {/* Native Language Selector */}
-          <div className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 transition-colors">
-            <Languages className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+          <div className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 transition-colors shrink-0">
+            <Languages className="w-3.5 h-3.5 text-indigo-600 shrink-0 hidden sm:block" />
             <select
               value={nativeLanguage}
               onChange={(e) => setNativeLanguage(e.target.value as NativeLanguage)}
-              className="bg-transparent text-neutral-800 font-extrabold focus:outline-hidden cursor-pointer text-xs"
+              className="bg-transparent text-neutral-800 font-extrabold focus:outline-hidden cursor-pointer text-[11px] sm:text-xs max-w-[65px] sm:max-w-[120px] truncate"
               title="Select native language for translations"
             >
               {SUPPORTED_LANGUAGES.map(lang => (
@@ -473,16 +473,18 @@ export default function App() {
           </div>
 
           {/* Speakerphone Voice Speed Setting */}
-          <SpeakerSpeedControl variant="header" idPrefix="header-speaker-speed" />
+          <div className="hidden lg:block shrink-0">
+            <SpeakerSpeedControl variant="header" idPrefix="header-speaker-speed" />
+          </div>
 
           {/* Saved Vault Button */}
           <button
             onClick={() => setIsSavedModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer shrink-0"
             title="View saved formal phrase library"
           >
             <Bookmark className="w-3.5 h-3.5 text-amber-600" />
-            <span className="hidden sm:inline">Saved</span>
+            <span>Saved</span>
             {savedPhrases.length > 0 && (
               <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">
                 {savedPhrases.length}
@@ -495,20 +497,20 @@ export default function App() {
             <button
               type="button"
               onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-extrabold border border-emerald-200 shadow-2xs transition-colors cursor-pointer"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] sm:text-xs font-extrabold border border-emerald-200 shadow-2xs transition-colors cursor-pointer shrink-0"
               title="Manage Pro membership"
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" />
               <span className="hidden sm:inline">Pro Active</span>
             </button>
           ) : trialInfo.isTrialExpired ? (
             <button
               type="button"
               onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs font-black shadow-sm transition-all cursor-pointer animate-pulse"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-[10px] sm:text-xs font-black shadow-sm transition-all cursor-pointer animate-pulse shrink-0"
               title="3-Day complimentary trial concluded. Upgrade to Pro."
             >
-              <Lock className="w-3.5 h-3.5" />
+              <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span className="hidden sm:inline">Trial Expired • Upgrade</span>
               <span className="sm:hidden">Upgrade</span>
             </button>
@@ -516,10 +518,10 @@ export default function App() {
             <button
               type="button"
               onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-90 text-white text-xs font-extrabold shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-90 text-white text-[10px] sm:text-xs font-extrabold shadow-sm transition-all cursor-pointer shrink-0"
               title="3-Day Free Trial Active. Click to view Pro plans."
             >
-              <Zap className="w-3.5 h-3.5 fill-white" />
+              <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
               <span className="hidden sm:inline">3-Day Trial ({trialInfo.daysLeft}d left) • Go Pro</span>
               <span className="sm:hidden">{trialInfo.daysLeft}d left</span>
             </button>
@@ -579,19 +581,10 @@ export default function App() {
         {/* 1. Welcoming Fun Landing Page */}
         {activeTab === 'landing' && (
           <FunLandingPage
-            nativeLanguage={nativeLanguage}
-            onLanguageChange={setNativeLanguage}
-            onStartLearning={(topic) => {
-              if (topic) setSelectedHubTopic(topic);
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onExploreMode={() => {
               setActiveTab('lessons');
             }}
-            onOpenChat={(prompt) => {
-              if (prompt) setChatInitialText(prompt);
-              setActiveTab('chat');
-            }}
-            onOpenGames={() => setActiveTab('game')}
-            onOpenPricing={() => navigate('/pricing')}
-            isPro={isPro}
           />
         )}
 

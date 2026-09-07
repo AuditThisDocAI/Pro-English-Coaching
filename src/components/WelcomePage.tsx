@@ -43,9 +43,18 @@ export const WelcomePage: React.FC = () => {
           </div>
 
           <h2 className="text-xl font-bold text-neutral-900 mb-2">Your 1000 sessions/month plan is active</h2>
-          <p className="text-neutral-600 text-xs mb-8 leading-relaxed">
+          <p className="text-neutral-600 text-xs mb-6 leading-relaxed">
             Your account now has full access to 1000 AI coaching sessions, live voice-to-text dictation, pronunciation audio speed controls, and all industry modules.
           </p>
+
+          <div className="rounded-2xl overflow-hidden shadow-sm border border-neutral-200/50 relative mb-6">
+            <img 
+              src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800&h=450" 
+              alt="People celebrating learning" 
+              className="w-full h-[140px] object-cover"
+              referrerPolicy="no-referrer"
+            />
+          </div>
 
           <Link 
             to="/" 

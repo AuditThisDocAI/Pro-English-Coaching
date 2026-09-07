@@ -190,6 +190,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Modal Body */}
           <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+            
+            {/* Visual Image for Non-Logged In Users */}
+            {!currentUser && (
+              <div className="rounded-2xl overflow-hidden shadow-sm border border-neutral-200/50 relative mb-4">
+                <img 
+                  src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800&h=450" 
+                  alt="People collaborating and communicating" 
+                  className="w-full h-[120px] object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            )}
+
             {error && (
               <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-200 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />

@@ -30,7 +30,7 @@ export const TIERS: Tier[] = [
       '3-day free trial included',
     ],
     highlight: true,
-    price: '$19.99',
+    price: '$20',
     planId: import.meta.env.VITE_FREEMIUS_PLAN_PRO || '62979',
   },
 ];
@@ -174,9 +174,19 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
           <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
             Predictable, transparent coaching subscription
           </h1>
-          <p className="mt-3 text-base text-neutral-600">
+          <p className="mt-3 text-base text-neutral-600 mb-8">
             1000 AI coaching sessions per month with live speech-to-text dictation, pronunciation audio speed controls, and all practice modules.
           </p>
+          
+          <div className="max-w-2xl mx-auto rounded-3xl overflow-hidden shadow-xl border border-neutral-200/50 relative mb-4">
+            <img 
+              src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=1600&h=900" 
+              alt="Professional confident person" 
+              className="w-full h-[180px] sm:h-[220px] object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 to-transparent pointer-events-none" />
+          </div>
         </div>
 
         {/* Configuration Error Alert */}

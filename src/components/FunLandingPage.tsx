@@ -1,910 +1,450 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { 
-  Sparkles, 
-  Volume2, 
-  VolumeX,
-  ArrowRight, 
-  Globe2, 
-  ShieldCheck, 
-  Heart, 
-  CheckCircle2, 
-  Zap, 
-  MessageSquare, 
-  BookOpen, 
-  Smile, 
-  Award, 
-  Layers, 
-  Clock, 
-  Check, 
-  Play, 
-  RotateCcw,
-  Lock,
-  ChevronDown
+  ChevronDown, Mic, MessageSquare, Zap, 
+  Check, ArrowRight, Star, Globe, Shield, Sparkles,
+  Play, BookOpen, Layers
 } from 'lucide-react';
-import { NativeLanguage, SUPPORTED_LANGUAGES } from '../types';
-import { triggerProUpgradeConfetti } from '../lib/confetti';
-import { useTTS } from '../lib/useTTS';
-import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 import { Link } from 'react-router-dom';
 
-interface FunLandingPageProps {
-  nativeLanguage: NativeLanguage;
-  onLanguageChange: (lang: NativeLanguage) => void;
-  onStartLearning: (topic?: string) => void;
-  onOpenChat: (initialPrompt?: string) => void;
-  onOpenGames: () => void;
-  onOpenPricing: () => void;
-  isPro?: boolean;
+export interface FunLandingPageProps {
+  onOpenAuth: () => void;
+  onExploreMode?: () => void;
 }
 
-// Localized greetings & subtitles for hero
-const LOCALIZED_HERO_CONTENT: Record<string, { welcome: string; subtitle: string; tryPrompt: string }> = {
-  Spanish: {
-    welcome: '¡Aprende inglés de forma fácil, divertida y sin miedo!',
-    subtitle: 'La forma más amigable para hispanohablantes de hablar inglés con confianza en el trabajo, viajes y la vida diaria.',
-    tryPrompt: 'Prueba una frase divertida ahora mismo:'
-  },
-  Portuguese: {
-    welcome: 'Aprenda inglês de forma fácil, divertida e sem medo!',
-    subtitle: 'O jeito mais acolhedor para falantes de português falarem inglês com confiança no trabalho, viagens e dia a dia.',
-    tryPrompt: 'Pratique uma frase divertida agora mesmo:'
-  },
-  French: {
-    welcome: 'Apprenez l\'anglais facilement et avec le sourire !',
-    subtitle: 'La méthode la plus simple et ludique pour parler anglais avec assurance au quotidien et au travail.',
-    tryPrompt: 'Testez une phrase amusante dès maintenant :'
-  },
-  German: {
-    welcome: 'Englisch lernen – einfach, unterhaltsam und stressfrei!',
-    subtitle: 'Die freundlichste Art, Englisch für Alltag, Beruf und Reisen mit Freude zu meistern.',
-    tryPrompt: 'Probiere jetzt einen praktischen Beispielsatz aus:'
-  },
-  Hindi: {
-    welcome: 'आसान और मज़ेदार तरीके से अंग्रेज़ी बोलना सीखें!',
-    subtitle: 'बिना किसी डर के रोज़मर्रा की बातचीत, काम और यात्रा के लिए आत्मविश्वास से अंग्रेज़ी सीखें।',
-    tryPrompt: 'अभी एक मज़ेदार वाक्य बोलकर देखें:'
-  },
-  Mandarin: {
-    welcome: '轻松、有趣、自信地学说地道英语！',
-    subtitle: '专为非英语母语者设计的趣味学习工具，涵盖日常社交、旅行点餐和职场沟通。',
-    tryPrompt: '立即试读一句趣味日常英语：'
-  },
-  Japanese: {
-    welcome: '楽しく簡単に、自信を持って英語を話そう！',
-    subtitle: '日常会話、カフェでの注文、旅行、仕事の英語をリラックスして学べる親切なアプリ。',
-    tryPrompt: '今すぐ日常フレーズを試してみましょう：'
-  },
-  Arabic: {
-    welcome: 'تعلّم الإنجليزية بطريقة سهلة وممتعة وبكل ثقة!',
-    subtitle: 'الطريقة الأكثر وداً لغير الناطقين بالإنجليزية للتحدث بطلاقة في العمل والسفر والحياة اليومية.',
-    tryPrompt: 'جرّب عبارة يومية ممتعة الآن:'
-  },
-  Italian: {
-    welcome: 'Impara l\'inglese in modo facile, divertente e senza stress!',
-    subtitle: 'Il modo più accogliente per parlare inglese con sicurezza al lavoro, nei viaggi e nella vita quotidiana.',
-    tryPrompt: 'Prova subito una frase divertente:'
-  },
-  Russian: {
-    welcome: 'Учите английский легко, весело и без стресса!',
-    subtitle: 'Самый дружелюбный способ заговорить по-английски для путешествий, работы и жизни.',
-    tryPrompt: 'Попробуйте полезную фразу прямо сейчас:'
-  },
-  Korean: {
-    welcome: '쉽고 재미있게, 자신감 넘치게 영어를 배워보세요!',
-    subtitle: '일상 대화, 카페 주문, 여행 및 실생활 영어를 부담 없이 즐겁게 배울 수 있습니다.',
-    tryPrompt: '지금 바로 유용한 일상 표현을 연습해 보세요:'
-  },
-  Vietnamese: {
-    welcome: 'Học tiếng Anh thật vui, dễ dàng và đầy tự tin!',
-    subtitle: 'Cách học thân thiện nhất để nói tiếng Anh tự nhiên trong giao tiếp hàng ngày, du lịch và đời sống.',
-    tryPrompt: 'Hãy thử ngay một câu giao tiếp thú vị:'
-  },
-  Tagalog: {
-    welcome: 'Matutong mag-English nang masaya, madali, at may kumpiyansa!',
-    subtitle: 'Ang pinakamadaling paraan upang magsalita ng English sa araw-araw na pamumuhay, paglalakbay, at pakikipagkaibigan.',
-    tryPrompt: 'Subukan ang isang kapaki-pakinabang na pangungusap ngayon:'
-  },
-  Turkish: {
-    welcome: 'İngilizceyi keyifle, kolayca ve özgüvenle öğrenin!',
-    subtitle: 'Günlük yaşamda, seyahatte ve arkadaş ortamında doğal İngilizce konuşmanın en samimi yolu.',
-    tryPrompt: 'Şimdi pratik ve eğlenceli bir cümle deneyin:'
-  },
-  Polish: {
-    welcome: 'Ucz się angielskiego z radością, łatwością i pewnością siebie!',
-    subtitle: 'Najbardziej przyjazny sposób na swobodną rozmowę po angielsku w życiu codziennym i podróżach.',
-    tryPrompt: 'Wypróbuj przydatne codzienne zdanie już teraz:'
-  },
-  Indonesian: {
-    welcome: 'Belajar bahasa Inggris dengan mudah, menyenangkan, dan percaya diri!',
-    subtitle: 'Cara paling ramah bagi penutur non-Inggris untuk berbicara lancar dalam kehidupan sehari-hari dan perjalanan.',
-    tryPrompt: 'Coba satu kalimat sehari-hari yang seru sekarang:'
-  }
-};
+export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onExploreMode }) => {
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
-// Fun bite-sized starter phrases for the interactive hero widget
-interface MiniPracticeItem {
-  category: string;
-  emoji: string;
-  english: string;
-  phonetic: string;
-  translations: Record<string, string>;
-  quizQuestion: string;
-  quizOptions: string[];
-  correctAnswer: number;
-  funFact: string;
-}
+  const { scrollYProgress } = useScroll();
+  const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -200]);
 
-const FUN_PRACTICE_ITEMS: MiniPracticeItem[] = [
-  {
-    category: 'Coffee & Breakfast',
-    emoji: '☕',
-    english: 'Can I please have a warm cappuccino with oat milk?',
-    phonetic: 'kæn aɪ pliːz hæv ə wɔːrm kæpʊˈtʃiːnoʊ wɪð oʊt mɪlk?',
-    translations: {
-      Spanish: '¿Me das un cappuccino tibio con leche de avena, por favor?',
-      Portuguese: 'Por favor, você poderia me dar um cappuccino quente com leite de aveia?',
-      French: 'Puis-je avoir un cappuccino tiède avec du lait d\'avoine, s\'il vous plaît ?',
-      German: 'Könnte ich bitte einen warmen Cappuccino mit Hafermilch haben?',
-      Hindi: 'क्या मुझे कृपया ओट मिल्क (जई के दूध) के साथ गर्म कैपुचीनो मिल सकता है?',
-      Mandarin: '请问可以给我一杯加燕麦奶的温卡布奇诺吗？',
-      Japanese: 'オーツミルク入りの温かいカプチーノを一杯いただけますか？',
-      Korean: '따뜻한 오트밀크 카푸치노 한 잔 주시겠어요?',
-      Arabic: 'هل يمكنني الحصول على كابتشينو دافئ مع حليب الشوفان من فضلك؟',
-      Vietnamese: 'Cho tôi một ly cappuccino ấm với sữa yến mạch được không?',
-      Tagalog: 'Puwede po ba akong humingi ng mainit na cappuccino na may oat milk?',
-      Italian: 'Posso avere un cappuccino caldo con latte d\'avena, per favore?',
-      Russian: 'Можно мне, пожалуйста, тёплый капучино на овсяном молоке?',
-      Turkish: 'Lütfen yulaf sütlü sıcak bir cappuccino alabilir miyim?',
-      Polish: 'Czy mogę poprosić o ciepłe cappuccino z mlekiem owsianym?',
-      Indonesian: 'Bolehkah saya minta cappuccino hangat dengan susu oat, tolong?'
+  const faqs = [
+    {
+      q: "How does the AI coaching work?",
+      a: "Our advanced AI models analyze your speech and text in real-time, providing immediate feedback on grammar, pronunciation, and professional tone."
     },
-    quizQuestion: 'What does "oat milk" mean in this phrase?',
-    quizOptions: ['Cow milk', 'Plant-based oat milk', 'Cold water'],
-    correctAnswer: 1,
-    funFact: 'Adding "please" and "Can I have..." makes your request friendly and polite in any English cafe!'
-  },
-  {
-    category: 'Making Friends',
-    emoji: '👋',
-    english: 'Hi! It is so nice to meet you. How is your day going?',
-    phonetic: 'haɪ! ɪt ɪz soʊ naɪs tuː miːt juː. haʊ ɪz jʊər deɪ ˈgoʊɪŋ?',
-    translations: {
-      Spanish: '¡Hola! Qué gusto conocerte. ¿Cómo va tu día?',
-      Portuguese: 'Oi! Que bom te conhecer. Como está indo o seu dia?',
-      French: 'Salut ! C\'est un plaisir de te rencontrer. Comment se passe ta journée ?',
-      German: 'Hallo! Schön dich kennenzulernen. Wie läuft dein Tag so?',
-      Hindi: 'नमस्ते! आपसे मिलकर बहुत अच्छा लगा। आपका दिन कैसा बीत रहा है?',
-      Mandarin: '嗨！很高兴认识你。你今天过得怎么样？',
-      Japanese: 'こんにちは！お会いできて嬉しいです。今日はいかがお過ごしですか？',
-      Korean: '안녕하세요! 만나서 정말 반가워요. 오늘 하루 어떠세요?',
-      Arabic: 'مرحباً! تشرفت بلقائك كثيراً. كيف يسير يومك؟',
-      Vietnamese: 'Xin chào! Rất vui được gặp bạn. Ngày hôm nay của bạn thế nào?',
-      Tagalog: 'Kumusta! Ikinagagalak kitang makilala. Kamusta ang araw mo?',
-      Italian: 'Ciao! Che piacere conoscerti. Come sta andando la tua giornata?',
-      Russian: 'Привет! Очень приятно познакомиться. Как проходит твой день?',
-      Turkish: 'Merhaba! Sizinle tanışmak çok güzel. Gününüz nasıl geçiyor?',
-      Polish: 'Cześć! Bardzo miło cię poznać. Jak ci mija dzień?',
-      Indonesian: 'Hai! Senang sekali bertemu dengan Anda. Bagaimana hari Anda?'
+    {
+      q: "Can I practice for specific scenarios?",
+      a: "Yes. You can select from dozens of professional scenarios like job interviews, client presentations, and salary negotiations."
     },
-    quizQuestion: 'How should you answer "How is your day going?"',
-    quizOptions: ['"It is going great, thank you!"', '"I am at the airport"', '"Yes, I do"'],
-    correctAnswer: 0,
-    funFact: '"How is your day going?" is the #1 friendliest conversation starter in English.'
-  },
-  {
-    category: 'Travel & Directions',
-    emoji: '✈️',
-    english: 'Excuse me, could you tell me where the nearest train station is?',
-    phonetic: 'ɪkˈskjuːz miː, kʊd juː tɛl miː wɛər ðə ˈnɪrɪst treɪn ˈsteɪʃən ɪz?',
-    translations: {
-      Spanish: 'Disculpe, ¿podría decirme dónde está la estación de tren más cercana?',
-      Portuguese: 'Com licença, você poderia me dizer onde fica a estação de trem mais próxima?',
-      French: 'Excusez-moi, pourriez-vous me dire où se trouve la gare la plus proche ?',
-      German: 'Entschuldigung, könnten Sie mir sagen, wo der nächste Bahnhof ist?',
-      Hindi: 'माफ़ कीजिए, क्या आप मुझे बता सकते हैं कि सबसे नज़दीकी ट्रेन स्टेशन कहाँ है?',
-      Mandarin: '打扰一下，请问最近的火车站怎么走？',
-      Japanese: 'すみません、一番近い電車の駅はどこか教えていただけますか？',
-      Korean: '실례합니다, 가장 가까운 기차역이 어디인지 알려주실 수 있나요?',
-      Arabic: 'معذرة، هل يمكنك إخباري بأقرب محطة قطار؟',
-      Vietnamese: 'Xin lỗi, bạn có thể chỉ cho tôi ga xe lửa gần nhất ở đâu không?',
-      Tagalog: 'Excuse me po, puwede niyo po bang sabihin kung nasaan ang pinakamalapit na estasyon ng tren?',
-      Italian: 'Mi scusi, potrebbe dirmi dov\'è la stazione ferroviaria più vicina?',
-      Russian: 'Извините, вы не подскажете, где находится ближайший вокзал?',
-      Turkish: 'Afedersiniz, en yakın tren istasyonunun nerede olduğunu söyleyebilir misiniz?',
-      Polish: 'Przepraszam, czy mógłby mi pan/pani powiedzieć, gdzie jest najbliższa stacja kolejowa?',
-      Indonesian: 'Permisi, bisakah Anda memberi tahu saya di mana stasiun kereta terdekat?'
+    {
+      q: "Is there a free trial available?",
+      a: "Absolutely. We offer a generous free tier so you can experience the power of AI-driven language coaching before upgrading."
     },
-    quizQuestion: 'What does "nearest" mean?',
-    quizOptions: ['Far away', 'Closest to you', 'Most expensive'],
-    correctAnswer: 1,
-    funFact: 'Starting with "Excuse me, could you tell me..." guarantees friendly help from locals!'
-  },
-  {
-    category: 'Shopping & Prices',
-    emoji: '🛒',
-    english: 'Excuse me, how much is this, and do you have it in medium?',
-    phonetic: 'ɪkˈskjuːz miː, haʊ mʌtʃ ɪz ðɪs, ænd duː juː hæv ɪt ɪn ˈmiːdiəm?',
-    translations: {
-      Spanish: 'Disculpe, ¿cuánto cuesta esto y lo tiene en talla mediana?',
-      Portuguese: 'Com licença, quanto custa isso, e você tem no tamanho médio?',
-      French: 'Pardon, combien coûte ceci, et l\'avez-vous en taille moyenne ?',
-      German: 'Entschuldigung, wie viel kostet das und haben Sie es in Größe M?',
-      Hindi: 'माफ़ कीजिए, यह कितने का है, और क्या आपके पास यह मीडियम साइज़ में है?',
-      Mandarin: '打扰一下，请问这个多少钱？有中码（M码）吗？',
-      Japanese: 'すみません、これはいか發ですか？Mサイズはありますか？',
-      Korean: '실례합니다, 이것은 얼마인가요? 그리고 미디엄 사이즈도 있나요?',
-      Arabic: 'معذرة، كم سعر هذا وهل يتوفر بمقاس متوسط؟',
-      Vietnamese: 'Xin lỗi, cái này giá bao nhiêu và bạn có size M không?',
-      Tagalog: 'Excuse me po, magkano po ito, at mayroon po ba kayong medium?',
-      Italian: 'Mi scusi, quanto costa questo, e ce l\'ha in taglia media?',
-      Russian: 'Извините, сколько это стоит и есть ли у вас средний размер (M)?',
-      Turkish: 'Afedersiniz, bunun fiyatı ne kadar ve orta (M) bedeni var mı?',
-      Polish: 'Przepraszam, ile to kosztuje i czy mają państwo rozmiar M?',
-      Indonesian: 'Permisi, berapa harganya ini, dan apakah ada ukuran sedang (M)?'
-    },
-    quizQuestion: 'When buying clothes, "medium" refers to:',
-    quizOptions: ['The color', 'The size', 'The store location'],
-    correctAnswer: 1,
-    funFact: 'In English clothing: S = Small, M = Medium, L = Large, XL = Extra Large.'
-  }
-];
+    {
+      q: "Does it support multiple native languages?",
+      a: "We currently support translation and contextual feedback for over 16 native languages, helping you bridge the gap faster."
+    }
+  ];
 
-export const FunLandingPage: React.FC<FunLandingPageProps> = ({
-  nativeLanguage,
-  onLanguageChange,
-  onStartLearning,
-  onOpenChat,
-  onOpenGames,
-  onOpenPricing,
-  isPro
-}) => {
-  const [currentPracticeIndex, setCurrentPracticeIndex] = useState(0);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [selectedQuizOption, setSelectedQuizOption] = useState<number | null>(null);
-  const [quizResult, setQuizResult] = useState<'correct' | 'wrong' | null>(null);
-  const [hasCompletedPractice, setHasCompletedPractice] = useState(false);
-
-  const { speed, speak, stop, isSpeaking } = useTTS();
-
-  const practiceItem = FUN_PRACTICE_ITEMS[currentPracticeIndex];
-  const heroContent = LOCALIZED_HERO_CONTENT[nativeLanguage] || LOCALIZED_HERO_CONTENT.Spanish;
-  const currentTranslation = practiceItem.translations[nativeLanguage] || practiceItem.translations.Spanish;
-
-  // Speak audio using TTS Engine with user's selected speed
-  const handlePlayAudio = (overrideSpeed?: number) => {
-    const rateToUse = overrideSpeed ?? speed;
-    speak(practiceItem.english, {
-      rate: rateToUse,
-      onStart: () => setIsPlayingAudio(true),
-      onEnd: () => setIsPlayingAudio(false),
-      onError: () => setIsPlayingAudio(false)
-    });
-  };
-
-  const handleNextPhrase = () => {
-    stop();
-    setIsPlayingAudio(false);
-    setShowQuiz(false);
-    setSelectedQuizOption(null);
-    setQuizResult(null);
-    setCurrentPracticeIndex((prev) => (prev + 1) % FUN_PRACTICE_ITEMS.length);
-  };
-
-  const handleSelectQuizOption = (index: number) => {
-    setSelectedQuizOption(index);
-    if (index === practiceItem.correctAnswer) {
-      setQuizResult('correct');
-      setHasCompletedPractice(true);
-      triggerProUpgradeConfetti();
-    } else {
-      setQuizResult('wrong');
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   return (
-    <div className="space-y-16 sm:space-y-24 pb-12">
+    <div className="min-h-screen bg-[#0B0B0F] text-neutral-300 font-sans selection:bg-purple-500/30">
       
       {/* HERO SECTION */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-indigo-50/70 via-white to-neutral-50 p-6 sm:p-10 md:p-12 border border-indigo-100 shadow-sm">
+      <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-20 px-6 overflow-hidden">
+        {/* Animated Background Gradient */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-purple-600/20 to-blue-600/20 rounded-full blur-[120px] animate-pulse pointer-events-none" style={{ animationDuration: '4s' }} />
         
-        {/* Floating Background Glows */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-teal-200/25 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-200/25 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
+        {/* Floating 3D Shape (CSS Simulated) */}
+        <motion.div 
+          animate={{ y: [-20, 20, -20], rotate: [0, 10, -10, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute right-[10%] top-[20%] w-64 h-64 bg-gradient-to-tr from-purple-600 to-blue-500 rounded-[4rem] mix-blend-screen filter blur-[40px] opacity-40 pointer-events-none"
+        />
+        <motion.div 
+          animate={{ y: [20, -20, 20], rotate: [0, -15, 15, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute left-[10%] bottom-[20%] w-72 h-72 bg-gradient-to-tr from-blue-600 to-emerald-500 rounded-full mix-blend-screen filter blur-[50px] opacity-30 pointer-events-none"
+        />
 
-        <div className="relative max-w-5xl mx-auto space-y-8">
-          
-          {/* Top Pill & Language Selector */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-100/90 text-indigo-900 text-xs font-bold shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-              <span>Fun & Easy English for All Non-English Speakers</span>
-            </div>
-
-            {/* Quick Native Language Picker */}
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-neutral-200 shadow-2xs">
-              <Globe2 className="w-4 h-4 text-indigo-600" />
-              <span className="text-xs font-bold text-neutral-600">Your Language:</span>
-              <select
-                aria-label="Select your native language"
-                value={nativeLanguage}
-                onChange={(e) => onLanguageChange(e.target.value as NativeLanguage)}
-                className="text-xs font-extrabold text-neutral-900 bg-transparent border-0 focus:ring-0 cursor-pointer outline-none pr-2"
-              >
-                {SUPPORTED_LANGUAGES.map((lang) => (
-                  <option key={lang.name} value={lang.name}>
-                    {lang.flag} {lang.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Main Headline */}
-          <div className="text-center max-w-3xl mx-auto space-y-4">
-            
-            {/* Prominent App Logo */}
-            <div className="inline-flex items-center justify-center gap-3.5 p-2.5 px-6 rounded-3xl bg-white/90 border border-indigo-100 shadow-sm mx-auto mb-1">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
-                <Sparkles className="w-7 h-7 sm:w-8 sm:h-8" />
-              </div>
-              <div className="text-left">
-                <span className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight block leading-tight">
-                  English Coach
-                </span>
-              </div>
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-neutral-900 tracking-tight leading-[1.15]">
-              Learn English with <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-teal-600 to-emerald-600">
-                Joy, Simplicity & Zero Fear
-              </span>
-            </h1>
-
-            {/* Localized Subtitle */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/80 border border-indigo-100 shadow-2xs max-w-2xl mx-auto">
-              <p className="text-sm sm:text-base font-bold text-indigo-950">
-                "{heroContent.welcome}"
-              </p>
-              <p className="text-xs sm:text-sm text-neutral-600 mt-1">
-                {heroContent.subtitle}
-              </p>
-            </div>
-
-            {/* Primary Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => onStartLearning()}
-                className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-indigo-600 to-teal-600 hover:from-indigo-700 hover:to-teal-700 text-white font-extrabold rounded-2xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm group"
-              >
-                <Smile className="w-4 h-4" />
-                <span>Start Learning Free (No Sign Up Needed)</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onOpenChat('Hello! Can you help me practice basic English?')}
-                className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-neutral-50 text-neutral-800 font-bold rounded-2xl border border-neutral-200 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
-              >
-                <MessageSquare className="w-4 h-4 text-indigo-600" />
-                <span>Chat with AI Buddy</span>
-              </button>
-            </div>
-          </div>
-
-          {/* INTERACTIVE 1-MINUTE MINI LESSON WIDGET */}
-          <div className="bg-white rounded-3xl p-5 sm:p-7 border border-neutral-200 shadow-xl max-w-3xl mx-auto space-y-5">
-            
-            {/* Widget Header */}
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="text-2xl">{practiceItem.emoji}</span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-indigo-700">
-                      1-Minute Interactive Practice
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
-                      {practiceItem.category}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-neutral-500">
-                    Tap to hear pronunciation at normal or slow speed!
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleNextPhrase}
-                className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-              >
-                <span>Next Phrase</span>
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Phrase Card */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-                    English Phrase:
-                  </span>
-                  <p className="text-lg sm:text-xl font-black text-neutral-900 leading-snug">
-                    "{practiceItem.english}"
-                  </p>
-                  <p className="text-xs text-neutral-500 font-mono">
-                    /{practiceItem.phonetic}/
-                  </p>
-                </div>
-
-                {/* Audio Buttons & Speed Setting */}
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <SpeakerSpeedControl variant="compact" idPrefix="landing-hero-speed" />
-
-                  {/* Speakerphone Listen at Chosen Speed */}
-                  <button
-                    type="button"
-                    onClick={() => handlePlayAudio(speed)}
-                    disabled={isPlayingAudio || isSpeaking()}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                    title={`Listen at your speaker speed (${speed}x)`}
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    <span>Listen ({speed}x)</span>
-                  </button>
-
-                  {/* Quick Slow / Normal Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => handlePlayAudio(speed <= 0.8 ? 1.0 : 0.75)}
-                    disabled={isPlayingAudio || isSpeaking()}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-100 hover:bg-teal-200 text-teal-800 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
-                    title={speed <= 0.8 ? "Listen at normal speed (1.0x)" : "Listen slowly (0.75x) to hear pronunciation clearly"}
-                  >
-                    <span>{speed <= 0.8 ? '🎯 1.0x' : '🐢 0.75x'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Translation in User's Native Language */}
-              <div className="pt-3 border-t border-neutral-200/80 flex items-start gap-2 text-xs sm:text-sm">
-                <span className="font-bold text-neutral-700 shrink-0">
-                  {nativeLanguage} Translation:
-                </span>
-                <span className="text-indigo-900 font-semibold italic">
-                  "{currentTranslation}"
-                </span>
-              </div>
-            </div>
-
-            {/* Quick Interactive Mini Quiz */}
-            {!showQuiz ? (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-                <p className="text-xs text-neutral-500">
-                  💡 <strong>Tip:</strong> {practiceItem.funFact}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowQuiz(true)}
-                  className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Award className="w-3.5 h-3.5" />
-                  <span>Test Yourself (1-Tap Mini Quiz)</span>
-                </button>
-              </div>
-            ) : (
-              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-3 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-                    Quick Check: {practiceItem.quizQuestion}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowQuiz(false)}
-                    className="text-xs text-neutral-400 hover:text-neutral-700"
-                  >
-                    Hide
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {practiceItem.quizOptions.map((option, idx) => {
-                    const isSelected = selectedQuizOption === idx;
-                    const isCorrect = idx === practiceItem.correctAnswer;
-                    let btnStyle = 'bg-white border-neutral-200 text-neutral-800 hover:bg-neutral-100';
-
-                    if (selectedQuizOption !== null) {
-                      if (isCorrect) {
-                        btnStyle = 'bg-emerald-600 text-white border-emerald-600 shadow-xs font-bold';
-                      } else if (isSelected) {
-                        btnStyle = 'bg-red-50 text-red-700 border-red-300';
-                      }
-                    }
-
-                    return (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => handleSelectQuizOption(idx)}
-                        className={`p-2.5 rounded-xl border text-xs font-semibold text-center transition-all cursor-pointer ${btnStyle}`}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {quizResult === 'correct' && (
-                  <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-2">
-                    <span>🎉 Awesome job! You earned +10 XP. Ready for real conversations!</span>
-                  </div>
-                )}
-                {quizResult === 'wrong' && (
-                  <div className="p-2.5 rounded-xl bg-amber-100 text-amber-900 text-xs font-bold flex items-center gap-2">
-                    <span>Try again! Listen to the audio to catch the meaning.</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* 4 FUN & SIMPLE PILLARS */}
-      <section className="max-w-5xl mx-auto px-4 space-y-8">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-xs font-bold">
-            <Heart className="w-3.5 h-3.5 text-teal-600" />
-            Designed For Everyday People
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-            How English Coach Makes Learning Easy
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-500">
-            No boring grammar drills. No confusing textbooks. Just real English you can use immediately.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Card 1 */}
-          <div className="bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-xs hover:shadow-md transition-all space-y-3 flex flex-col">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl shrink-0">
-              💬
-            </div>
-            <h3 className="font-extrabold text-base text-neutral-900">
-              Friendly AI Buddy
-            </h3>
-            <p className="text-xs text-neutral-600 leading-relaxed flex-1">
-              Text or speak naturally like chatting with a kind friend. The AI never judges and immediately translates any word you don't understand.
-            </p>
-            <button
-              type="button"
-              onClick={() => onOpenChat()}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 pt-1 cursor-pointer"
-            >
-              Try AI Chat →
-            </button>
-          </div>
-
-          {/* Card 2 */}
-          <div className="bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-xs hover:shadow-md transition-all space-y-3 flex flex-col">
-            <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center text-2xl shrink-0">
-              🐢
-            </div>
-            <h3 className="font-extrabold text-base text-neutral-900">
-              Slow & Clear Audio
-            </h3>
-            <p className="text-xs text-neutral-600 leading-relaxed flex-1">
-              Native speakers often talk too fast. Tap "Slow (0.8x)" to hear every vowel, consonant, and syllable clearly so your accent improves fast.
-            </p>
-            <span className="text-xs font-bold text-teal-700 flex items-center gap-1 pt-1">
-              ✓ Dual-Speed Speech
-            </span>
-          </div>
-
-          {/* Card 3 */}
-          <div className="bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-xs hover:shadow-md transition-all space-y-3 flex flex-col">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl shrink-0">
-              🎮
-            </div>
-            <h3 className="font-extrabold text-base text-neutral-900">
-              Fun Bite-Sized Games
-            </h3>
-            <p className="text-xs text-neutral-600 leading-relaxed flex-1">
-              Match words, flip flashcards, and take 2-minute daily quizzes. Earn streaks and colorful confetti as your vocabulary grows every single day.
-            </p>
-            <button
-              type="button"
-              onClick={onOpenGames}
-              className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 pt-1 cursor-pointer"
-            >
-              Play Word Games →
-            </button>
-          </div>
-
-          {/* Card 4 */}
-          <div className="bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-xs hover:shadow-md transition-all space-y-3 flex flex-col">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-2xl shrink-0">
-              🌍
-            </div>
-            <h3 className="font-extrabold text-base text-neutral-900">
-              Bilingual Translations
-            </h3>
-            <p className="text-xs text-neutral-600 leading-relaxed flex-1">
-              Explanations provided in Spanish, Portuguese, French, Hindi, Arabic, Mandarin, and 10+ languages so you are never confused or lost.
-            </p>
-            <span className="text-xs font-bold text-amber-800 flex items-center gap-1 pt-1">
-              ✓ 16 Mother Tongues
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* POPULAR REAL-LIFE SITUATIONS */}
-      <section className="max-w-5xl mx-auto px-4 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <span className="text-xs font-black uppercase tracking-wider text-indigo-600">
-              Real-World English You Can Use Today
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight mt-1">
-              Choose a Fun Topic to Learn
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => onStartLearning()}
-            className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+        <div className="relative z-10 max-w-5xl mx-auto text-center flex flex-col items-center">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md"
           >
-            <span>View All Topics</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-sm font-medium text-neutral-300">English Coach AI 2.0 is live</span>
+          </motion.div>
+
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white tracking-tighter leading-[1.1] mb-8"
+          >
+            Master English.<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
+              Accelerate your career.
+            </span>
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg md:text-xl text-neutral-400 max-w-2xl mb-12 leading-relaxed"
+          >
+            The world-class AI tutor that adapts to your professional needs. Practice speaking, perfect your grammar, and roleplay real-world scenarios.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
+          >
+            <button 
+              onClick={onOpenAuth}
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-bold text-lg hover:scale-105 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.1)]"
+            >
+              Start for free
+            </button>
+            <button 
+              onClick={() => {
+                const el = document.getElementById('how-it-works');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 hover:scale-105 active:scale-95 transition-all backdrop-blur-md flex items-center justify-center gap-2"
+            >
+              <Play className="w-5 h-5" /> See how it works
+            </button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* TRUSTED BY LOGOS */}
+      <section className="py-16 border-y border-white/5 bg-white/[0.01]">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p className="text-xs font-bold text-neutral-500 uppercase tracking-[0.2em] mb-8">
+            Trusted by professionals at top companies
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8 opacity-40 grayscale">
+            {/* Minimal CSS Logos */}
+            <div className="text-2xl font-black font-serif tracking-tighter">Acme Corp</div>
+            <div className="text-2xl font-extrabold tracking-widest flex items-center gap-1"><div className="w-6 h-6 rounded bg-white" /> NEXUS</div>
+            <div className="text-2xl font-bold italic">GlobalTech</div>
+            <div className="text-xl font-bold tracking-[0.3em]">INNOVATE</div>
+            <div className="text-2xl font-black lowercase flex items-center gap-1"><Globe className="w-6 h-6" /> horizon</div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES SECTION */}
+      <section id="features" className="py-32 px-6 max-w-7xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">Designed for rapid fluency</h2>
+          <p className="text-xl text-neutral-400">Everything you need to speak and write with absolute confidence in any professional setting.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             {
-              id: 'coffee',
-              title: 'Coffee, Food & Cafes',
-              emoji: '☕',
-              desc: 'How to order drinks, customize milk, and ask for the bill politely.',
-              phrases: ['"Can I have a table for two?"', '"Could I get the check, please?"']
+              icon: <Mic className="w-6 h-6 text-purple-400" />,
+              title: "Voice Conversations",
+              desc: "Practice speaking naturally with an AI that listens, understands, and responds."
             },
             {
-              id: 'travel',
-              title: 'Airport, Hotels & Travel',
-              emoji: '✈️',
-              desc: 'Asking for directions, checking into hotels, and finding your gate.',
-              phrases: ['"Where is terminal B?"', '"I have a reservation under my name."']
+              icon: <MessageSquare className="w-6 h-6 text-blue-400" />,
+              title: "Scenario Roleplay",
+              desc: "Nail your next interview or client pitch with hyper-realistic simulated conversations."
             },
             {
-              id: 'friends',
-              title: 'Meeting People & Friends',
-              emoji: '👋',
-              desc: 'Making small talk, introducing yourself, and sharing your hobbies.',
-              phrases: ['"Where are you from?"', '"It was wonderful meeting you!"']
-            },
-            {
-              id: 'shopping',
-              title: 'Shopping & Clothes',
-              emoji: '🛍️',
-              desc: 'Asking prices, trying on sizes, and finding sales discounts.',
-              phrases: ['"Can I try this on?"', '"Do you accept credit cards?"']
-            },
-            {
-              id: 'polite',
-              title: 'Everyday Polite Chat',
-              emoji: '🤝',
-              desc: 'Friendly greetings, saying thank you, and asking questions nicely.',
-              phrases: ['"Thank you so much for your help!"', '"Could you please repeat that?"']
-            },
-            {
-              id: 'help',
-              title: 'Emergencies & Help',
-              emoji: '🚨',
-              desc: 'Asking for a doctor, directions to pharmacy, and getting assistance.',
-              phrases: ['"I need some assistance, please."', '"Where is the pharmacy?"']
+              icon: <Zap className="w-6 h-6 text-emerald-400" />,
+              title: "Instant Corrections",
+              desc: "Get real-time feedback on your grammar, vocabulary, and professional tone."
             }
-          ].map((topic) => (
-            <div
-              key={topic.id}
-              className="bg-white rounded-3xl p-5 border border-neutral-200/80 shadow-2xs hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between group"
+          ].map((feature, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="bg-white/[0.03] border border-white/10 p-8 rounded-3xl hover:-translate-y-2 hover:bg-white/[0.05] transition-all duration-300 group"
             >
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{topic.emoji}</span>
-                  <h4 className="font-extrabold text-sm text-neutral-900 group-hover:text-indigo-600 transition-colors">
-                    {topic.title}
-                  </h4>
-                </div>
-                <p className="text-xs text-neutral-600 leading-relaxed">
-                  {topic.desc}
-                </p>
+              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                {feature.icon}
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">{feature.title}</h3>
+              <p className="text-neutral-400 leading-relaxed">{feature.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
-                <div className="space-y-1 pt-2">
-                  {topic.phrases.map((p) => (
-                    <div key={p} className="text-[11px] font-semibold text-neutral-700 bg-neutral-50 px-2.5 py-1 rounded-lg border border-neutral-100 flex items-center gap-1.5">
-                      <span className="text-indigo-600">›</span> {p}
+      {/* BENTO GRID */}
+      <section className="py-20 px-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-6 h-auto md:h-[600px]">
+          
+          {/* Bento 1: Large Visual */}
+          <div className="md:col-span-2 md:row-span-2 bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 md:p-12 relative overflow-hidden flex flex-col group">
+            <h3 className="text-3xl font-bold text-white mb-2">Immersive Studio</h3>
+            <p className="text-neutral-400 mb-8 max-w-xs">Your personal sandbox for perfecting professional communication.</p>
+            
+            <div className="flex-1 w-full bg-neutral-900/80 rounded-t-2xl border-t border-x border-white/10 mt-auto relative shadow-2xl overflow-hidden group-hover:translate-y-2 transition-transform duration-500">
+              <div className="h-8 border-b border-white/10 flex items-center px-4 gap-2 bg-black/50">
+                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 shrink-0" />
+                  <div className="space-y-2 flex-1 pt-1">
+                    <div className="h-3 w-1/3 bg-white/20 rounded-full" />
+                    <div className="h-3 w-3/4 bg-white/10 rounded-full" />
+                  </div>
+                </div>
+                <div className="flex gap-4 flex-row-reverse">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/20 shrink-0" />
+                  <div className="space-y-2 flex-1 pt-1 flex flex-col items-end">
+                    <div className="h-3 w-1/4 bg-blue-500/40 rounded-full" />
+                    <div className="h-3 w-2/3 bg-blue-500/20 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Glow */}
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-purple-500/20 blur-[60px] rounded-full pointer-events-none" />
+          </div>
+
+          {/* Bento 2: Stats (Gradient) */}
+          <div className="md:col-span-2 md:row-span-1 bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-white/10 rounded-[2rem] p-8 md:p-10 flex flex-col justify-center relative overflow-hidden hover:border-white/20 transition-colors">
+            <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 mb-2 tracking-tighter">
+              98%
+            </div>
+            <div className="text-white font-bold text-2xl">report higher confidence</div>
+            <div className="text-neutral-400 mt-2">After just 2 weeks of practice.</div>
+            <Shield className="absolute -bottom-4 -right-4 w-32 h-32 text-blue-500/10 rotate-12" />
+          </div>
+
+          {/* Bento 3: Testimonial */}
+          <div className="md:col-span-1 md:row-span-1 bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 flex flex-col justify-between hover:bg-white/[0.05] transition-colors">
+            <div>
+              <div className="flex gap-1 text-yellow-500 mb-6">
+                {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
+              </div>
+              <p className="text-neutral-300 text-sm leading-relaxed font-medium">
+                "The AI coach feels incredibly human. It corrected my email tone instantly."
+              </p>
+            </div>
+            <div className="mt-6 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-neutral-800 border border-white/10 flex items-center justify-center text-xs font-bold text-white">S</div>
+              <div className="text-xs text-neutral-400 font-medium">Sarah J., Product Manager</div>
+            </div>
+          </div>
+
+          {/* Bento 4: Small Feature */}
+          <div className="md:col-span-1 md:row-span-1 bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center hover:bg-white/[0.05] transition-colors group">
+            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <BookOpen className="w-8 h-8 text-blue-400" />
+            </div>
+            <h3 className="text-white font-bold text-lg mb-2">Smart Library</h3>
+            <p className="text-neutral-400 text-sm">Save and review your vocabulary.</p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* PRODUCT LAPTOP MOCKUP (PARALLAX) */}
+      <section id="how-it-works" className="py-32 overflow-hidden relative">
+        <div className="max-w-7xl mx-auto px-6 text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">Experience the platform</h2>
+        </div>
+        
+        <div className="max-w-6xl mx-auto px-6">
+          <motion.div 
+            initial={{ y: 50, opacity: 0 }} 
+            whileInView={{ y: 0, opacity: 1 }} 
+            transition={{ duration: 0.8 }} 
+            viewport={{ once: true }} 
+            className="relative mx-auto w-full aspect-[16/10] bg-neutral-900 rounded-[2rem] border-t border-x border-white/10 shadow-2xl overflow-hidden flex flex-col"
+          >
+            {/* Fake Window Chrome */}
+            <div className="h-10 border-b border-white/10 flex items-center px-4 gap-2 bg-[#0B0B0F] z-20 relative">
+              <div className="w-3 h-3 rounded-full bg-neutral-700 hover:bg-red-500 transition-colors" />
+              <div className="w-3 h-3 rounded-full bg-neutral-700 hover:bg-yellow-500 transition-colors" />
+              <div className="w-3 h-3 rounded-full bg-neutral-700 hover:bg-green-500 transition-colors" />
+              <div className="mx-auto px-4 py-1 rounded-md bg-white/5 text-[10px] text-neutral-500 font-mono flex items-center gap-2">
+                <Globe className="w-3 h-3" /> app.englishcoach.ai
+              </div>
+            </div>
+            
+            {/* Mockup Screen Content with Parallax */}
+            <div className="flex-1 relative bg-[#0B0B0F] overflow-hidden">
+              <motion.div style={{ y: parallaxY }} className="absolute inset-x-0 top-0 h-[150%] p-8">
+                {/* Simulated Dashboard UI */}
+                <div className="w-full h-full bg-white/[0.02] border border-white/5 rounded-2xl p-8 shadow-2xl flex flex-col gap-6">
+                  <div className="flex justify-between items-center pb-6 border-b border-white/5">
+                    <div className="h-8 w-48 bg-white/10 rounded-lg" />
+                    <div className="h-10 w-32 bg-purple-500/20 rounded-full" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-6">
+                    <div className="col-span-2 space-y-4">
+                      <div className="h-64 bg-white/5 rounded-xl border border-white/5 p-6 flex flex-col gap-4">
+                        <div className="h-4 w-1/4 bg-white/10 rounded-md" />
+                        <div className="h-24 w-full bg-white/5 rounded-md mt-auto" />
+                      </div>
+                      <div className="h-32 bg-white/5 rounded-xl border border-white/5" />
                     </div>
-                  ))}
+                    <div className="col-span-1 space-y-4">
+                      <div className="h-48 bg-blue-500/10 border border-blue-500/20 rounded-xl p-6" />
+                      <div className="h-48 bg-white/5 border border-white/5 rounded-xl" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-              <div className="pt-4 flex items-center justify-between border-t border-neutral-100 mt-4">
-                <button
-                  type="button"
-                  onClick={() => onStartLearning(topic.id)}
-                  className="text-xs font-bold text-indigo-600 group-hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
-                >
-                  Practice Topic →
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onOpenChat(`Let's practice English about ${topic.title}!`)}
-                  className="text-[11px] font-semibold text-neutral-500 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 px-2.5 py-1 rounded-lg cursor-pointer"
-                >
-                  Chat This
-                </button>
-              </div>
+      {/* PRICING SECTION */}
+      <section id="pricing" className="py-32 px-6 max-w-7xl mx-auto">
+        <div className="text-center mb-20">
+          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-4">Simple, transparent pricing</h2>
+          <p className="text-neutral-400 text-lg">Start for free, upgrade when you need more power.</p>
+        </div>
+
+        <div className="flex justify-center max-w-lg mx-auto">
+          {/* Subscription Plan */}
+          <div className="w-full relative rounded-[2rem] p-[1px] bg-gradient-to-b from-purple-500 to-blue-500 hover:scale-[1.02] transition-transform duration-300 z-10 shadow-2xl shadow-purple-500/20">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full text-white text-xs font-bold uppercase tracking-widest z-20 whitespace-nowrap">
+              All Inclusive
+            </div>
+            <div className="bg-[#0B0B0F] rounded-[31px] p-8 h-full flex flex-col">
+              <h3 className="text-xl font-bold text-white mb-2 text-center">Subscription</h3>
+              <div className="text-5xl font-black text-white mb-1 text-center">$20<span className="text-lg text-neutral-500 font-medium">/mo</span></div>
+              <p className="text-sm text-purple-400 mb-8 font-medium text-center">Cancel anytime</p>
+              <ul className="space-y-4 mb-8 flex-1">
+                {['1000 AI coaching sessions per month', 'Live speech-to-text dictation', 'Advanced grammar analytics', 'Premium ultra-realistic voices', 'Custom roleplay scenarios'].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-neutral-300 text-sm">
+                    <Check className="w-5 h-5 text-purple-400 shrink-0" /> 
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <button onClick={onOpenAuth} className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg">Start Free Trial</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section id="faq" className="py-32 px-6 max-w-3xl mx-auto">
+        <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-12 tracking-tight">Frequently asked questions</h2>
+        <div className="space-y-4">
+          {faqs.map((faq, i) => (
+            <div key={i} className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden transition-all">
+              <button 
+                onClick={() => setActiveFaq(activeFaq === i ? null : i)}
+                className="w-full px-6 py-5 flex items-center justify-between text-left cursor-pointer"
+              >
+                <span className="font-semibold text-white">{faq.q}</span>
+                <ChevronDown className={`w-5 h-5 text-neutral-500 transition-transform duration-300 ${activeFaq === i ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {activeFaq === i && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 pb-5 text-neutral-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                      {faq.a}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>
       </section>
 
-      {/* LEARNER TESTIMONIALS AROUND THE WORLD */}
-      <section className="max-w-5xl mx-auto px-4 space-y-6">
-        <div className="text-center max-w-xl mx-auto space-y-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">
-            Loved By Thousands of Learners
-          </span>
-          <h3 className="text-xl sm:text-2xl font-black text-neutral-900">
-            Real Non-English Speakers, Real Success
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-5 rounded-3xl bg-white border border-neutral-200 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🇲🇽</span>
-              <div>
-                <p className="text-xs font-bold text-neutral-900">María R.</p>
-                <p className="text-[10px] text-neutral-500">Spanish Speaker • Mexico City</p>
-              </div>
-            </div>
-            <p className="text-xs text-neutral-600 italic leading-relaxed">
-              "Finally an app that isn't intimidating! If I get stuck, it immediately explains in Spanish and gives me the slow audio. My travel confidence skyrocketed."
-            </p>
-            <div className="text-amber-500 text-xs">★★★★★</div>
-          </div>
-
-          <div className="p-5 rounded-3xl bg-white border border-neutral-200 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🇧🇷</span>
-              <div>
-                <p className="text-xs font-bold text-neutral-900">Lucas M.</p>
-                <p className="text-[10px] text-neutral-500">Portuguese Speaker • São Paulo</p>
-              </div>
-            </div>
-            <p className="text-xs text-neutral-600 italic leading-relaxed">
-              "The slow audio is a lifesaver. Other apps speak so fast it makes me nervous. The AI chat feels like texting a patient friend who wants to help you."
-            </p>
-            <div className="text-amber-500 text-xs">★★★★★</div>
-          </div>
-
-          <div className="p-5 rounded-3xl bg-white border border-neutral-200 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🇮🇳</span>
-              <div>
-                <p className="text-xs font-bold text-neutral-900">Priya K.</p>
-                <p className="text-[10px] text-neutral-500">Hindi Speaker • Bengaluru</p>
-              </div>
-            </div>
-            <p className="text-xs text-neutral-600 italic leading-relaxed">
-              "I wanted to sound more natural when speaking with international colleagues. The workplace chat lessons gave me exact sentences to use right away."
-            </p>
-            <div className="text-amber-500 text-xs">★★★★★</div>
-          </div>
-        </div>
+      {/* BOTTOM CTA SECTION */}
+      <section className="py-32 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10 animate-pulse-slow pointer-events-none" />
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="max-w-5xl mx-auto text-center relative z-10 bg-white/[0.02] border border-white/10 rounded-[3rem] p-12 md:p-24 backdrop-blur-md overflow-hidden"
+        >
+          {/* Decorative blur inside card */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/20 blur-[60px] rounded-full pointer-events-none" />
+          
+          <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-8 tracking-tighter relative z-10">
+            Ready to speak with confidence?
+          </h2>
+          <button 
+            onClick={onOpenAuth}
+            className="px-10 py-5 rounded-full bg-white text-black font-bold hover:scale-105 active:scale-95 transition-all text-lg shadow-[0_0_30px_rgba(255,255,255,0.2)] relative z-10 inline-flex items-center gap-2"
+          >
+            Get Started Now <ArrowRight className="w-5 h-5" />
+          </button>
+        </motion.div>
       </section>
 
-      {/* LEGALITIES & TRUST DISCLOSURE SECTION */}
-      <section className="max-w-5xl mx-auto px-4">
-        <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900 text-white border border-neutral-800 space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-800 pb-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5" />
+      {/* FOOTER */}
+      <footer className="border-t border-white/10 py-16 px-6 bg-[#0B0B0F]">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8">
+          <div className="col-span-2 md:col-span-2">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                <Sparkles className="w-3 h-3 text-white" />
               </div>
-              <div>
-                <h4 className="font-extrabold text-sm sm:text-base text-white">
-                  Our Transparency & Legal Standards
-                </h4>
-                <p className="text-xs text-neutral-400">
-                  Fair, safe, and privacy-first learning designed for users worldwide.
-                </p>
-              </div>
+              <span className="text-lg font-bold text-white tracking-tight">English Coach</span>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold text-neutral-300">
-              <span className="px-2.5 py-1 rounded-full bg-neutral-800 border border-neutral-700">
-                🔒 SSL 256-Bit Encryption
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-neutral-800 border border-neutral-700">
-                🛡️ GDPR & CCPA Ready
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-neutral-800 border border-neutral-700">
-                🤖 Responsible AI Standards
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-neutral-300 leading-relaxed">
-            <div className="space-y-1.5">
-              <h5 className="font-bold text-white flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-emerald-400" />
-                Zero Data Selling
-              </h5>
-              <p className="text-[11px] text-neutral-400">
-                We respect your personal privacy. We never sell or license your speech, text practice prompts, or personal profile information to third-party advertisers.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <h5 className="font-bold text-white flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                AI Educational Notice
-              </h5>
-              <p className="text-[11px] text-neutral-400">
-                English Coach uses advanced AI (Google Gemini) for conversational language simulations. AI responses are for educational practice and do not constitute certified legal or medical advice.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <h5 className="font-bold text-white flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-                Risk-Free 3-Day Trial
-              </h5>
-              <p className="text-[11px] text-neutral-400">
-                Free sessions are always accessible. Subscription includes a 3-day complimentary trial with a 14-day money-back guarantee, easily cancellable anytime with 1 click.
-              </p>
-            </div>
-          </div>
-
-          {/* Legal Document Links */}
-          <div className="pt-4 border-t border-neutral-800 flex flex-wrap items-center justify-between gap-4 text-xs">
-            <div className="flex flex-wrap items-center gap-4 text-neutral-400">
-              <Link to="/terms" className="hover:text-white underline transition-colors">
-                Terms of Service
-              </Link>
-              <Link to="/privacy" className="hover:text-white underline transition-colors">
-                Privacy Policy
-              </Link>
-              <Link to="/refund" className="hover:text-white underline transition-colors">
-                Refund & Cancellation Policy
-              </Link>
-              <a 
-                href="mailto:ProEnglishAICoach@protonmail.com" 
-                className="hover:text-white underline transition-colors"
-              >
-                Contact Legal: ProEnglishAICoach@protonmail.com
-              </a>
-            </div>
-
-            <p className="text-[11px] text-neutral-500">
-              © 2026 English Coach. All rights reserved.
+            <p className="text-sm text-neutral-500 max-w-xs">
+              Empowering professionals worldwide to communicate with clarity and confidence using state-of-the-art AI.
             </p>
           </div>
-        </div>
-      </section>
+          
+          <div>
+            <h4 className="text-white font-semibold mb-4">Product</h4>
+            <ul className="space-y-3">
+              {['Features', 'Pricing', 'Integrations', 'Changelog'].map(link => (
+                <li key={link}><a href="#" className="text-sm text-neutral-500 hover:text-white transition-colors">{link}</a></li>
+              ))}
+            </ul>
+          </div>
 
+          <div>
+            <h4 className="text-white font-semibold mb-4">Resources</h4>
+            <ul className="space-y-3">
+              {['Help Center', 'Blog', 'Community', 'Tutorials'].map(link => (
+                <li key={link}><a href="#" className="text-sm text-neutral-500 hover:text-white transition-colors">{link}</a></li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-semibold mb-4">Legal</h4>
+            <ul className="space-y-3">
+              <li><Link to="/privacy" className="text-sm text-neutral-500 hover:text-white transition-colors">Privacy</Link></li>
+              <li><Link to="/terms" className="text-sm text-neutral-500 hover:text-white transition-colors">Terms</Link></li>
+              <li><Link to="/refund" className="text-sm text-neutral-500 hover:text-white transition-colors">Refunds</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-600">
+          <p>© {new Date().getFullYear()} ProEnglish AI Coach. All rights reserved.</p>
+          <div className="flex gap-4">
+            <span>Built with precision.</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
