@@ -7,6 +7,7 @@ import { syncUserProfile } from '../lib/firestoreService';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 import { validateFreemiusConfig } from '../lib/freemius';
 import { calculateTrialInfo } from '../lib/trialService';
+import asianManComputer from '../assets/images/asian_man_computer_1788796518513.jpg';
 
 export interface Tier {
   name: 'Subscription';
@@ -172,7 +173,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
             <span>Risk-Free 3-Day Trial on Subscription Plan</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
-            Predictable, transparent coaching subscription
+            Basic English Coaching
           </h1>
           <p className="mt-3 text-base text-neutral-600 mb-8">
             1000 AI coaching sessions per month with live speech-to-text dictation, pronunciation audio speed controls, and all practice modules.
@@ -180,7 +181,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
           
           <div className="max-w-2xl mx-auto rounded-3xl overflow-hidden shadow-xl border border-neutral-200/50 relative mb-4">
             <img 
-              src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=1600&h=900" 
+              src={asianManComputer} 
               alt="Professional confident person" 
               className="w-full h-[180px] sm:h-[220px] object-cover"
               referrerPolicy="no-referrer"

@@ -93,7 +93,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
             transition={{ delay: 0.2 }}
             className="text-lg md:text-xl text-neutral-400 max-w-2xl mb-12 leading-relaxed"
           >
-            The world-class AI tutor that adapts to your professional needs. Practice speaking, perfect your grammar, and roleplay real-world scenarios.
+            Global Language coaching app that helps improve your English fluency
           </motion.p>
 
           <motion.div 
