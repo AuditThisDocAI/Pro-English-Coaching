@@ -2022,22 +2022,23 @@ export function FlashcardsPracticeHub({
                     </label>
                     <div className="flex flex-wrap gap-1.5">
                       {BASIC_ENGLISH_TOPICS.map((topic) => {
-                        const isSelected = genTopic === topic && !genCustomTopic.trim();
+                        const isSelected = genTopic === topic.label && !genCustomTopic.trim();
                         return (
                           <button
-                            key={topic}
+                            key={topic.id}
                             type="button"
                             onClick={() => {
-                              setGenTopic(topic);
+                              setGenTopic(topic.label);
                               setGenCustomTopic('');
                             }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                               isSelected
                                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                                 : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
                             }`}
                           >
-                            {topic}
+                            <span>{topic.icon}</span>
+                            <span>{topic.label}</span>
                           </button>
                         );
                       })}
@@ -2181,7 +2182,7 @@ export function FlashcardsPracticeHub({
                                 <p className="text-sm font-black text-neutral-900 mt-0.5">{card.backProfessional}</p>
                                 {card.backTranslation && (
                                   <p className="text-xs text-neutral-500 mt-1 italic">
-                                    Translation ({nativeLanguage}): {card.backTranslation}
+                                    Translation ({nativeLanguage}): {typeof card.backTranslation === 'string' ? card.backTranslation : (card.backTranslation[nativeLanguage] || Object.values(card.backTranslation)[0])}
                                   </p>
                                 )}
                               </div>
@@ -2228,7 +2229,7 @@ export function FlashcardsPracticeHub({
                           </div>
                           <div>
                             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                              {pack.category}
+                              <span className="mr-1">{pack.icon}</span> Starter Pack
                             </span>
                             <h4 className="font-extrabold text-neutral-900 text-sm mt-1">{pack.title}</h4>
                             <p className="text-xs text-neutral-500 mt-1 leading-relaxed">{pack.description}</p>

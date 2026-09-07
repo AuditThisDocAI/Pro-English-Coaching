@@ -355,14 +355,46 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'starter' | 'everyday' | 'confident'>('all');
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [lessons, setLessons] = useState<LessonPhrase[]>(LESSON_PHRASES);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { speed, speak, isSpeaking, stop } = useTTS();
 
   // Filter phrases
-  const filteredPhrases = LESSON_PHRASES.filter((p) => {
+  const filteredPhrases = lessons.filter((p) => {
     const matchesTopic = selectedTopic === 'all' || p.topicId === selectedTopic;
     const matchesLevel = selectedLevel === 'all' || p.level === selectedLevel;
     return matchesTopic && matchesLevel;
   });
+
+  const handleGenerateMore = async () => {
+    setIsGenerating(true);
+    try {
+      const topicString = selectedTopic === 'all' ? 'Everyday Life' : selectedTopic;
+      const { generateBasicEnglishCards } = await import('../lib/cardGeneratorService');
+      const newCards = await generateBasicEnglishCards(topicString, nativeLanguage, 4);
+      
+      const mappedLessons: LessonPhrase[] = newCards.map(c => ({
+        id: c.id,
+        topicId: selectedTopic === 'all' ? 'custom' : selectedTopic,
+        topicName: c.category || c.frontContext || 'Everyday Life',
+        emoji: '✨',
+        level: 'everyday',
+        english: c.backProfessional,
+        phonetic: '', // Not strictly needed or we can synthesize
+        translations: {
+          [nativeLanguage]: (c.backTranslation || "Translation generating...") as string
+        },
+        why: c.backWhy || 'Natural and clear phrasing.',
+        scenario: c.front
+      }));
+      setLessons(prev => [...prev, ...mappedLessons]);
+      triggerProUpgradeConfetti();
+    } catch (err) {
+      console.error('Failed to generate more lessons:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handlePlayAudio = (phrase: LessonPhrase, customSpeed?: number) => {
     const rateToUse = customSpeed ?? speed;
@@ -610,6 +642,23 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
             </div>
           );
         })}
+      </div>
+
+      {/* Generate More Lessons */}
+      <div className="flex justify-center pt-6">
+        <button
+          type="button"
+          onClick={handleGenerateMore}
+          disabled={isGenerating}
+          className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-sm transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+        >
+          {isGenerating ? (
+            <RotateCcw className="w-5 h-5 animate-spin" />
+          ) : (
+            <Sparkles className="w-5 h-5" />
+          )}
+          <span>{isGenerating ? 'Generating more...' : 'Generate New Lessons'}</span>
+        </button>
       </div>
 
     </div>

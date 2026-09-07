@@ -21,7 +21,6 @@ import {
   Plus, 
   Search, 
   Check, 
-  CheckCircle2,
   Copy, 
   Flame, 
   Layers, 
@@ -1441,22 +1440,23 @@ export function FlashcardsModal({
                       </label>
                       <div className="flex flex-wrap gap-1.5">
                         {BASIC_ENGLISH_TOPICS.map((topic) => {
-                          const isSelected = genTopic === topic && !genCustomTopic.trim();
+                          const isSelected = genTopic === topic.label && !genCustomTopic.trim();
                           return (
                             <button
-                              key={topic}
+                              key={topic.id}
                               type="button"
                               onClick={() => {
-                                setGenTopic(topic);
+                                setGenTopic(topic.label);
                                 setGenCustomTopic('');
                               }}
-                              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                                 isSelected
                                   ? 'bg-emerald-600 text-white border-emerald-600'
                                   : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
                               }`}
                             >
-                              {topic}
+                              <span>{topic.icon}</span>
+                              <span>{topic.label}</span>
                             </button>
                           );
                         })}
@@ -1560,9 +1560,12 @@ export function FlashcardsModal({
                       >
                         <div>
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                            {pack.category}
+                            Starter Pack
                           </span>
-                          <h4 className="font-extrabold text-neutral-900 text-xs mt-1">{pack.title}</h4>
+                          <h4 className="font-extrabold text-neutral-900 text-xs mt-1">
+                            <span className="mr-1">{pack.icon}</span>
+                            {pack.title}
+                          </h4>
                           <p className="text-[11px] text-neutral-500 mt-0.5">{pack.description}</p>
                         </div>
                         <button
