@@ -476,7 +476,7 @@ export const LandingFooter: React.FC<{
               PE
             </div>
             <div>
-              <p className="font-bold text-white text-sm">ProEnglish Coach</p>
+              <p className="font-cambria font-['Cambria',Georgia,serif] font-bold text-white text-base">English Coach</p>
               <p className="text-[11px] text-neutral-500">Global AI Tutor for Career Success</p>
             </div>
           </div>

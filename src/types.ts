@@ -18,7 +18,17 @@ export type NativeLanguage =
   | 'Russian' 
   | 'Turkish' 
   | 'Polish' 
-  | 'Indonesian';
+  | 'Indonesian'
+  | 'Swahili'
+  | 'Yoruba'
+  | 'Igbo'
+  | 'Hausa'
+  | 'Amharic'
+  | 'Zulu'
+  | 'Xhosa'
+  | 'Afrikaans'
+  | 'Somali'
+  | 'Oromo';
 
 export const SUPPORTED_LANGUAGES: { name: NativeLanguage; label: string; flag: string }[] = [
   { name: 'Spanish', label: 'Español (Spanish)', flag: '🇪🇸' },
@@ -37,6 +47,16 @@ export const SUPPORTED_LANGUAGES: { name: NativeLanguage; label: string; flag: s
   { name: 'Turkish', label: 'Türkçe (Turkish)', flag: '🇹🇷' },
   { name: 'Polish', label: 'Polski (Polish)', flag: '🇵🇱' },
   { name: 'Indonesian', label: 'Bahasa Indonesia', flag: '🇮🇩' },
+  { name: 'Swahili', label: 'Kiswahili (Swahili)', flag: '🇹🇿' },
+  { name: 'Yoruba', label: 'Èdè Yorùbá (Yoruba)', flag: '🇳🇬' },
+  { name: 'Igbo', label: 'Asụsụ Igbo (Igbo)', flag: '🇳🇬' },
+  { name: 'Hausa', label: 'Harshen Hausa (Hausa)', flag: '🇳🇬' },
+  { name: 'Amharic', label: 'አማርኛ (Amharic)', flag: '🇪🇹' },
+  { name: 'Zulu', label: 'isiZulu (Zulu)', flag: '🇿🇦' },
+  { name: 'Xhosa', label: 'isiXhosa (Xhosa)', flag: '🇿🇦' },
+  { name: 'Afrikaans', label: 'Afrikaans', flag: '🇿🇦' },
+  { name: 'Somali', label: 'Af-Soomaali (Somali)', flag: '🇸🇴' },
+  { name: 'Oromo', label: 'Afaan Oromoo (Oromo)', flag: '🇪🇹' },
 ];
 
 export interface CoachResponse {
@@ -167,7 +187,7 @@ export interface Flashcard {
   backPractice?: string; // Follow-up drill or conversational prompt
   options?: FlashcardOption[]; // Structured multiple choice options (A, B, C)
   grammarNote?: string; // Educational grammar/etiquette booster
-  level?: 'Beginner' | 'Intermediate' | 'Advanced';
+  level?: 'Beginner' | 'Basic' | 'Intermediate' | 'Advanced';
   tier?: 'free' | 'pro'; // Free trial (20 cards) vs Pro (100+ cards)
   mastery?: FlashcardMastery;
   reviewCount?: number;

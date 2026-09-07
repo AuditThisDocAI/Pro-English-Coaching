@@ -1118,3 +1118,218 @@ Respond strictly in valid JSON matching:
     nativeLanguage
   );
 }
+
+export interface GenerateCardsParams {
+  topic: string;
+  nativeLanguage?: string;
+  count?: number;
+}
+
+export interface GeneratedCard {
+  id: string;
+  category: string;
+  frontContext: string;
+  front: string;
+  backProfessional: string;
+  backWhy: string;
+  backTranslation: string;
+  grammarNote: string;
+  level: 'Beginner';
+  tier: 'free';
+  options: Array<{
+    text: string;
+    isCorrect: boolean;
+    explanation: string;
+  }>;
+}
+
+export async function generateBasicEnglishFlashcards(params: GenerateCardsParams): Promise<GeneratedCard[]> {
+  const { topic = 'Everyday English', nativeLanguage = 'Spanish', count = 3 } = params;
+  const safeCount = Math.min(Math.max(count, 1), 6);
+
+  const systemInstruction = `You are an expert English language coach creating flashcards for English Coach.
+CRITICAL CONSTRAINT: STRICTLY BASIC ENGLISH ONLY (A1–A2 Level).
+The target learners are non-native speakers who need simple, practical, daily conversational English.
+DO NOT use executive buzzwords, advanced corporate jargon, or complicated idioms.
+Keep the English vocabulary easy, clean, polite, and natural for daily life (e.g., shopping, greetings, food, directions, daily work).
+
+For each card:
+1. "front": Casual everyday situation or question prompt (in simple English).
+2. "frontContext": The situation context (e.g. "At the Grocery Store", "Ordering Food").
+3. "backProfessional": The recommended polite, natural Basic English phrase (short, friendly, clear).
+4. "backWhy": A simple 1-sentence reason why this phrase is polite and easy to use.
+5. "backTranslation": Accurate, natural translation of the back phrase into ${nativeLanguage}.
+6. "grammarNote": A short, simple 1-sentence grammar or usage tip.
+7. "options": Exactly 3 multiple-choice options for the quiz:
+   - 1 correct option (matches backProfessional).
+   - 2 plausible distractors (one too blunt/demanding, one grammatically awkward).
+   - Each option MUST have an "explanation" stating clearly why it is correct or incorrect.
+
+Return valid JSON with an array named "cards".`;
+
+  const prompt = `Topic: "${topic}"\nTarget Language for translation: ${nativeLanguage}\nGenerate ${safeCount} basic English flashcards strictly for basic everyday fluency.`;
+
+  // 1. Try Gemini
+  const gemini = getGeminiClient();
+  if (gemini) {
+    const candidateModels = getActiveCandidateModels();
+    for (let i = 0; i < candidateModels.length; i++) {
+      const model = candidateModels[i];
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                cards: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      frontContext: { type: Type.STRING },
+                      front: { type: Type.STRING },
+                      backProfessional: { type: Type.STRING },
+                      backWhy: { type: Type.STRING },
+                      backTranslation: { type: Type.STRING },
+                      grammarNote: { type: Type.STRING },
+                      options: {
+                        type: Type.ARRAY,
+                        items: {
+                          type: Type.OBJECT,
+                          properties: {
+                            text: { type: Type.STRING },
+                            isCorrect: { type: Type.BOOLEAN },
+                            explanation: { type: Type.STRING },
+                          },
+                          required: ['text', 'isCorrect', 'explanation'],
+                        },
+                      },
+                    },
+                    required: ['frontContext', 'front', 'backProfessional', 'backWhy', 'backTranslation', 'grammarNote', 'options'],
+                  },
+                },
+              },
+              required: ['cards'],
+            },
+          },
+        });
+
+        const text = (response.text || '').trim();
+        if (text) {
+          const parsed = JSON.parse(cleanJsonOutput(text));
+          if (parsed && Array.isArray(parsed.cards) && parsed.cards.length > 0) {
+            return parsed.cards.slice(0, safeCount).map((c: any, idx: number) => ({
+              id: `gen_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+              category: topic,
+              frontContext: c.frontContext || topic,
+              front: c.front,
+              backProfessional: c.backProfessional,
+              backWhy: c.backWhy || 'Simple, polite, and natural everyday English.',
+              backTranslation: c.backTranslation || `Translation in ${nativeLanguage}`,
+              grammarNote: c.grammarNote || 'Use polite words like please and thank you.',
+              level: 'Beginner' as const,
+              tier: 'free' as const,
+              options: Array.isArray(c.options) && c.options.length >= 2 ? c.options : [
+                { text: c.backProfessional, isCorrect: true, explanation: 'Correct! Polite and natural basic English.' },
+                { text: c.front, isCorrect: false, explanation: 'Informal or too casual for this daily scenario.' },
+              ],
+            }));
+          }
+        }
+      } catch (err: any) {
+        handleGeminiModelError(model, err);
+      }
+    }
+  }
+
+  // 2. High-quality Rule-based Fallback for Basic English
+  return getFallbackBasicCards(topic, nativeLanguage, safeCount);
+}
+
+function getFallbackBasicCards(topic: string, nativeLanguage: string, count: number): GeneratedCard[] {
+  const bank = [
+    {
+      frontContext: 'Supermarket & Shopping',
+      front: 'How do you ask an employee where the bread is?',
+      backProfessional: 'Excuse me, where can I find the bread?',
+      backWhy: 'Starting with "Excuse me" is polite, and "where can I find..." is clear and simple.',
+      backTranslation: 'Disculpe, ¿dónde puedo encontrar el pan?',
+      grammarNote: 'Use "Excuse me" to get someone’s attention politely before asking a question.',
+      options: [
+        { text: 'Excuse me, where can I find the bread?', isCorrect: true, explanation: 'Perfect! Polite, clear, and natural basic English.' },
+        { text: 'Where is bread? Give it to me.', isCorrect: false, explanation: 'Too aggressive and sounds demanding.' },
+        { text: 'Bread location where please?', isCorrect: false, explanation: 'Grammatically incomplete. Use full simple questions.' }
+      ]
+    },
+    {
+      frontContext: 'Café & Ordering Drink',
+      front: 'How do you order a hot coffee with milk politely?',
+      backProfessional: 'Could I please have a hot coffee with milk?',
+      backWhy: '"Could I please have..." is the friendliest way to order food or drinks in English.',
+      backTranslation: '¿Podría darme un café caliente con leche, por favor?',
+      grammarNote: '"Could I please have..." + item is the gold standard for ordering.',
+      options: [
+        { text: 'Could I please have a hot coffee with milk?', isCorrect: true, explanation: 'Great choice! Very polite and easy to understand.' },
+        { text: 'I want coffee now.', isCorrect: false, explanation: 'Too abrupt and sounds impolite to the barista.' },
+        { text: 'Give me one coffee milk.', isCorrect: false, explanation: 'Missing polite modal words like "please" and "could".' }
+      ]
+    },
+    {
+      frontContext: 'Asking Directions',
+      front: 'How do you ask someone for the nearest bus station?',
+      backProfessional: 'Excuse me, where is the nearest bus stop?',
+      backWhy: '"Nearest" means closest to you, and the sentence is short and direct.',
+      backTranslation: 'Disculpe, ¿dónde está la parada de autobús más cercana?',
+      grammarNote: 'Use "nearest" + noun when looking for the closest place.',
+      options: [
+        { text: 'Excuse me, where is the nearest bus stop?', isCorrect: true, explanation: 'Correct! Simple, natural, and polite.' },
+        { text: 'Bus stop tell me now.', isCorrect: false, explanation: 'Too rude and bossy.' },
+        { text: 'Where going the bus here?', isCorrect: false, explanation: 'Confusing grammar. Ask "Where is the nearest bus stop?".' }
+      ]
+    },
+    {
+      frontContext: 'Doctor & Pharmacy',
+      front: 'How do you tell a doctor or pharmacist you have a bad headache?',
+      backProfessional: 'I have a bad headache. What do you recommend?',
+      backWhy: 'Clearly states the symptom and asks for helpful advice politely.',
+      backTranslation: 'Tengo un fuerte dolor de cabeza. ¿Qué me recomienda?',
+      grammarNote: 'Say "I have a headache / stomachache / fever" to describe symptoms.',
+      options: [
+        { text: 'I have a bad headache. What do you recommend?', isCorrect: true, explanation: 'Accurate and polite medical communication.' },
+        { text: 'My head hurts very much give pills.', isCorrect: false, explanation: 'Awkward and too demanding.' },
+        { text: 'I paining inside head.', isCorrect: false, explanation: 'Incorrect grammar. Use "I have a headache" instead.' }
+      ]
+    },
+    {
+      frontContext: 'Daily Greetings & Small Talk',
+      front: 'How do you greet a neighbor or colleague in the morning?',
+      backProfessional: 'Good morning! How is your day going so far?',
+      backWhy: 'A warm, friendly greeting that shows kindness without being too personal.',
+      backTranslation: '¡Buenos días! ¿Cómo va tu día hasta ahora?',
+      grammarNote: '"Good morning" is used until 12:00 PM (noon).',
+      options: [
+        { text: 'Good morning! How is your day going so far?', isCorrect: true, explanation: 'Friendly, warm, and natural everyday English.' },
+        { text: 'Hey you talk to me.', isCorrect: false, explanation: 'Sounds strange and intimidating.' },
+        { text: 'Morning. Why are you here?', isCorrect: false, explanation: 'Sounds cold and interrogating.' }
+      ]
+    }
+  ];
+
+  return bank.slice(0, count).map((item, idx) => ({
+    id: `fb_${Date.now()}_${idx}`,
+    category: topic,
+    frontContext: item.frontContext,
+    front: item.front,
+    backProfessional: item.backProfessional,
+    backWhy: item.backWhy,
+    backTranslation: item.backTranslation,
+    grammarNote: item.grammarNote,
+    level: 'Beginner' as const,
+    tier: 'free' as const,
+    options: item.options
+  }));
+}

@@ -184,21 +184,48 @@ export const AITranslatorStudio: React.FC<AITranslatorStudioProps> = ({
         </div>
 
         {/* Native Language Selector */}
-        <div className="flex items-center gap-2 bg-neutral-50 p-2 rounded-2xl border border-neutral-200/80 shrink-0">
-          <Languages className="w-4 h-4 text-emerald-600 ml-1 shrink-0" />
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Your Language:</span>
-            <select
-              value={nativeLanguage}
-              onChange={(e) => onLanguageChange(e.target.value as NativeLanguage)}
-              className="text-xs font-bold text-neutral-800 bg-transparent focus:outline-none cursor-pointer pr-2"
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <option key={lang.name} value={lang.name}>
-                  {lang.flag} {lang.label}
-                </option>
-              ))}
-            </select>
+        <div className="flex flex-col sm:items-end gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 bg-neutral-50 p-2 rounded-2xl border border-neutral-200/80 shrink-0">
+            <Languages className="w-4 h-4 text-emerald-600 ml-1 shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Your Language:</span>
+              <select
+                value={nativeLanguage}
+                onChange={(e) => onLanguageChange(e.target.value as NativeLanguage)}
+                className="text-xs font-bold text-neutral-800 bg-transparent focus:outline-none cursor-pointer pr-2"
+              >
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <option key={lang.name} value={lang.name}>
+                    {lang.flag} {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto max-w-[280px] sm:max-w-[340px] scrollbar-none py-0.5">
+            <span className="text-[9px] font-bold text-neutral-400 uppercase shrink-0">African & Popular:</span>
+            {[
+              { name: 'Swahili' as NativeLanguage, flag: '🇹🇿' },
+              { name: 'Yoruba' as NativeLanguage, flag: '🇳🇬' },
+              { name: 'Igbo' as NativeLanguage, flag: '🇳🇬' },
+              { name: 'Hausa' as NativeLanguage, flag: '🇳🇬' },
+              { name: 'Zulu' as NativeLanguage, flag: '🇿🇦' },
+              { name: 'Amharic' as NativeLanguage, flag: '🇪🇹' },
+              { name: 'Spanish' as NativeLanguage, flag: '🇪🇸' },
+            ].map(item => (
+              <button
+                key={item.name}
+                type="button"
+                onClick={() => onLanguageChange(item.name)}
+                className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold transition-all shrink-0 cursor-pointer ${
+                  nativeLanguage === item.name
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
+              >
+                {item.flag} {item.name}
+              </button>
+            ))}
           </div>
         </div>
       </div>

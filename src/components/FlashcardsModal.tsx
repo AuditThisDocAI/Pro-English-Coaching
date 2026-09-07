@@ -21,6 +21,7 @@ import {
   Plus, 
   Search, 
   Check, 
+  CheckCircle2,
   Copy, 
   Flame, 
   Layers, 
@@ -32,7 +33,12 @@ import {
   Languages,
   Zap,
   Trash2,
-  ListFilter
+  ListFilter,
+  AlertTriangle,
+  XCircle,
+  Globe,
+  RefreshCw,
+  PenTool
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTTS } from '../lib/useTTS';
@@ -46,6 +52,17 @@ import {
   incrementReviewedCount
 } from '../lib/flashcardService';
 import { getFlashcardTranslation } from '../data/flashcardDecks';
+import { 
+  translateText, 
+  getFlashcardPromptTranslation, 
+  getQuizOptionsTranslations 
+} from '../lib/translationService';
+import { 
+  BASIC_ENGLISH_TOPICS, 
+  PRESET_STARTER_PACKS, 
+  generateBasicEnglishCards, 
+  StarterCardPack 
+} from '../lib/cardGeneratorService';
 import { triggerCelebrationConfetti } from '../lib/confetti';
 import { auth } from '../lib/firebase';
 
@@ -86,6 +103,16 @@ export function FlashcardsModal({
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [copiedCardId, setCopiedCardId] = useState<string | null>(null);
 
+  // App Card Generator & Starter Packs State
+  const [createSubTab, setCreateSubTab] = useState<'generate' | 'packs' | 'manual'>('generate');
+  const [genTopic, setGenTopic] = useState<string>('Supermarket & Shopping');
+  const [genCustomTopic, setGenCustomTopic] = useState<string>('');
+  const [genCount, setGenCount] = useState<number>(3);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [generatedCards, setGeneratedCards] = useState<Flashcard[]>([]);
+  const [addedCardIds, setAddedCardIds] = useState<string[]>([]);
+  const [generatorSuccessMessage, setGeneratorSuccessMessage] = useState<string | null>(null);
+
   // New Card Form State
   const [newFront, setNewFront] = useState('');
   const [newFrontContext, setNewFrontContext] = useState('Everyday Conversation');
@@ -97,6 +124,14 @@ export function FlashcardsModal({
   const [quizAnswered, setQuizAnswered] = useState<boolean>(false);
   const [quizSelectedOption, setQuizSelectedOption] = useState<number | null>(null);
   const [quizScore, setQuizScore] = useState<{ correct: number; total: number }>({ correct: 0, total: 0 });
+
+  // Translation Support State
+  const [showTranslation, setShowTranslation] = useState<boolean>(false);
+  const [showFrontTranslation, setShowFrontTranslation] = useState<boolean>(false);
+  const [translatedPrompt, setTranslatedPrompt] = useState<string>('');
+  const [translatedOptions, setTranslatedOptions] = useState<Record<number, string>>({});
+  const [translatedCorrection, setTranslatedCorrection] = useState<string>('');
+  const [isTranslatingCard, setIsTranslatingCard] = useState<boolean>(false);
 
   // Update decks dynamically
   const decks = useMemo(() => {
@@ -200,6 +235,7 @@ export function FlashcardsModal({
       setCurrentIndex((prev) => prev + 1);
       setQuizAnswered(false);
       setQuizSelectedOption(null);
+      setShowFrontTranslation(false);
     }
   }, [currentIndex, currentDeckCards.length]);
 
@@ -209,13 +245,62 @@ export function FlashcardsModal({
       setCurrentIndex((prev) => prev - 1);
       setQuizAnswered(false);
       setQuizSelectedOption(null);
+      setShowFrontTranslation(false);
     }
   }, [currentIndex]);
 
   const handleShuffle = () => {
     setIsFlipped(false);
     setCurrentIndex(Math.floor(Math.random() * Math.max(1, currentDeckCards.length)));
+    setQuizAnswered(false);
+    setQuizSelectedOption(null);
+    setShowFrontTranslation(false);
   };
+
+  // Translation on demand / card change
+  useEffect(() => {
+    let isMounted = true;
+    if (!currentCard) {
+      setTranslatedPrompt('');
+      setTranslatedOptions({});
+      setTranslatedCorrection('');
+      return;
+    }
+
+    const runTranslations = async () => {
+      setIsTranslatingCard(true);
+      try {
+        const promptTr = await getFlashcardPromptTranslation(currentCard, nativeLanguage);
+        if (isMounted) setTranslatedPrompt(promptTr);
+
+        const optionsForTranslation = (currentCard.options && currentCard.options.length > 0)
+          ? currentCard.options
+          : [{ text: currentCard.backProfessional }];
+        const optTranslations = await getQuizOptionsTranslations(optionsForTranslation, nativeLanguage);
+        if (isMounted && optTranslations) {
+          const map: Record<number, string> = {};
+          optTranslations.forEach((t, i) => {
+            map[i] = t;
+          });
+          setTranslatedOptions(map);
+        }
+
+        const textToTranslate = currentCard.backWhy || currentCard.backProfessional || '';
+        const correctionTr = await translateText(textToTranslate, nativeLanguage);
+        if (isMounted && correctionTr) setTranslatedCorrection(correctionTr);
+      } catch (err) {
+        console.warn('Translation error in modal:', err);
+      } finally {
+        if (isMounted) setIsTranslatingCard(false);
+      }
+    };
+
+    runTranslations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentCard?.id, nativeLanguage]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -283,14 +368,20 @@ export function FlashcardsModal({
     const newCard: Flashcard = {
       id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       deckId: 'custom-deck',
-      category: newCategory.trim() || 'Custom',
-      frontContext: newFrontContext.trim() || 'Custom Thought',
+      category: newCategory.trim() || 'Everyday English',
+      frontContext: newFrontContext.trim() || 'Daily Life',
       front: newFront.trim(),
       backProfessional: newBackProfessional.trim(),
-      backWhy: newBackWhy.trim() || 'Custom tailored executive formulation.',
+      backWhy: newBackWhy.trim() || 'Clear, polite Basic English phrasing.',
       backPractice: 'Practice speaking this in your next conversation.',
       mastery: 'new',
       isCustom: true,
+      level: 'Beginner',
+      tier: 'free',
+      options: [
+        { text: newFront.trim(), isCorrect: false, explanation: 'Informal draft formulation.' },
+        { text: newBackProfessional.trim(), isCorrect: true, explanation: 'Clear, natural Basic English.' },
+      ],
     };
 
     const updated = [newCard, ...customCards];
@@ -307,6 +398,77 @@ export function FlashcardsModal({
     setIsFlipped(false);
   };
 
+  // Card Generator Actions
+  const handleGenerateCards = async () => {
+    const topicToUse = genCustomTopic.trim() || genTopic;
+    setIsGenerating(true);
+    setGeneratorSuccessMessage(null);
+    try {
+      const cards = await generateBasicEnglishCards(topicToUse, nativeLanguage, genCount);
+      setGeneratedCards(cards);
+    } catch (err) {
+      console.error('Failed to generate cards:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAddSingleGeneratedCard = (card: Flashcard) => {
+    if (addedCardIds.includes(card.id)) return;
+    const formattedCard: Flashcard = {
+      ...card,
+      deckId: 'custom-deck',
+      level: 'Beginner',
+      tier: 'free',
+      isCustom: true,
+    };
+    const updated = [formattedCard, ...customCards];
+    setCustomCards(updated);
+    saveCustomFlashcards(currentUser, updated);
+    setAddedCardIds((prev) => [...prev, card.id]);
+    setGeneratorSuccessMessage(`Added "${card.front}" to your deck!`);
+    setTimeout(() => setGeneratorSuccessMessage(null), 3500);
+  };
+
+  const handleAddAllGeneratedCards = () => {
+    const unadded = generatedCards.filter((c) => !addedCardIds.includes(c.id));
+    if (unadded.length === 0) return;
+    const formatted = unadded.map((c) => ({
+      ...c,
+      deckId: 'custom-deck',
+      level: 'Beginner' as const,
+      tier: 'free' as const,
+      isCustom: true,
+    }));
+    const updated = [...formatted, ...customCards];
+    setCustomCards(updated);
+    saveCustomFlashcards(currentUser, updated);
+    setAddedCardIds((prev) => [...prev, ...unadded.map((c) => c.id)]);
+    triggerCelebrationConfetti();
+    setGeneratorSuccessMessage(`Added all ${unadded.length} basic English cards to your deck!`);
+    setTimeout(() => setGeneratorSuccessMessage(null), 4000);
+  };
+
+  const handleAddStarterPack = (pack: StarterCardPack) => {
+    const newCards = pack.cards.map((c) => ({
+      ...c,
+      id: `pack_${pack.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      deckId: 'custom-deck',
+      level: 'Beginner' as const,
+      tier: 'free' as const,
+      isCustom: true,
+    }));
+    const updated = [...newCards, ...customCards];
+    setCustomCards(updated);
+    saveCustomFlashcards(currentUser, updated);
+    triggerCelebrationConfetti();
+    setGeneratorSuccessMessage(`Added "${pack.title}" (${pack.cards.length} cards) to your deck!`);
+    setSelectedDeckId('custom-deck');
+    setActiveTab('study');
+    setCurrentIndex(0);
+    setTimeout(() => setGeneratorSuccessMessage(null), 4000);
+  };
+
   const handleDeleteCustomCard = (cardId: string) => {
     const updated = customCards.filter((c) => c.id !== cardId);
     setCustomCards(updated);
@@ -317,17 +479,21 @@ export function FlashcardsModal({
   const quizOptions = useMemo(() => {
     if (!currentCard || activeTab !== 'quiz') return [];
 
+    if (currentCard.options && currentCard.options.length >= 2) {
+      return [...currentCard.options];
+    }
+
     const correct = currentCard.backProfessional;
     const otherCards = currentDeckCards.filter((c) => c.id !== currentCard.id);
     const shuffledOthers = [...otherCards].sort(() => 0.5 - Math.random()).slice(0, 2);
 
-    const distractor1 = shuffledOthers[0]?.backProfessional || 'Please ensure you complete this at your earliest convenience.';
-    const distractor2 = shuffledOthers[1]?.backProfessional || 'I wanted to circle back regarding our discussion yesterday.';
+    const distractor1 = shuffledOthers[0]?.backProfessional || 'Could you please assist with this matter immediately?';
+    const distractor2 = shuffledOthers[1]?.backProfessional || 'I wanted to check on this again today.';
 
     const rawOptions = [
-      { text: correct, isCorrect: true },
-      { text: distractor1, isCorrect: false },
-      { text: distractor2, isCorrect: false },
+      { text: correct, isCorrect: true, explanation: currentCard.backWhy || 'Natural, polite daily English formulation.' },
+      { text: distractor1, isCorrect: false, explanation: 'Sounds slightly abrupt or overly demanding.' },
+      { text: distractor2, isCorrect: false, explanation: 'Lacks clarity or standard polite structure.' },
     ];
 
     return rawOptions.sort(() => 0.5 - Math.random());
@@ -344,7 +510,15 @@ export function FlashcardsModal({
 
     if (isCorrect && currentCard) {
       handleSetMastery(currentCard.id, 'mastered');
+      triggerCelebrationConfetti();
+    } else if (!isCorrect && currentCard) {
+      handleSetMastery(currentCard.id, 'learning');
     }
+  };
+
+  const handleRetryCurrentCard = () => {
+    setQuizAnswered(false);
+    setQuizSelectedOption(null);
   };
 
   if (!isOpen) return null;
@@ -794,39 +968,92 @@ export function FlashcardsModal({
               <div className="max-w-2xl mx-auto">
                 {currentCard ? (
                   <div className="bg-white rounded-3xl p-6 sm:p-8 border border-neutral-200 shadow-sm space-y-6">
-                    <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
-                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                        Quiz Challenge • Card {currentIndex + 1} of {currentDeckCards.length}
-                      </span>
-                      <span className="text-xs font-semibold text-neutral-500">
-                        Score: {quizScore.correct} / {quizScore.total}
-                      </span>
+                    <div className="space-y-3 border-b border-neutral-100 pb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                          Quiz Challenge • Card {currentIndex + 1} of {currentDeckCards.length}
+                        </span>
+                        <span className="text-xs font-semibold text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-lg">
+                          Score: {quizScore.correct} / {quizScore.total}
+                        </span>
+                      </div>
+
+                      {/* Native Translation Toggle */}
+                      <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Languages className="w-4 h-4 text-emerald-700" />
+                          <span className="font-bold text-emerald-950">
+                            Native Translation ({nativeLanguage}):
+                          </span>
+                          {isTranslatingCard && (
+                            <span className="text-[10px] text-emerald-700 animate-pulse font-medium">Translating...</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowTranslation((prev) => !prev)}
+                          className={`px-3 py-1 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+                            showTranslation
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                          }`}
+                          title="Toggle native language translation"
+                        >
+                          <Globe className="w-3.5 h-3.5" />
+                          <span>{showTranslation ? 'Hide Translation' : `Show in ${nativeLanguage}`}</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <div>
-                      <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-2">
-                        Casual Thought / Scenario:
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider block">
+                        Casual Thought / Daily Scenario:
                       </span>
-                      <p className="text-lg font-bold text-neutral-800">
+                      <p className="text-lg font-bold text-neutral-900 leading-snug">
                         "{currentCard.front}"
                       </p>
+
+                      {showTranslation && (
+                        <div className="p-3 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2">
+                          <Languages className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-[10px] uppercase text-emerald-800 block mb-0.5">
+                              {nativeLanguage} Translation:
+                            </span>
+                            <p className="font-medium text-emerald-950">{translatedPrompt || 'Translating prompt...'}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3">
-                      <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">
-                        Select the most professional executive formulation:
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider block">
+                          Select the most natural, polite daily English response:
+                        </span>
+                        {quizAnswered && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-200">
+                              Green = Correct
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-900 font-bold border border-rose-200">
+                              Red = Incorrect
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
                       {quizOptions.map((opt, idx) => {
                         const isSelected = quizSelectedOption === idx;
                         let btnStyle = 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200 text-neutral-800';
 
                         if (quizAnswered) {
                           if (opt.isCorrect) {
-                            btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold ring-2 ring-emerald-500/20';
+                            btnStyle = 'bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-bold ring-2 ring-emerald-500/20 shadow-xs';
                           } else if (isSelected && !opt.isCorrect) {
-                            btnStyle = 'bg-red-50 border-red-300 text-red-800';
+                            btnStyle = 'bg-rose-50 border-2 border-rose-500 text-rose-950 font-bold ring-2 ring-rose-400/30 shadow-xs';
                           } else {
-                            btnStyle = 'opacity-50 bg-neutral-50 border-neutral-200 text-neutral-500';
+                            btnStyle = 'opacity-45 bg-neutral-50 border-neutral-200 text-neutral-400';
                           }
                         }
 
@@ -837,38 +1064,166 @@ export function FlashcardsModal({
                             onClick={() => handleSelectQuizOption(idx, opt.isCorrect)}
                             className={`w-full text-left p-4 rounded-2xl border transition-all text-xs sm:text-sm leading-relaxed flex items-start gap-3 cursor-pointer ${btnStyle}`}
                           >
-                            <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                            <span className={`w-6 h-6 rounded-full border border-current flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
+                              quizAnswered && opt.isCorrect
+                                ? 'bg-emerald-600 text-white border-emerald-600'
+                                : quizAnswered && isSelected && !opt.isCorrect
+                                ? 'bg-rose-600 text-white border-rose-600'
+                                : ''
+                            }`}>
                               {String.fromCharCode(65 + idx)}
                             </span>
-                            <span className="flex-1">{opt.text}</span>
+                            <div className="flex-1">
+                              <p className="font-semibold text-neutral-900">{opt.text}</p>
+                              {showTranslation && translatedOptions[idx] && (
+                                <p className="text-xs mt-1 text-neutral-600 font-medium italic">
+                                  "{translatedOptions[idx]}"
+                                </p>
+                              )}
+                              {quizAnswered && opt.explanation && (
+                                <p className={`text-[11px] mt-1.5 font-medium ${opt.isCorrect ? 'text-emerald-800' : 'text-rose-800'}`}>
+                                  {opt.explanation}
+                                </p>
+                              )}
+                            </div>
                             {quizAnswered && opt.isCorrect && (
-                              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 stroke-[3]" />
+                            )}
+                            {quizAnswered && isSelected && !opt.isCorrect && (
+                              <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                             )}
                           </button>
                         );
                       })}
                     </div>
 
-                    {quizAnswered && (
-                      <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
-                          <Lightbulb className="w-4 h-4 text-amber-500" />
-                          <span>Executive Rationale:</span>
+                    {/* Answer Analysis & User Correction */}
+                    {quizAnswered && (() => {
+                      const selectedOpt = quizSelectedOption !== null ? quizOptions[quizSelectedOption] : null;
+                      const correctOpt = quizOptions.find((o) => o.isCorrect) || quizOptions[0];
+                      const isSelectionCorrect = selectedOpt?.isCorrect === true;
+
+                      if (isSelectionCorrect) {
+                        return (
+                          <div className="p-5 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
+                                <Check className="w-4 h-4 text-emerald-700 stroke-[3]" />
+                                <span>Correct Answer! Why This Works:</span>
+                              </div>
+                              {isSupported && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSpeak(correctOpt.text)}
+                                  className="text-xs font-bold text-emerald-800 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                  <span>Listen</span>
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-xs sm:text-sm text-emerald-900 leading-relaxed font-medium">
+                              {selectedOpt?.explanation || currentCard.backWhy}
+                            </p>
+                            {showTranslation && (
+                              <div className="p-2 rounded-xl bg-white/90 border border-emerald-200 text-xs text-emerald-950">
+                                <span className="font-bold text-[10px] uppercase text-emerald-800 block mb-0.5">
+                                  {nativeLanguage} Translation:
+                                </span>
+                                <p className="font-medium italic">
+                                  {getFlashcardTranslation(currentCard, nativeLanguage) || translatedCorrection}
+                                </p>
+                              </div>
+                            )}
+                            <div className="pt-2 flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={handleRetryCurrentCard}
+                                className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <RotateCw className="w-3.5 h-3.5" />
+                                <span>Practice Again</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleNext}
+                                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                              >
+                                <span>Next Question</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="p-5 rounded-2xl bg-rose-50/95 border-2 border-rose-300 space-y-3.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 text-xs font-bold text-rose-950">
+                              <AlertTriangle className="w-4 h-4 text-rose-600" />
+                              <span>Needs Correction — Analysis:</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleRetryCurrentCard}
+                              className="px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <RotateCw className="w-3.5 h-3.5" />
+                              <span>Try Again</span>
+                            </button>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-white border border-rose-200 text-xs text-rose-900 space-y-1">
+                            <strong className="block text-rose-950">Why your choice was incorrect:</strong>
+                            <p className="font-medium">{selectedOpt?.explanation || 'This phrasing sounds awkward or unnatural for this daily scenario.'}</p>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <strong className="text-emerald-950">Say this instead (Correct Answer):</strong>
+                              {isSupported && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSpeak(correctOpt.text)}
+                                  className="text-[11px] font-bold text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Volume2 className="w-3 h-3" />
+                                  <span>Listen</span>
+                                </button>
+                              )}
+                            </div>
+                            <p className="font-bold text-emerald-950 text-sm">"{correctOpt.text}"</p>
+                            <p className="text-emerald-900">{currentCard.backWhy}</p>
+                            {showTranslation && (
+                              <div className="mt-1.5 pt-1.5 border-t border-emerald-200 text-[11px]">
+                                <span className="font-bold text-emerald-800">In {nativeLanguage}: </span>
+                                <span>{getFlashcardTranslation(currentCard, nativeLanguage) || translatedCorrection}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-2 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={handleRetryCurrentCard}
+                              className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <RotateCw className="w-3.5 h-3.5" />
+                              <span>Retry & Choose Right Answer</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleNext}
+                              className="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-900 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <span>Next Question</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-xs text-emerald-800 leading-relaxed">
-                          {currentCard.backWhy}
-                        </p>
-                        <div className="pt-2 flex justify-end">
-                          <button
-                            onClick={handleNext}
-                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5"
-                          >
-                            <span>Next Question</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-neutral-400 text-xs">
@@ -993,92 +1348,311 @@ export function FlashcardsModal({
               </div>
             )}
 
-            {/* 4. CREATE CUSTOM CARD FORM */}
+            {/* 4. BASIC ENGLISH CARD GENERATOR & ADD CARDS */}
             {activeTab === 'create' && (
-              <div className="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-3xl border border-neutral-200 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 rounded-xl bg-teal-100 text-teal-800">
-                    <Plus className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-neutral-900">Add Custom Flashcard</h3>
-                    <p className="text-xs text-neutral-500">
-                      Create tailored cards to practice specific workplace phrases
-                    </p>
-                  </div>
+              <div className="max-w-2xl mx-auto space-y-5">
+                {/* Generator Success Toast Banner */}
+                <AnimatePresence>
+                  {generatorSuccessMessage && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="p-3 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between gap-3 text-emerald-900 shadow-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="text-xs font-bold">{generatorSuccessMessage}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedDeckId('custom-deck');
+                          setActiveTab('study');
+                          setCurrentIndex(0);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-all shrink-0 cursor-pointer shadow-2xs"
+                      >
+                        Study Deck →
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Sub-navigation tabs */}
+                <div className="flex items-center justify-center sm:justify-start gap-1 p-1 bg-neutral-200/80 rounded-2xl w-full sm:w-auto overflow-x-auto">
+                  <button
+                    type="button"
+                    onClick={() => setCreateSubTab('generate')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                      createSubTab === 'generate'
+                        ? 'bg-white text-neutral-900 shadow-xs'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>App Generator</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCreateSubTab('packs')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                      createSubTab === 'packs'
+                        ? 'bg-white text-neutral-900 shadow-xs'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    <Layers className="w-3.5 h-3.5 text-teal-600" />
+                    <span>Starter Packs</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCreateSubTab('manual')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                      createSubTab === 'manual'
+                        ? 'bg-white text-neutral-900 shadow-xs'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    <PenTool className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Manual Card</span>
+                  </button>
                 </div>
 
-                <form onSubmit={handleCreateCard} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                      Context / Topic (e.g. Email Request, Tech Standup, Salary Talk)
-                    </label>
-                    <input
-                      type="text"
-                      value={newFrontContext}
-                      onChange={(e) => setNewFrontContext(e.target.value)}
-                      placeholder="e.g. Negotiation with Client"
-                      className="w-full px-3.5 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
-                  </div>
+                {/* SUBTAB 1: APP CARD GENERATOR */}
+                {createSubTab === 'generate' && (
+                  <div className="bg-white p-5 rounded-3xl border border-neutral-200 shadow-2xs space-y-4">
+                    <div>
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider mb-1">
+                        <Sparkles className="w-3 h-3" /> Basic English Only (A1–A2)
+                      </div>
+                      <h3 className="text-base font-black text-neutral-900">Generate Basic English Cards</h3>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        Choose a daily situation or type your own. Generate practical English cards instantly.
+                      </p>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                      Front: Casual Thought / Scenario *
-                    </label>
-                    <textarea
-                      rows={2}
-                      required
-                      value={newFront}
-                      onChange={(e) => setNewFront(e.target.value)}
-                      placeholder="e.g. I need to tell my client their request is going to cost more money."
-                      className="w-full px-3.5 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
-                  </div>
+                    {/* One-Tap Topic Chips */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-1.5">
+                        Select Topic:
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {BASIC_ENGLISH_TOPICS.map((topic) => {
+                          const isSelected = genTopic === topic && !genCustomTopic.trim();
+                          return (
+                            <button
+                              key={topic}
+                              type="button"
+                              onClick={() => {
+                                setGenTopic(topic);
+                                setGenCustomTopic('');
+                              }}
+                              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                                isSelected
+                                  ? 'bg-emerald-600 text-white border-emerald-600'
+                                  : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
+                              }`}
+                            >
+                              {topic}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                      Back: Polished Professional English *
-                    </label>
-                    <textarea
-                      rows={2}
-                      required
-                      value={newBackProfessional}
-                      onChange={(e) => setNewBackProfessional(e.target.value)}
-                      placeholder="e.g. Expanding the initial scope will require additional engineering resources. Shall I prepare a revised statement of work for your review?"
-                      className="w-full px-3.5 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
-                  </div>
+                    {/* Custom Topic Input */}
+                    <div>
+                      <input
+                        type="text"
+                        value={genCustomTopic}
+                        onChange={(e) => setGenCustomTopic(e.target.value)}
+                        placeholder="Or type any daily situation (e.g. Asking for the check)..."
+                        className="w-full px-3 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-neutral-900"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                      Why This Works / Tone Advice (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={newBackWhy}
-                      onChange={(e) => setNewBackWhy(e.target.value)}
-                      placeholder="e.g. Frames extra cost as a formal statement of work rather than a dispute."
-                      className="w-full px-3.5 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
-                  </div>
-
-                  <div className="pt-3 flex items-center justify-end gap-2">
+                    {/* Generate Button */}
                     <button
                       type="button"
-                      onClick={() => setActiveTab('study')}
-                      className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
+                      disabled={isGenerating}
+                      onClick={handleGenerateCards}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Cancel
+                      {isGenerating ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Generating Cards...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Generate Basic English Cards</span>
+                        </>
+                      )}
                     </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                    >
-                      Save Flashcard to Deck
-                    </button>
+
+                    {/* Generated Cards Result List */}
+                    {generatedCards.length > 0 && (
+                      <div className="pt-3 border-t border-neutral-200 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-extrabold text-neutral-900 text-xs flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Generated Cards ({generatedCards.length})</span>
+                          </h4>
+
+                          <button
+                            type="button"
+                            onClick={handleAddAllGeneratedCards}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Add All to Deck</span>
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {generatedCards.map((card, idx) => {
+                            const isAlreadyAdded = addedCardIds.includes(card.id);
+                            return (
+                              <div
+                                key={card.id || idx}
+                                className="p-3 rounded-xl border border-neutral-200 bg-neutral-50/70 space-y-2"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                    Basic English
+                                  </span>
+                                  {isAlreadyAdded ? (
+                                    <span className="text-xs font-bold text-emerald-700">✓ Added</span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAddSingleGeneratedCard(card)}
+                                      className="px-2 py-0.5 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-all cursor-pointer"
+                                    >
+                                      + Add Card
+                                    </button>
+                                  )}
+                                </div>
+                                <p className="text-xs text-neutral-600">{card.front}</p>
+                                <p className="text-xs font-black text-neutral-900 bg-white p-2 rounded-lg border border-neutral-200">
+                                  {card.backProfessional}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </form>
+                )}
+
+                {/* SUBTAB 2: STARTER PACKS */}
+                {createSubTab === 'packs' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {PRESET_STARTER_PACKS.map((pack) => (
+                      <div
+                        key={pack.id}
+                        className="bg-white p-4 rounded-2xl border border-neutral-200 shadow-2xs flex flex-col justify-between space-y-3"
+                      >
+                        <div>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            {pack.category}
+                          </span>
+                          <h4 className="font-extrabold text-neutral-900 text-xs mt-1">{pack.title}</h4>
+                          <p className="text-[11px] text-neutral-500 mt-0.5">{pack.description}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleAddStarterPack(pack)}
+                          className="w-full py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Add Pack ({pack.cards.length} Cards)
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* SUBTAB 3: MANUAL FORM */}
+                {createSubTab === 'manual' && (
+                  <div className="bg-white p-5 rounded-3xl border border-neutral-200 shadow-sm">
+                    <form onSubmit={handleCreateCard} className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                          Situation / Topic
+                        </label>
+                        <input
+                          type="text"
+                          value={newFrontContext}
+                          onChange={(e) => setNewFrontContext(e.target.value)}
+                          placeholder="e.g. Asking for Directions"
+                          className="w-full px-3 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                          Front: Casual Thought / Scenario *
+                        </label>
+                        <textarea
+                          rows={2}
+                          required
+                          value={newFront}
+                          onChange={(e) => setNewFront(e.target.value)}
+                          placeholder="e.g. How to ask where the nearest supermarket is..."
+                          className="w-full px-3 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                          Back: Clear Basic English Phrase *
+                        </label>
+                        <textarea
+                          rows={2}
+                          required
+                          value={newBackProfessional}
+                          onChange={(e) => setNewBackProfessional(e.target.value)}
+                          placeholder="e.g. Excuse me, where is the nearest supermarket?"
+                          className="w-full px-3 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                          Tip / Why this works (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={newBackWhy}
+                          onChange={(e) => setNewBackWhy(e.target.value)}
+                          placeholder="e.g. Polite, natural, and easy to understand."
+                          className="w-full px-3 py-2 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('study')}
+                          className="px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                        >
+                          Save Card
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             )}
           </div>

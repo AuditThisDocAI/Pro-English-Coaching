@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+.font-cambria {
+  font-family: Cambria, Georgia, "Times New Roman", serif;
+}

@@ -56,7 +56,8 @@ import {
   TrendingUp,
   Lock,
   Gamepad2,
-  Smile
+  Smile,
+  Speech
 } from 'lucide-react';
 import { auth, logout } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -379,10 +380,10 @@ export default function App() {
             className="flex items-center gap-2 sm:gap-3 text-left group cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-indigo-200/70 group-hover:scale-105 transition-transform shrink-0">
-              <Sparkles className="w-5 h-5 sm:w-8 sm:h-8" />
+              <Speech className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="font-black text-lg sm:text-xl tracking-tight text-neutral-900 leading-none">
+            <div>
+              <h1 className="font-cambria font-['Cambria',Georgia,serif] font-black text-base sm:text-xl tracking-tight text-neutral-900 leading-none">
                 English Coach
               </h1>
             </div>
@@ -447,12 +448,6 @@ export default function App() {
           <div className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-[10px] sm:text-xs font-black shrink-0" title="Current Daily Practice Streak">
             <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500 animate-pulse" />
             <span>{streakDays}d</span>
-          </div>
-
-          {/* XP Gems */}
-          <div className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-teal-50 border border-teal-200/80 text-teal-900 text-xs font-black" title="Earned Learning XP Points">
-            <Zap className="w-4 h-4 text-teal-600 fill-teal-600" />
-            <span>{xpPoints} XP</span>
           </div>
 
           {/* Native Language Selector */}
@@ -750,11 +745,11 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs">
-                EC
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white">
+                <Speech className="w-4 h-4" />
               </div>
               <div>
-                <p className="font-bold text-white text-sm">English Coach</p>
+                <p className="font-cambria font-['Cambria',Georgia,serif] font-bold text-white text-base">English Coach</p>
                 <p className="text-[11px] text-neutral-400">Easy, fun English learning for non-English speakers worldwide</p>
               </div>
             </div>

@@ -44,7 +44,10 @@ import {
   AlertCircle,
   RefreshCw,
   Lock,
-  GraduationCap
+  GraduationCap,
+  AlertTriangle,
+  XCircle,
+  Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTTS } from '../lib/useTTS';
@@ -63,6 +66,17 @@ import {
   saveQuizMistakes
 } from '../lib/flashcardService';
 import { getFlashcardTranslation } from '../data/flashcardDecks';
+import { 
+  translateText, 
+  getFlashcardPromptTranslation, 
+  getQuizOptionsTranslations 
+} from '../lib/translationService';
+import { 
+  BASIC_ENGLISH_TOPICS, 
+  PRESET_STARTER_PACKS, 
+  generateBasicEnglishCards, 
+  StarterCardPack 
+} from '../lib/cardGeneratorService';
 import { triggerCelebrationConfetti } from '../lib/confetti';
 import { auth } from '../lib/firebase';
 import { AITranslatorStudio } from './AITranslatorStudio';
@@ -132,10 +146,19 @@ export function FlashcardsPracticeHub({
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterMastery, setFilterMastery] = useState<'all' | FlashcardMastery>('all');
-  const [filterLevel, setFilterLevel] = useState<'all' | 'Beginner' | 'Intermediate' | 'Advanced'>('all');
   const [copiedCardId, setCopiedCardId] = useState<string | null>(null);
 
-  // New Card Form State
+  // App Card Generator & Starter Packs State
+  const [createSubTab, setCreateSubTab] = useState<'generate' | 'packs' | 'manual'>('generate');
+  const [genTopic, setGenTopic] = useState<string>('Supermarket & Shopping');
+  const [genCustomTopic, setGenCustomTopic] = useState<string>('');
+  const [genCount, setGenCount] = useState<number>(3);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [generatedCards, setGeneratedCards] = useState<Flashcard[]>([]);
+  const [addedCardIds, setAddedCardIds] = useState<string[]>([]);
+  const [generatorSuccessMessage, setGeneratorSuccessMessage] = useState<string | null>(null);
+
+  // New Card Form State (Manual Creation)
   const [newFront, setNewFront] = useState('');
   const [newFrontContext, setNewFrontContext] = useState('Everyday Conversation');
   const [newBackProfessional, setNewBackProfessional] = useState('');
@@ -149,6 +172,14 @@ export function FlashcardsPracticeHub({
   const [quizAnswered, setQuizAnswered] = useState<boolean>(false);
   const [quizSelectedOption, setQuizSelectedOption] = useState<number | null>(null);
   const [quizScore, setQuizScore] = useState<{ correct: number; total: number }>({ correct: 0, total: 0 });
+
+  // Translation Support State
+  const [showTranslation, setShowTranslation] = useState<boolean>(false);
+  const [showFrontTranslation, setShowFrontTranslation] = useState<boolean>(false);
+  const [translatedPrompt, setTranslatedPrompt] = useState<string>('');
+  const [translatedOptions, setTranslatedOptions] = useState<Record<number, string>>({});
+  const [translatedCorrection, setTranslatedCorrection] = useState<string>('');
+  const [isTranslatingCard, setIsTranslatingCard] = useState<boolean>(false);
 
   // Update decks dynamically
   const decks = useMemo(() => {
@@ -189,10 +220,6 @@ export function FlashcardsPracticeHub({
       list = list.filter((c) => (masteryMap[c.id] || 'new') === filterMastery);
     }
 
-    if (filterLevel !== 'all') {
-      list = list.filter((c) => c.level === filterLevel);
-    }
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -205,7 +232,7 @@ export function FlashcardsPracticeHub({
     }
 
     return list;
-  }, [decks, allCardsList, mistakesDeckCards, activeTab, activeDeckId, filterMastery, filterLevel, searchQuery, masteryMap]);
+  }, [decks, allCardsList, mistakesDeckCards, activeTab, activeDeckId, filterMastery, searchQuery, masteryMap]);
 
   // Safely bounded current card
   const validIndex = Math.min(currentIndex, Math.max(0, currentDeckCards.length - 1));
@@ -269,6 +296,7 @@ export function FlashcardsPracticeHub({
   const handleNext = useCallback(() => {
     if (validIndex < currentDeckCards.length - 1) {
       setIsFlipped(false);
+      setShowFrontTranslation(false);
       setCurrentIndex((prev) => prev + 1);
       setQuizAnswered(false);
       setQuizSelectedOption(null);
@@ -278,6 +306,7 @@ export function FlashcardsPracticeHub({
   const handlePrev = useCallback(() => {
     if (validIndex > 0) {
       setIsFlipped(false);
+      setShowFrontTranslation(false);
       setCurrentIndex((prev) => prev - 1);
       setQuizAnswered(false);
       setQuizSelectedOption(null);
@@ -286,6 +315,7 @@ export function FlashcardsPracticeHub({
 
   const handleShuffle = () => {
     setIsFlipped(false);
+    setShowFrontTranslation(false);
     if (currentDeckCards.length > 0) {
       setCurrentIndex(Math.floor(Math.random() * currentDeckCards.length));
     }
@@ -384,13 +414,13 @@ export function FlashcardsPracticeHub({
       backTranslation: newBackTranslation.trim() || undefined,
       backPractice: 'Practice saying this aloud with clear pronunciation.',
       grammarNote: newGrammarNote.trim() || undefined,
-      level: 'Intermediate',
+      level: 'Beginner',
       tier: 'free',
       mastery: 'new',
       isCustom: true,
       options: [
         { text: newFront.trim(), isCorrect: false, explanation: 'Informal draft formulation.' },
-        { text: newBackProfessional.trim(), isCorrect: true, explanation: 'Polished executive phrasing.' },
+        { text: newBackProfessional.trim(), isCorrect: true, explanation: 'Polished everyday phrasing.' },
       ],
     };
 
@@ -408,6 +438,77 @@ export function FlashcardsPracticeHub({
     setCurrentIndex(0);
   };
 
+  // Card Generator Actions
+  const handleGenerateCards = async () => {
+    const topicToUse = genCustomTopic.trim() || genTopic;
+    setIsGenerating(true);
+    setGeneratorSuccessMessage(null);
+    try {
+      const cards = await generateBasicEnglishCards(topicToUse, nativeLanguage, genCount);
+      setGeneratedCards(cards);
+    } catch (err) {
+      console.error('Failed to generate cards:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAddSingleGeneratedCard = (card: Flashcard) => {
+    if (addedCardIds.includes(card.id)) return;
+    const formattedCard: Flashcard = {
+      ...card,
+      deckId: 'custom-deck',
+      level: 'Beginner',
+      tier: 'free',
+      isCustom: true,
+    };
+    const updated = [formattedCard, ...customCards];
+    setCustomCards(updated);
+    saveCustomFlashcards(currentUser, updated);
+    setAddedCardIds((prev) => [...prev, card.id]);
+    setGeneratorSuccessMessage(`Added "${card.front}" to your deck!`);
+    setTimeout(() => setGeneratorSuccessMessage(null), 3500);
+  };
+
+  const handleAddAllGeneratedCards = () => {
+    const unadded = generatedCards.filter((c) => !addedCardIds.includes(c.id));
+    if (unadded.length === 0) return;
+    const formatted = unadded.map((c) => ({
+      ...c,
+      deckId: 'custom-deck',
+      level: 'Beginner' as const,
+      tier: 'free' as const,
+      isCustom: true,
+    }));
+    const updated = [...formatted, ...customCards];
+    setCustomCards(updated);
+    saveCustomFlashcards(currentUser, updated);
+    setAddedCardIds((prev) => [...prev, ...unadded.map((c) => c.id)]);
+    triggerCelebrationConfetti();
+    setGeneratorSuccessMessage(`Success! Added all ${unadded.length} basic English cards to your deck.`);
+    setTimeout(() => setGeneratorSuccessMessage(null), 4000);
+  };
+
+  const handleAddStarterPack = (pack: StarterCardPack) => {
+    const newCards = pack.cards.map((c) => ({
+      ...c,
+      id: `pack_${pack.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      deckId: 'custom-deck',
+      level: 'Beginner' as const,
+      tier: 'free' as const,
+      isCustom: true,
+    }));
+    const updated = [...newCards, ...customCards];
+    setCustomCards(updated);
+    saveCustomFlashcards(currentUser, updated);
+    triggerCelebrationConfetti();
+    setGeneratorSuccessMessage(`Added "${pack.title}" (${pack.cards.length} cards) to your flashcards!`);
+    handleSetDeckId('custom-deck');
+    setActiveTab('study');
+    setCurrentIndex(0);
+    setTimeout(() => setGeneratorSuccessMessage(null), 4000);
+  };
+
   const handleAddCardFromTranslator = (cardData: {
     front: string;
     backProfessional: string;
@@ -419,19 +520,19 @@ export function FlashcardsPracticeHub({
       id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       deckId: 'custom-deck',
       category: cardData.category || 'AI Generated',
-      frontContext: `${cardData.category} • AI Translation`,
+      frontContext: `${cardData.category} • Basic English`,
       front: cardData.front,
       backProfessional: cardData.backProfessional,
       backWhy: cardData.backWhy,
       backTranslation: cardData.backTranslation,
-      backPractice: 'Practice speaking this aloud in your next meeting.',
+      backPractice: 'Practice speaking this aloud in your daily conversation.',
       mastery: 'new',
       isCustom: true,
-      level: 'Intermediate',
+      level: 'Beginner',
       tier: 'free',
       options: [
-        { text: cardData.front, isCorrect: false, explanation: 'Casual formulation.' },
-        { text: cardData.backProfessional, isCorrect: true, explanation: 'Polished professional English.' },
+        { text: cardData.front, isCorrect: false, explanation: 'Casual or draft formulation.' },
+        { text: cardData.backProfessional, isCorrect: true, explanation: 'Clear, polite Basic English.' },
       ],
     };
 
@@ -503,6 +604,58 @@ export function FlashcardsPracticeHub({
     saveQuizMistakes(currentUser, []);
     setMistakeCardIds([]);
   };
+
+  // Translation Effect for Prompt, Options, and Feedback
+  useEffect(() => {
+    if (!currentCard) {
+      setTranslatedPrompt('');
+      setTranslatedOptions({});
+      setTranslatedCorrection('');
+      return;
+    }
+
+    let isMounted = true;
+
+    // 1. Translate Front Prompt if translation is requested
+    if (showTranslation || showFrontTranslation) {
+      getFlashcardPromptTranslation(currentCard, nativeLanguage).then((res) => {
+        if (isMounted && res) {
+          setTranslatedPrompt(res);
+        }
+      });
+    }
+
+    // 2. Translate Quiz Options & Explanations when translation is active
+    if (showTranslation) {
+      setIsTranslatingCard(true);
+
+      if (quizOptions.length > 0) {
+        getQuizOptionsTranslations(quizOptions, nativeLanguage).then((opts) => {
+          if (isMounted && opts) {
+            const map: Record<number, string> = {};
+            opts.forEach((t, i) => {
+              map[i] = t;
+            });
+            setTranslatedOptions(map);
+          }
+        });
+      }
+
+      const textToTranslate = currentCard.backWhy || currentCard.backProfessional;
+      translateText(textToTranslate, nativeLanguage).then((res) => {
+        if (isMounted) {
+          if (res) setTranslatedCorrection(res);
+          setIsTranslatingCard(false);
+        }
+      }).catch(() => {
+        if (isMounted) setIsTranslatingCard(false);
+      });
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentCard?.id, nativeLanguage, showTranslation, showFrontTranslation, quizOptions]);
 
   // Helper for deck icons
   const renderDeckIcon = (deckId: string) => {
@@ -611,32 +764,50 @@ export function FlashcardsPracticeHub({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Level Filter */}
-            <div className="flex items-center bg-neutral-100 p-1 rounded-xl text-[11px] font-semibold text-neutral-600">
-              <span className="px-2 text-neutral-400 uppercase text-[9px] font-bold">Level:</span>
-              {(['all', 'Beginner', 'Intermediate', 'Advanced'] as const).map((lvl) => (
-                <button
-                  key={lvl}
-                  onClick={() => setFilterLevel(lvl)}
-                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                    filterLevel === lvl
-                      ? 'bg-white text-neutral-900 font-bold shadow-2xs'
-                      : 'hover:text-neutral-900'
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
+            {/* Basic English Only Badge */}
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-bold shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Basic English Only (A1–A2)</span>
             </div>
 
             <button
               onClick={() => setActiveTab('create')}
-              className="text-xs font-bold text-emerald-800 hover:text-emerald-900 flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1.5 bg-emerald-100/80 hover:bg-emerald-200/80 border border-emerald-300 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>New Card</span>
+              <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Generate Cards</span>
             </button>
           </div>
+        </div>
+
+        {/* Mobile Topic Deck Dropdown Selector */}
+        <div className="block sm:hidden w-full pt-1">
+          <label className="block text-[10px] font-extrabold text-neutral-500 uppercase tracking-wider mb-1">
+            Choose Topic Deck (Tap to switch):
+          </label>
+          <select
+            value={activeTab === 'mistakes' ? 'mistakes' : activeDeckId}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === 'mistakes') {
+                setActiveTab('mistakes');
+              } else {
+                handleSetDeckId(val);
+                if (activeTab === 'mistakes') setActiveTab('study');
+              }
+            }}
+            className="w-full px-3 py-2.5 rounded-xl bg-neutral-50 border border-neutral-300 text-neutral-900 font-bold text-xs shadow-2xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            <option value="all">🌟 All Topics ({totalCardsAllDecks} total cards)</option>
+            {decks.map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {deck.title} ({deck.cards.length} cards)
+              </option>
+            ))}
+            {mistakeCardIds.length > 0 && (
+              <option value="mistakes">⚠️ Mistakes Review ({mistakeCardIds.length} cards)</option>
+            )}
+          </select>
         </div>
 
         {/* Deck Navigation Pills */}
@@ -779,6 +950,19 @@ export function FlashcardsPracticeHub({
 
             <button
               type="button"
+              onClick={() => setActiveTab('create')}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
+                activeTab === 'create'
+                  ? 'bg-emerald-600 text-white shadow-2xs font-bold border sm:border-none border-emerald-600'
+                  : 'text-neutral-600 hover:text-neutral-900 bg-neutral-100 sm:bg-transparent'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Generate Cards</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('browse')}
               className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'browse'
@@ -815,12 +999,12 @@ export function FlashcardsPracticeHub({
                   <BookOpen className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
                   <h3 className="text-base font-bold text-neutral-800 mb-1">No cards matching your filter</h3>
                   <p className="text-xs text-neutral-500 max-w-sm mx-auto mb-5">
-                    Adjust your level filter or add your own custom flashcards to start practicing.
+                    Generate Basic English cards or choose a different deck to start practicing.
                   </p>
                   <button
                     onClick={() => {
-                      setFilterLevel('all');
                       setFilterMastery('all');
+                      setSearchQuery('');
                     }}
                     className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                   >
@@ -836,11 +1020,9 @@ export function FlashcardsPracticeHub({
                         <span className="bg-neutral-200/80 px-2.5 py-1 rounded-lg text-xs font-bold text-neutral-800">
                           Card {validIndex + 1} of {currentDeckCards.length}
                         </span>
-                        {currentCard?.level && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                            {currentCard.level}
-                          </span>
-                        )}
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          Basic English
+                        </span>
                         {currentCard?.tier && (
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                             currentCard.tier === 'pro' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
@@ -899,9 +1081,24 @@ export function FlashcardsPracticeHub({
                               <Sparkles className="w-3 h-3 text-emerald-600" />
                               {currentCard?.frontContext || currentCard?.category || 'Workplace Scenario'}
                             </span>
-                            <span className="text-[11px] font-semibold text-neutral-400 flex items-center gap-1">
-                              <RotateCw className="w-3 h-3" /> Tap to reveal
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setShowFrontTranslation((prev) => !prev);
+                                }}
+                                className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5 transition-all cursor-pointer"
+                                title={`Translate scenario to ${nativeLanguage}`}
+                              >
+                                <Languages className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>{showFrontTranslation ? 'Hide Translation' : `Translate (${nativeLanguage})`}</span>
+                              </button>
+                              <span className="text-[11px] font-semibold text-neutral-400 hidden sm:flex items-center gap-1">
+                                <RotateCw className="w-3 h-3" /> Tap to reveal
+                              </span>
+                            </div>
                           </div>
 
                           <div className="my-6">
@@ -911,6 +1108,23 @@ export function FlashcardsPracticeHub({
                             <h4 className="text-xl sm:text-2xl font-extrabold text-neutral-900 leading-snug tracking-tight">
                               "{currentCard?.front}"
                             </h4>
+
+                            {showFrontTranslation && (
+                              <div
+                                className="mt-3 p-3 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2.5 shadow-2xs"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Languages className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                  <span className="font-bold text-[10px] uppercase tracking-wider text-emerald-800 block mb-0.5">
+                                    {nativeLanguage} Translation:
+                                  </span>
+                                  <p className="font-medium text-emerald-950 leading-relaxed">
+                                    {translatedPrompt || 'Translating prompt...'}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           {currentCard?.options && currentCard.options.length > 0 && (
@@ -1145,13 +1359,13 @@ export function FlashcardsPracticeHub({
               {currentCard ? (
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-neutral-200 shadow-md space-y-6">
                   {/* Quiz Top Header & Progress */}
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
-                          activeTab === 'mistakes' ? 'text-red-700 bg-red-50' : 'text-emerald-700 bg-emerald-50'
+                          activeTab === 'mistakes' ? 'text-rose-700 bg-rose-50 border border-rose-200' : 'text-emerald-700 bg-emerald-50 border border-emerald-200'
                         }`}>
-                          {activeTab === 'mistakes' ? 'Mistakes Reinforcement' : 'Quiz Challenge'} • Card {validIndex + 1} of {currentDeckCards.length}
+                          {activeTab === 'mistakes' ? 'Mistakes Practice' : 'Topic Quiz'} • Question {validIndex + 1} of {currentDeckCards.length}
                         </span>
                         <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">
                           {progressPercentage}% Completed
@@ -1166,37 +1380,84 @@ export function FlashcardsPracticeHub({
                     <div className="w-full bg-neutral-100 h-2 rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${
-                          activeTab === 'mistakes' ? 'bg-red-500' : 'bg-emerald-500'
+                          activeTab === 'mistakes' ? 'bg-rose-500' : 'bg-emerald-500'
                         }`}
                         style={{ width: `${progressPercentage}%` }}
                       />
                     </div>
+
+                    {/* Translation Toggle Bar */}
+                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Languages className="w-4 h-4 text-emerald-700" />
+                        <span className="font-bold text-emerald-950">
+                          Native Translation ({nativeLanguage}):
+                        </span>
+                        {isTranslatingCard && (
+                          <span className="text-[10px] text-emerald-700 animate-pulse font-medium">Translating...</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowTranslation((prev) => !prev)}
+                        className={`px-3 py-1 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+                          showTranslation
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                        }`}
+                        title="Toggle native language translation of scenario, options, and corrections"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        <span>{showTranslation ? 'Hide Translation' : `Show in ${nativeLanguage}`}</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Question / Prompt */}
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider block">
-                      Question / Scenario Prompt:
+                      Daily Scenario / Prompt:
                     </span>
                     <p className="text-lg sm:text-xl font-extrabold text-neutral-900 leading-snug">
                       "{currentCard.front}"
                     </p>
+
+                    {/* Translated Prompt */}
+                    {showTranslation && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2 shadow-2xs"
+                      >
+                        <Languages className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-bold text-[10px] uppercase tracking-wider text-emerald-800 block mb-0.5">
+                            {nativeLanguage} Translation:
+                          </span>
+                          <p className="font-medium text-emerald-950 leading-relaxed text-xs sm:text-sm">
+                            {translatedPrompt || 'Translating prompt...'}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
 
                   {/* Multiple Choice Options */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider block">
-                        Select the most polite and professional executive response:
+                        Select the most natural, polite daily English response:
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold border border-amber-200">
-                          Yellow = Selected
-                        </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-200">
-                          Green = Correct
-                        </span>
-                      </div>
+                      {quizAnswered && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-200">
+                            Green = Correct
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-900 font-bold border border-rose-200">
+                            Red = Incorrect
+                          </span>
+                        </div>
+                      )}
                     </div>
                     {quizOptions.map((opt, idx) => {
                       const isSelected = quizSelectedOption === idx;
@@ -1206,9 +1467,9 @@ export function FlashcardsPracticeHub({
                         if (opt.isCorrect) {
                           btnStyle = 'bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-bold ring-2 ring-emerald-500/20 shadow-xs';
                         } else if (isSelected && !opt.isCorrect) {
-                          btnStyle = 'bg-amber-50 border-2 border-amber-500 text-amber-950 font-bold ring-2 ring-amber-400/30 shadow-xs';
+                          btnStyle = 'bg-rose-50 border-2 border-rose-500 text-rose-950 font-bold ring-2 ring-rose-400/30 shadow-xs';
                         } else {
-                          btnStyle = 'opacity-50 bg-neutral-50 border-neutral-200 text-neutral-500';
+                          btnStyle = 'opacity-45 bg-neutral-50 border-neutral-200 text-neutral-400';
                         }
                       }
 
@@ -1223,7 +1484,7 @@ export function FlashcardsPracticeHub({
                             quizAnswered && opt.isCorrect
                               ? 'bg-emerald-600 text-white border-emerald-600'
                               : quizAnswered && isSelected && !opt.isCorrect
-                              ? 'bg-amber-500 text-white border-amber-500'
+                              ? 'bg-rose-600 text-white border-rose-600'
                               : ''
                           }`}>
                             {String.fromCharCode(65 + idx)}
@@ -1232,18 +1493,28 @@ export function FlashcardsPracticeHub({
                             <div className="flex items-center justify-between gap-2">
                               <p className="font-semibold text-neutral-900">{opt.text}</p>
                               {quizAnswered && opt.isCorrect && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold shrink-0">
-                                  Correct Answer (Green)
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold shrink-0 flex items-center gap-1">
+                                  <Check className="w-3 h-3 text-emerald-700" />
+                                  Correct Answer
                                 </span>
                               )}
                               {quizAnswered && isSelected && !opt.isCorrect && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-extrabold shrink-0">
-                                  Your Choice (Yellow)
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-200 text-rose-900 font-extrabold shrink-0 flex items-center gap-1">
+                                  <XCircle className="w-3 h-3 text-rose-700" />
+                                  Your Choice (Incorrect)
                                 </span>
                               )}
                             </div>
+
+                            {/* Option Translation */}
+                            {showTranslation && translatedOptions[idx] && (
+                              <p className="text-xs mt-1 text-neutral-600 font-medium italic">
+                                "{translatedOptions[idx]}"
+                              </p>
+                            )}
+
                             {quizAnswered && opt.explanation && (
-                              <p className={`text-[11px] mt-1.5 font-medium ${opt.isCorrect ? 'text-emerald-800' : 'text-neutral-600'}`}>
+                              <p className={`text-[11px] mt-1.5 font-medium ${opt.isCorrect ? 'text-emerald-800' : 'text-rose-800'}`}>
                                 {opt.explanation}
                               </p>
                             )}
@@ -1252,66 +1523,230 @@ export function FlashcardsPracticeHub({
                             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                           )}
                           {quizAnswered && isSelected && !opt.isCorrect && (
-                            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                            <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                           )}
                         </button>
                       );
                     })}
                   </div>
 
-                  {/* Post-Answer Feedback & Grammar Rationale */}
-                  {quizAnswered && (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/80 border border-emerald-200 space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
-                          <Lightbulb className="w-4 h-4 text-amber-500" />
-                          <span>Correct Answer Explanation:</span>
+                  {/* Post-Answer Feedback, Answer Analysis & User Correction */}
+                  {quizAnswered && (() => {
+                    const selectedOpt = quizSelectedOption !== null ? quizOptions[quizSelectedOption] : null;
+                    const correctOpt = quizOptions.find((o) => o.isCorrect) || quizOptions[0];
+                    const isSelectionCorrect = selectedOpt?.isCorrect === true;
+
+                    if (isSelectionCorrect) {
+                      return (
+                        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-50/95 via-teal-50/40 to-white border-2 border-emerald-300 shadow-sm space-y-4">
+                          {/* Header */}
+                          <div className="flex items-center justify-between gap-2 border-b border-emerald-200/70 pb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
+                                <CheckCircle2 className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h5 className="font-extrabold text-sm sm:text-base text-emerald-950">
+                                  Correct Answer! Great Job!
+                                </h5>
+                                <p className="text-xs text-emerald-800">
+                                  This is natural, polite daily English.
+                                </p>
+                              </div>
+                            </div>
+                            {isSupported && (
+                              <button
+                                type="button"
+                                onClick={() => handleSpeak(correctOpt?.text || currentCard.backProfessional)}
+                                className="text-xs font-bold text-emerald-900 bg-white hover:bg-emerald-100/60 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                title="Listen to native pronunciation"
+                              >
+                                <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
+                                <span>Listen</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Analysis */}
+                          <div className="space-y-1.5 text-xs sm:text-sm text-emerald-900">
+                            <span className="font-bold text-[11px] uppercase tracking-wider text-emerald-800 block">
+                              Why This Choice Works:
+                            </span>
+                            <p className="leading-relaxed font-medium">
+                              {selectedOpt?.explanation || currentCard.backWhy}
+                            </p>
+                            {showTranslation && (
+                              <div className="p-2.5 mt-2 rounded-xl bg-white/90 border border-emerald-200 text-xs text-emerald-950">
+                                <span className="font-bold text-[10px] uppercase text-emerald-800 block mb-0.5">
+                                  {nativeLanguage} Translation:
+                                </span>
+                                <p className="font-medium italic">
+                                  {getFlashcardTranslation(currentCard, nativeLanguage) || translatedCorrection || 'Translation ready.'}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Grammar Note */}
+                          {currentCard.grammarNote && (
+                            <div className="p-3 rounded-2xl bg-white/90 border border-emerald-200/80 text-xs text-emerald-900 flex items-start gap-2 shadow-2xs">
+                              <GraduationCap className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                              <div>
+                                <strong className="text-emerald-950 block mb-0.5">Grammar & Daily Usage Note:</strong>
+                                <span className="text-emerald-900 leading-relaxed font-medium">{currentCard.grammarNote}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Practice Aloud */}
+                          {currentCard.backPractice && (
+                            <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
+                              <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                              <div>
+                                <strong className="text-amber-950 block mb-0.5">Speaking Practice:</strong>
+                                <span className="text-amber-900 leading-relaxed font-medium">{currentCard.backPractice}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="pt-2 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={handleRetryCurrentCard}
+                              className="px-3.5 py-2 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              <span>Practice Again</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleNext}
+                              className="px-4 sm:px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                            >
+                              <span>Next Challenge</span>
+                              <ArrowRight className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                        {isSupported && (
+                      );
+                    }
+
+                    // INCORRECT SELECTION: Active Correction & Detailed Analysis
+                    return (
+                      <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-rose-50/95 via-amber-50/40 to-white border-2 border-rose-300 shadow-sm space-y-4">
+                        {/* Header */}
+                        <div className="flex items-center justify-between gap-2 border-b border-rose-200/70 pb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold">
+                              <AlertTriangle className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h5 className="font-extrabold text-sm sm:text-base text-rose-950">
+                                Needs Correction — Let's Analyze Your Choice
+                              </h5>
+                              <p className="text-xs text-rose-800">
+                                Don't worry! Review the explanation below and try again.
+                              </p>
+                            </div>
+                          </div>
+
                           <button
                             type="button"
-                            onClick={() => handleSpeak(currentCard.backProfessional)}
-                            className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded-lg border border-emerald-200"
+                            onClick={handleRetryCurrentCard}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title="Try this question again"
                           >
-                            <Volume2 className="w-3.5 h-3.5" />
-                            <span>Listen</span>
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Try Again</span>
                           </button>
-                        )}
-                      </div>
-
-                      <p className="text-xs sm:text-sm text-emerald-900 leading-relaxed font-medium">
-                        {currentCard.backWhy}
-                      </p>
-
-                      {currentCard.grammarNote && (
-                        <div className="pt-2 border-t border-emerald-200/60 text-xs text-emerald-800">
-                          <strong className="text-emerald-950">Grammar Note: </strong>
-                          {currentCard.grammarNote}
                         </div>
-                      )}
 
-                      {/* Action Buttons */}
-                      <div className="pt-2 flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={handleRetryCurrentCard}
-                          className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                          <span>Retry Card</span>
-                        </button>
+                        {/* 1. Analysis of Incorrect Selection */}
+                        <div className="p-3.5 rounded-2xl bg-white/95 border border-rose-200 text-xs text-rose-950 space-y-1.5 shadow-2xs">
+                          <div className="flex items-center gap-1.5 font-bold text-rose-900 text-[11px] uppercase tracking-wider">
+                            <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                            <span>Why Your Choice Was Incorrect:</span>
+                          </div>
+                          <p className="font-semibold text-rose-900 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100">
+                            "{selectedOpt?.text}"
+                          </p>
+                          <p className="text-rose-800 leading-relaxed font-medium">
+                            {selectedOpt?.explanation || 'This formulation is unnatural, awkward, or contextually mismatched for this daily situation.'}
+                          </p>
+                        </div>
 
-                        <button
-                          type="button"
-                          onClick={handleNext}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                        >
-                          <span>Next Challenge</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
+                        {/* 2. Active Correction: What to Say Instead */}
+                        <div className="p-4 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 text-xs text-emerald-950 space-y-2 shadow-2xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 font-bold text-emerald-900 text-[11px] uppercase tracking-wider">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>Say This Instead (Correct Response):</span>
+                            </div>
+                            {isSupported && (
+                              <button
+                                type="button"
+                                onClick={() => handleSpeak(correctOpt?.text || currentCard.backProfessional)}
+                                className="text-[11px] font-bold text-emerald-900 bg-white hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1 cursor-pointer"
+                              >
+                                <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
+                                <span>Listen</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <p className="text-sm sm:text-base font-extrabold text-emerald-950 bg-white p-2.5 rounded-xl border border-emerald-200">
+                            "{correctOpt?.text || currentCard.backProfessional}"
+                          </p>
+
+                          <p className="text-emerald-900 leading-relaxed font-medium">
+                            <strong className="text-emerald-950">Why this works: </strong>
+                            {currentCard.backWhy || correctOpt?.explanation}
+                          </p>
+
+                          {currentCard.grammarNote && (
+                            <div className="pt-2 border-t border-emerald-200/70 text-emerald-800 text-xs">
+                              <strong className="text-emerald-950">Grammar Rule: </strong>
+                              {currentCard.grammarNote}
+                            </div>
+                          )}
+
+                          {showTranslation && (
+                            <div className="p-2.5 rounded-xl bg-white border border-emerald-200 text-xs text-emerald-950">
+                              <span className="font-bold text-[10px] uppercase text-emerald-800 block mb-0.5">
+                                {nativeLanguage} Translation:
+                              </span>
+                              <p className="font-medium italic">
+                                {getFlashcardTranslation(currentCard, nativeLanguage) || translatedCorrection || 'Translation ready.'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="pt-2 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={handleRetryCurrentCard}
+                            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            <span>Try Again & Select Right Answer</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleNext}
+                            className="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-900 text-white text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                          >
+                            <span>Next Challenge</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Navigation Bar in Quiz Panel */}
                   <div className="pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
@@ -1421,11 +1856,9 @@ export function FlashcardsPracticeHub({
                             {card.frontContext || card.category}
                           </span>
                           <div className="flex items-center gap-1.5">
-                            {card.level && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
-                                {card.level}
-                              </span>
-                            )}
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">
+                              Basic English
+                            </span>
                             <span
                               className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                                 (masteryMap[card.id] || 'new') === 'mastered'
@@ -1494,146 +1927,479 @@ export function FlashcardsPracticeHub({
             </div>
           )}
 
-          {/* 4. CREATE CUSTOM CARD FORM */}
+          {/* 4. BASIC ENGLISH CARD GENERATOR & ADD CARDS HUB */}
           {activeTab === 'create' && (
-            <div className="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-3xl border border-neutral-200 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 rounded-xl bg-teal-100 text-teal-800">
-                  <Plus className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-neutral-900">Add Custom Flashcard</h3>
-                  <p className="text-xs text-neutral-500">
-                    Create personalized cards for your job or specific workplace challenges
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleCreateCard} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Category Topic
-                  </label>
-                  <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-neutral-800"
+            <div className="max-w-3xl mx-auto space-y-6">
+              {/* Generator Success Toast Banner */}
+              <AnimatePresence>
+                {generatorSuccessMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between gap-3 text-emerald-900 shadow-sm"
                   >
-                    <option value="Everyday English">Everyday English</option>
-                    <option value="Café & Food">Café & Food</option>
-                    <option value="Travel & Directions">Travel & Directions</option>
-                    <option value="Shopping & Daily Life">Shopping & Daily Life</option>
-                    <option value="Grammar & Vocab">Grammar & Vocabulary Boosters</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Context / Topic (e.g. Asking for Directions, Ordering Coffee)
-                  </label>
-                  <input
-                    type="text"
-                    value={newFrontContext}
-                    onChange={(e) => setNewFrontContext(e.target.value)}
-                    placeholder="e.g. Ordering at a Café"
-                    className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider">
-                      Front: Casual Thought / Scenario *
-                    </label>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <span className="text-xs sm:text-sm font-bold">{generatorSuccessMessage}</span>
+                    </div>
                     <button
                       type="button"
-                      disabled={isAutoTranslating || !newFront.trim()}
-                      onClick={handleAutoTranslateCustomCard}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 disabled:opacity-50 text-emerald-800 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                      onClick={() => {
+                        handleSetDeckId('custom-deck');
+                        setActiveTab('study');
+                        setCurrentIndex(0);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-all shrink-0 cursor-pointer shadow-2xs"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>{isAutoTranslating ? 'Translating...' : 'AI Auto-Translate & Polish'}</span>
+                      Study Deck Now →
                     </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Sub-navigation tabs: Generator vs Starter Packs vs Manual */}
+              <div className="flex items-center justify-center sm:justify-start gap-1 p-1 bg-neutral-200/80 rounded-2xl w-full sm:w-auto overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setCreateSubTab('generate')}
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    createSubTab === 'generate'
+                      ? 'bg-white text-neutral-900 shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>App Generator (Basic English)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCreateSubTab('packs')}
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    createSubTab === 'packs'
+                      ? 'bg-white text-neutral-900 shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Starter Packs</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCreateSubTab('manual')}
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    createSubTab === 'manual'
+                      ? 'bg-white text-neutral-900 shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                >
+                  <PenTool className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Write Custom Card</span>
+                </button>
+              </div>
+
+              {/* SUBTAB 1: APP CARD GENERATOR */}
+              {createSubTab === 'generate' && (
+                <div className="bg-white p-5 sm:p-7 rounded-3xl border border-neutral-200 shadow-2xs space-y-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                        <Sparkles className="w-3 h-3" /> Basic English Only (A1–A2)
+                      </div>
+                      <h3 className="text-lg font-black text-neutral-900">Generate Basic English Flashcards</h3>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        Choose a daily situation or type your own. The app creates simple, high-frequency Basic English phrases with native translations and audio.
+                      </p>
+                    </div>
                   </div>
-                  <textarea
-                    rows={2}
-                    required
-                    value={newFront}
-                    onChange={(e) => setNewFront(e.target.value)}
-                    placeholder={`e.g. "How do you respond when your manager asks for a quick update?" or enter in ${nativeLanguage}...`}
-                    className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Back: Polished Professional English *
-                  </label>
-                  <textarea
-                    rows={2}
-                    required
-                    value={newBackProfessional}
-                    onChange={(e) => setNewBackProfessional(e.target.value)}
-                    placeholder="e.g. Sure, I’ll summarize the progress so far and highlight our next milestone."
-                    className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                </div>
+                  {/* One-Tap Topic Chips */}
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-neutral-700 uppercase tracking-wider mb-2">
+                      1. Select a Daily Situation (One-Tap):
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {BASIC_ENGLISH_TOPICS.map((topic) => {
+                        const isSelected = genTopic === topic && !genCustomTopic.trim();
+                        return (
+                          <button
+                            key={topic}
+                            type="button"
+                            onClick={() => {
+                              setGenTopic(topic);
+                              setGenCustomTopic('');
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                                : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
+                            }`}
+                          >
+                            {topic}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Translation in {nativeLanguage} (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={newBackTranslation}
-                    onChange={(e) => setNewBackTranslation(e.target.value)}
-                    placeholder={`Native translation in ${nativeLanguage}...`}
-                    className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                </div>
+                  {/* Custom Topic Input */}
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-neutral-700 uppercase tracking-wider mb-1.5">
+                      Or type any specific situation:
+                    </label>
+                    <input
+                      type="text"
+                      value={genCustomTopic}
+                      onChange={(e) => setGenCustomTopic(e.target.value)}
+                      placeholder="e.g. Asking for help at the train station, Buying milk at the corner shop..."
+                      className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 text-neutral-900 font-medium"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Why This Works / Tone Advice (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={newBackWhy}
-                    onChange={(e) => setNewBackWhy(e.target.value)}
-                    placeholder="e.g. Polite, proactive, and professional, giving immediate reassurance."
-                    className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                </div>
+                  {/* Count & Native Language Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-neutral-100">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider">
+                        Quantity:
+                      </span>
+                      <div className="inline-flex rounded-xl bg-neutral-100 p-1">
+                        {[3, 5].map((cnt) => (
+                          <button
+                            key={cnt}
+                            type="button"
+                            onClick={() => setGenCount(cnt)}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              genCount === cnt
+                                ? 'bg-white text-emerald-800 shadow-2xs'
+                                : 'text-neutral-500 hover:text-neutral-900'
+                            }`}
+                          >
+                            {cnt} Cards
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Grammar / Vocabulary Booster Note (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={newGrammarNote}
-                    onChange={(e) => setNewGrammarNote(e.target.value)}
-                    placeholder="e.g. Using modal phrases like 'Sure, I will...' projects cooperative readiness."
-                    className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                </div>
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-600 font-semibold">
+                      <Languages className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Translation Language: <strong className="text-neutral-900">{nativeLanguage}</strong></span>
+                    </div>
+                  </div>
 
-                <div className="pt-3 flex items-center justify-end gap-2">
+                  {/* Generate Button */}
                   <button
                     type="button"
-                    onClick={() => setActiveTab('study')}
-                    className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
+                    disabled={isGenerating}
+                    onClick={handleGenerateCards}
+                    className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    Cancel
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Generating Basic English Cards...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Generate Basic English Cards ({genCustomTopic.trim() || genTopic})</span>
+                      </>
+                    )}
                   </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                  >
-                    Save Flashcard to Deck
-                  </button>
+
+                  {/* Generated Cards Result List */}
+                  {generatedCards.length > 0 && (
+                    <div className="pt-4 border-t border-neutral-200 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h4 className="font-extrabold text-neutral-900 text-sm flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>Generated Flashcards ({generatedCards.length})</span>
+                        </h4>
+
+                        <button
+                          type="button"
+                          onClick={handleAddAllGeneratedCards}
+                          className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add All ({generatedCards.length}) to My Deck</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {generatedCards.map((card, idx) => {
+                          const isAlreadyAdded = addedCardIds.includes(card.id);
+                          return (
+                            <div
+                              key={card.id || idx}
+                              className="p-4 rounded-2xl border border-neutral-200 bg-neutral-50/60 hover:bg-white hover:border-emerald-300 transition-all space-y-3"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                    Basic English
+                                  </span>
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-neutral-200 text-neutral-700">
+                                    {card.frontContext || card.category}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => speak(card.backProfessional)}
+                                    className="p-1.5 rounded-lg bg-white border border-neutral-200 hover:bg-emerald-50 text-neutral-700 hover:text-emerald-700 transition-colors cursor-pointer"
+                                    title="Listen to pronunciation"
+                                  >
+                                    <Volume2 className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {isAlreadyAdded ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-xl">
+                                      <Check className="w-3.5 h-3.5" /> Added
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAddSingleGeneratedCard(card)}
+                                      className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-3 py-1 rounded-xl transition-all cursor-pointer shadow-2xs"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" /> Add Card
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Situation / Prompt:</p>
+                                <p className="text-xs font-semibold text-neutral-800 mt-0.5">{card.front}</p>
+                              </div>
+
+                              <div className="p-3 bg-white rounded-xl border border-neutral-200/80">
+                                <p className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider">Recommended Basic English:</p>
+                                <p className="text-sm font-black text-neutral-900 mt-0.5">{card.backProfessional}</p>
+                                {card.backTranslation && (
+                                  <p className="text-xs text-neutral-500 mt-1 italic">
+                                    Translation ({nativeLanguage}): {card.backTranslation}
+                                  </p>
+                                )}
+                              </div>
+
+                              {card.backWhy && (
+                                <p className="text-[11px] text-neutral-600 leading-relaxed">
+                                  <strong className="text-neutral-800">Why it works:</strong> {card.backWhy}
+                                </p>
+                              )}
+
+                              {card.grammarNote && (
+                                <p className="text-[11px] text-teal-800 bg-teal-50 p-2 rounded-lg border border-teal-200/60 leading-relaxed">
+                                  <strong className="text-teal-900">Grammar Tip:</strong> {card.grammarNote}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </form>
+              )}
+
+              {/* SUBTAB 2: APP STARTER PACKS */}
+              {createSubTab === 'packs' && (
+                <div className="space-y-4">
+                  <div className="bg-white p-5 rounded-3xl border border-neutral-200 shadow-2xs">
+                    <h3 className="text-base font-black text-neutral-900">Curated Basic English Starter Packs</h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      Ready-to-use essential card packs crafted specifically for non-English speakers. Tap to add the full pack to your deck with one click!
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {PRESET_STARTER_PACKS.map((pack) => (
+                      <div
+                        key={pack.id}
+                        className="bg-white p-5 rounded-3xl border border-neutral-200 shadow-2xs flex flex-col justify-between hover:border-emerald-300 transition-all space-y-4"
+                      >
+                        <div className="space-y-2">
+                          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-lg">
+                            <Layers className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                              {pack.category}
+                            </span>
+                            <h4 className="font-extrabold text-neutral-900 text-sm mt-1">{pack.title}</h4>
+                            <p className="text-xs text-neutral-500 mt-1 leading-relaxed">{pack.description}</p>
+                          </div>
+
+                          <div className="p-2.5 bg-neutral-50 rounded-xl space-y-1">
+                            <p className="text-[10px] font-bold text-neutral-500 uppercase">Sample Cards:</p>
+                            {pack.cards.slice(0, 2).map((c, i) => (
+                              <p key={i} className="text-xs text-neutral-700 truncate font-medium">
+                                • {c.backProfessional}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleAddStarterPack(pack)}
+                          className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Pack ({pack.cards.length} Cards)</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SUBTAB 3: MANUAL CUSTOM CARD */}
+              {createSubTab === 'manual' && (
+                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-neutral-200 shadow-2xs">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800">
+                      <PenTool className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-neutral-900">Write Custom Flashcard</h3>
+                      <p className="text-xs text-neutral-500">
+                        Add a simple everyday Basic English card to your personal deck.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleCreateCard} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                        Category Topic
+                      </label>
+                      <select
+                        value={newCategory}
+                        onChange={(e) => setNewCategory(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-neutral-800"
+                      >
+                        <option value="Everyday English">Everyday English</option>
+                        <option value="Café & Food">Café & Food</option>
+                        <option value="Travel & Directions">Travel & Directions</option>
+                        <option value="Shopping & Daily Life">Shopping & Daily Life</option>
+                        <option value="Friendly Work Chat">Friendly Work Chat</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                        Context / Situation (e.g. Asking for the bill, Greeting a neighbour)
+                      </label>
+                      <input
+                        type="text"
+                        value={newFrontContext}
+                        onChange={(e) => setNewFrontContext(e.target.value)}
+                        placeholder="e.g. Ordering at a Café"
+                        className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider">
+                          Front: Casual Thought / Scenario *
+                        </label>
+                        <button
+                          type="button"
+                          disabled={isAutoTranslating || !newFront.trim()}
+                          onClick={handleAutoTranslateCustomCard}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 disabled:opacity-50 text-emerald-800 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{isAutoTranslating ? 'Translating...' : 'AI Auto-Translate & Polish'}</span>
+                        </button>
+                      </div>
+                      <textarea
+                        rows={2}
+                        required
+                        value={newFront}
+                        onChange={(e) => setNewFront(e.target.value)}
+                        placeholder={`e.g. "I want to ask the waiter how much the coffee costs" or enter in ${nativeLanguage}...`}
+                        className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                        Back: Clear Basic English Phrase *
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        value={newBackProfessional}
+                        onChange={(e) => setNewBackProfessional(e.target.value)}
+                        placeholder="e.g. Excuse me, how much is this coffee?"
+                        className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                        Translation in {nativeLanguage} (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={newBackTranslation}
+                        onChange={(e) => setNewBackTranslation(e.target.value)}
+                        placeholder={`Native translation in ${nativeLanguage}...`}
+                        className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                        Why This Works / Friendly Tip (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={newBackWhy}
+                        onChange={(e) => setNewBackWhy(e.target.value)}
+                        placeholder="e.g. Simple, polite, and commonly used in all coffee shops."
+                        className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                        Grammar Note (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={newGrammarNote}
+                        onChange={(e) => setNewGrammarNote(e.target.value)}
+                        placeholder="e.g. 'How much is...' is used for singular prices."
+                        className="w-full px-3.5 py-2.5 text-xs bg-neutral-50 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
+
+                    <div className="pt-3 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('study')}
+                        className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                      >
+                        Save Card to Deck
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           )}
 

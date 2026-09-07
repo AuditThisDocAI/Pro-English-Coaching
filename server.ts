@@ -13,7 +13,8 @@ import {
   getProfessionalCoaching, 
   translatePhrase,
   getChatTutorResponse,
-  getRoleplayPartnerResponse
+  getRoleplayPartnerResponse,
+  generateBasicEnglishFlashcards
 } from './server/aiCoach.ts';
 
 async function startServer() {
@@ -137,6 +138,26 @@ async function startServer() {
       console.error('Unhandled error in /api/coach:', error);
       return res.status(500).json({ 
         error: error?.message || 'Failed to generate coaching suggestions. Please try again.' 
+      });
+    }
+  });
+
+  // App-Provided Basic English Flashcards Generator API Route
+  app.post('/api/generate-cards', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const { topic = 'Everyday English', nativeLanguage = 'Spanish', count = 3 } = req.body || {};
+      const cards = await generateBasicEnglishFlashcards({
+        topic: typeof topic === 'string' ? topic : 'Everyday English',
+        nativeLanguage: typeof nativeLanguage === 'string' ? nativeLanguage : 'Spanish',
+        count: typeof count === 'number' ? count : 3,
+      });
+
+      return res.json({ status: 'ok', cards });
+    } catch (error: any) {
+      console.error('Error generating basic English cards:', error);
+      return res.status(500).json({
+        error: error?.message || 'Failed to generate basic flashcards.',
       });
     }
   });

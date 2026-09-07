@@ -71,7 +71,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Привет',
     Turkish: 'Merhaba',
     Polish: 'Cześć',
-    Indonesian: 'Halo'
+    Indonesian: 'Halo',
+    Swahili: 'Habari / Jambo',
+    Yoruba: 'Bawo / Ẹ nle',
+    Igbo: 'Ndewo',
+    Hausa: 'Sannu',
+    Amharic: 'ሰላም',
+    Zulu: 'Sawubona',
+    Xhosa: 'Molo',
+    Afrikaans: 'Hallo',
+    Somali: 'Hayye / Salaan',
+    Oromo: 'Akkam'
   },
   'hi': {
     Spanish: 'Hola',
@@ -89,7 +99,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Привет',
     Turkish: 'Selam',
     Polish: 'Cześć',
-    Indonesian: 'Hai'
+    Indonesian: 'Hai',
+    Swahili: 'Mambo',
+    Yoruba: 'Bawo',
+    Igbo: 'Kedu',
+    Hausa: 'Sannu',
+    Amharic: 'ሰላም',
+    Zulu: 'Sawubona',
+    Xhosa: 'Molo',
+    Afrikaans: 'Hallo',
+    Somali: 'Haye',
+    Oromo: 'Akkam'
   },
   'how are you': {
     Spanish: '¿Cómo estás?',
@@ -143,7 +163,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Большое спасибо',
     Turkish: 'Çok teşekkür ederim',
     Polish: 'Bardzo dziękuję',
-    Indonesian: 'Terima kasih banyak'
+    Indonesian: 'Terima kasih banyak',
+    Swahili: 'Asante sana',
+    Yoruba: 'E dupe pupọ',
+    Igbo: 'Dalu nke ukwuu',
+    Hausa: 'Nagode sosai',
+    Amharic: 'በጣም አመሰግናለሁ',
+    Zulu: 'Ngiyabonga kakhulu',
+    Xhosa: 'Ndiyabulela kakhulu',
+    Afrikaans: 'Baie dankie',
+    Somali: 'Mahadsanid badan',
+    Oromo: 'Galaatoomi baay\'ee'
   },
   'thank you': {
     Spanish: 'Gracias',
@@ -161,7 +191,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Спасибо',
     Turkish: 'Teşekkürler',
     Polish: 'Dziękuję',
-    Indonesian: 'Terima kasih'
+    Indonesian: 'Terima kasih',
+    Swahili: 'Asante',
+    Yoruba: 'E dupe',
+    Igbo: 'Dalu / Imeela',
+    Hausa: 'Nagode',
+    Amharic: 'አመሰግናለሁ',
+    Zulu: 'Ngiyabonga',
+    Xhosa: 'Enkosi',
+    Afrikaans: 'Dankie',
+    Somali: 'Mahadsanid',
+    Oromo: 'Galatooma'
   },
   'you are welcome': {
     Spanish: 'De nada',

@@ -628,6 +628,16 @@ export function normalizeLanguageName(rawLanguage?: string): string {
   if (clean.includes('viet')) return 'Vietnamese';
   if (clean.includes('tag') || clean.includes('filip')) return 'Tagalog';
   if (clean.includes('indo')) return 'Indonesian';
+  if (clean.includes('swah') || clean.includes('kiswah')) return 'Swahili';
+  if (clean.includes('yorub')) return 'Yoruba';
+  if (clean.includes('igbo')) return 'Igbo';
+  if (clean.includes('haus')) return 'Hausa';
+  if (clean.includes('amhar')) return 'Amharic';
+  if (clean.includes('zulu')) return 'Zulu';
+  if (clean.includes('xhosa')) return 'Xhosa';
+  if (clean.includes('afrikaans')) return 'Afrikaans';
+  if (clean.includes('somal')) return 'Somali';
+  if (clean.includes('oromo')) return 'Oromo';
 
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
@@ -748,4 +758,26 @@ export function generateSmartRuleBasedTranslation(text: string, targetLanguage: 
 
   // 2. Return clean input without redundant prefix labels
   return cleanInput;
+}
+
+/**
+ * Translates the front/prompt of a flashcard into the user's native language.
+ */
+export async function getFlashcardPromptTranslation(
+  card: Flashcard,
+  targetLanguage: NativeLanguage | string
+): Promise<string> {
+  if (!card || !card.front) return '';
+  return await translateText(card.front, targetLanguage);
+}
+
+/**
+ * Batch translates quiz options into target native language.
+ */
+export async function getQuizOptionsTranslations(
+  options: { text: string }[],
+  targetLanguage: NativeLanguage | string
+): Promise<string[]> {
+  if (!options || options.length === 0) return [];
+  return await Promise.all(options.map((opt) => translateText(opt.text, targetLanguage)));
 }

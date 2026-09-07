@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { 
   ChevronDown, Mic, MessageSquare, Zap, 
   Check, ArrowRight, Star, Globe, Shield, Sparkles,
-  Play, BookOpen, Layers
+  Play, BookOpen, Layers, Speech
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -81,9 +81,9 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
             transition={{ delay: 0.1 }}
             className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white tracking-tighter leading-[1.1] mb-8"
           >
-            Master English.<br />
+            Practice English With No Fear.<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
-              Accelerate your career.
+              Easy, Simple, Stress Free.
             </span>
           </motion.h1>
 
@@ -141,8 +141,8 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
       {/* FEATURES SECTION */}
       <section id="features" className="py-32 px-6 max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">Designed for rapid fluency</h2>
-          <p className="text-xl text-neutral-400">Everything you need to speak and write with absolute confidence in any professional setting.</p>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">Designed For Basic English Fluency</h2>
+          <p className="text-xl text-neutral-400">Everything you need to speak basic daily English</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -155,7 +155,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
             {
               icon: <MessageSquare className="w-6 h-6 text-blue-400" />,
               title: "Scenario Roleplay",
-              desc: "Nail your next interview or client pitch with hyper-realistic simulated conversations."
+              desc: "Improve your english with roleplay conversations"
             },
             {
               icon: <Zap className="w-6 h-6 text-emerald-400" />,
@@ -181,44 +181,12 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
         </div>
       </section>
 
-      {/* BENTO GRID */}
+      {/* SOCIAL PROOF & STATS GRID */}
       <section className="py-20 px-6 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-6 h-auto md:h-[600px]">
-          
-          {/* Bento 1: Large Visual */}
-          <div className="md:col-span-2 md:row-span-2 bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 md:p-12 relative overflow-hidden flex flex-col group">
-            <h3 className="text-3xl font-bold text-white mb-2">Immersive Studio</h3>
-            <p className="text-neutral-400 mb-8 max-w-xs">Your personal sandbox for perfecting professional communication.</p>
-            
-            <div className="flex-1 w-full bg-neutral-900/80 rounded-t-2xl border-t border-x border-white/10 mt-auto relative shadow-2xl overflow-hidden group-hover:translate-y-2 transition-transform duration-500">
-              <div className="h-8 border-b border-white/10 flex items-center px-4 gap-2 bg-black/50">
-                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-purple-500/20 shrink-0" />
-                  <div className="space-y-2 flex-1 pt-1">
-                    <div className="h-3 w-1/3 bg-white/20 rounded-full" />
-                    <div className="h-3 w-3/4 bg-white/10 rounded-full" />
-                  </div>
-                </div>
-                <div className="flex gap-4 flex-row-reverse">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 shrink-0" />
-                  <div className="space-y-2 flex-1 pt-1 flex flex-col items-end">
-                    <div className="h-3 w-1/4 bg-blue-500/40 rounded-full" />
-                    <div className="h-3 w-2/3 bg-blue-500/20 rounded-full" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Glow */}
-            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-purple-500/20 blur-[60px] rounded-full pointer-events-none" />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-          {/* Bento 2: Stats (Gradient) */}
-          <div className="md:col-span-2 md:row-span-1 bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-white/10 rounded-[2rem] p-8 md:p-10 flex flex-col justify-center relative overflow-hidden hover:border-white/20 transition-colors">
+          {/* Stats (Gradient) */}
+          <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-white/10 rounded-[2rem] p-8 md:p-10 flex flex-col justify-center relative overflow-hidden hover:border-white/20 transition-colors min-h-[260px]">
             <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 mb-2 tracking-tighter">
               98%
             </div>
@@ -227,8 +195,8 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
             <Shield className="absolute -bottom-4 -right-4 w-32 h-32 text-blue-500/10 rotate-12" />
           </div>
 
-          {/* Bento 3: Testimonial */}
-          <div className="md:col-span-1 md:row-span-1 bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 flex flex-col justify-between hover:bg-white/[0.05] transition-colors">
+          {/* Testimonial */}
+          <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 flex flex-col justify-between hover:bg-white/[0.05] transition-colors min-h-[260px]">
             <div>
               <div className="flex gap-1 text-yellow-500 mb-6">
                 {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
@@ -243,8 +211,8 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
             </div>
           </div>
 
-          {/* Bento 4: Small Feature */}
-          <div className="md:col-span-1 md:row-span-1 bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center hover:bg-white/[0.05] transition-colors group">
+          {/* Small Feature */}
+          <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-8 flex flex-col justify-center items-center text-center hover:bg-white/[0.05] transition-colors group min-h-[260px]">
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <BookOpen className="w-8 h-8 text-blue-400" />
             </div>
@@ -401,13 +369,13 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-2">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-sm">
+                <Speech className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg font-bold text-white tracking-tight">English Coach</span>
+              <span className="font-cambria font-['Cambria',Georgia,serif] text-xl font-bold text-white tracking-tight">English Coach</span>
             </div>
             <p className="text-sm text-neutral-500 max-w-xs">
-              Empowering professionals worldwide to communicate with clarity and confidence using state-of-the-art AI.
+              Empowering non - english speakers to communicate basic english worldwide
             </p>
           </div>
           

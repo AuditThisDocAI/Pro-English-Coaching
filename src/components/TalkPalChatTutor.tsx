@@ -215,6 +215,36 @@ export function getWelcomeTranslation(personaName: string, lang: NativeLanguage 
   if (normalized.includes('indonesian')) {
     return `Halo! Saya ${personaName}, tutor bahasa Inggris AI Anda di English Coach. Saya di sini untuk membantu Anda berlatih percakapan bahasa Inggris sehari-hari dengan percaya diri. Apa yang ingin Anda latih hari ini?`;
   }
+  if (normalized.includes('swah') || normalized.includes('kiswah')) {
+    return `Habari! Mimi ni ${personaName}, mkufunzi wako wa Kiingereza wa AI kwenye English Coach. Nipo hapa kukusaidia kufanya mazoezi ya Kiingereza cha kila siku kwa ujasiri. Ungependa kufanya mazoezi ya nini leo?`;
+  }
+  if (normalized.includes('yorub')) {
+    return `Bawo! Emi ni ${personaName}, olukọ ede Gẹẹsi AI rẹ lori English Coach. Mo wa nibi lati ran ọ lọwọ lati kọ ẹkọ Gẹẹsi pẹlu igboya. Kini iwọ yoo fẹ lati kọ loni?`;
+  }
+  if (normalized.includes('igbo')) {
+    return `Ndewo! Abụ m ${personaName}, onye nkụzi bekee AI gị na English Coach. Anọ m ebe a iji nyere gị aka mụọ bekee kwa ụbọchị na ntụkwasị obi. Gịnị ka ị ga-achọ ịmụ taa?`;
+  }
+  if (normalized.includes('haus')) {
+    return `Sannu! Ni ne ${personaName}, mai koyar da ku Turanci na AI a English Coach. Ina nan don taimaka muku koyon Turanci na yau da kullun cikin gaba gaɗi. Me kuke so ku koya a yau?`;
+  }
+  if (normalized.includes('amhar')) {
+    return `ሰላም! እኔ ${personaName} ነኝ፣ በእንግሊዝኛ አሰልጣኝ (English Coach) ላይ የእርስዎ የ AI እንግሊዝኛ አሰልጣኝ። በራስ መተማመን የእለት ተእለት እንግሊዝኛን እንዲለማመዱ ልረዳዎ እዚህ መጥቻለሁ። ዛሬ ምን መለማመድ ይፈልጋሉ?`;
+  }
+  if (normalized.includes('zulu')) {
+    return `Sawubona! Ngingu-${personaName}, umqeqeshi wakho wesiNgisi we-AI ku-English Coach. Ngilapha ukukusiza uzijwayeze isiNgisi sansuku zonke ngokuzethemba. Ungathanda ukuzilolonga ngani namhlanje?`;
+  }
+  if (normalized.includes('xhosa')) {
+    return `Molo! Ndingu-${personaName}, umqeqeshi wakho wesiNgesi we-AI ku-English Coach. Ndilapha ukukunceda uzilolonge isiNgesi semihla ngemihla ngokuzithemba. Ungathanda ukuziqhelanisa nantoni namhlanje?`;
+  }
+  if (normalized.includes('afrikaans')) {
+    return `Hallo! Ek is ${personaName}, jou KI Engelse afrigter by English Coach. Ek is hier om jou te help om alledaagse Engels met selfvertroue te oefen. Wat wil jy vandag oefen?`;
+  }
+  if (normalized.includes('somal')) {
+    return `Haye! Waxaan ahay ${personaName}, tababarahaaga Ingiriisiga ee AI ee English Coach. Waxaan halkan u joogaa inaan kaa caawiyo barashada Ingiriisiga maalinlaha ah si kalsooni leh. Maxaad jeclaan lahayd inaad maanta barato?`;
+  }
+  if (normalized.includes('oromo')) {
+    return `Akkam! Ani ${personaName} dha, leenjisaa Afaan Ingiliffaa AI keessan English Coach irratti. Afaan Ingiliffaa guyyaa guyyaa ofitti amanamummaadhaan akka shaakaltaniif isin gargaaruuf as jira. Har'a maal shaakaluu barbaaddu?`;
+  }
 
   return `Hello! I am ${personaName}, your AI English coach on English Coach. I am here to help you practice natural, everyday English with confidence. What would you like to practice today?`;
 }
