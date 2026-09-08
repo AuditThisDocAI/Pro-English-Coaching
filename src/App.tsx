@@ -588,32 +588,48 @@ export default function App() {
 
         {/* 2. Interactive Lessons Hub for Everyday Life */}
         {activeTab === 'lessons' && (
-          <FunLearningHub
-            nativeLanguage={nativeLanguage}
-            onLanguageChange={setNativeLanguage}
-            onSendToChat={(text) => {
-              setChatInitialText(text);
-              setActiveTab('chat');
-            }}
-            onSavePhrase={handleSavePhrase}
-            onAddXP={handleAddXP}
-            initialTopic={selectedHubTopic}
-            isExpired={trialInfo.isTrialExpired && !isPro}
-            onOpenPricing={() => navigate('/pricing')}
-          />
+          trialInfo.canAccess ? (
+            <FunLearningHub
+              nativeLanguage={nativeLanguage}
+              onLanguageChange={setNativeLanguage}
+              onSendToChat={(text) => {
+                setChatInitialText(text);
+                setActiveTab('chat');
+              }}
+              onSavePhrase={handleSavePhrase}
+              onAddXP={handleAddXP}
+              initialTopic={selectedHubTopic}
+              isExpired={trialInfo.isTrialExpired && !isPro}
+              onOpenPricing={() => navigate('/pricing')}
+            />
+          ) : (
+            <PaywallOverlay
+              featureName="Interactive Lessons"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
         )}
 
         {/* 3. Interactive Word Match Game */}
         {activeTab === 'game' && (
-          <FunWordMatchGame
-            nativeLanguage={nativeLanguage}
-            onLanguageChange={setNativeLanguage}
-            onAddXP={handleAddXP}
-            onOpenChat={(text) => {
-              if (text) setChatInitialText(text);
-              setActiveTab('chat');
-            }}
-          />
+          trialInfo.canAccess ? (
+            <FunWordMatchGame
+              nativeLanguage={nativeLanguage}
+              onLanguageChange={setNativeLanguage}
+              onAddXP={handleAddXP}
+              onOpenChat={(text) => {
+                if (text) setChatInitialText(text);
+                setActiveTab('chat');
+              }}
+            />
+          ) : (
+            <PaywallOverlay
+              featureName="Word Match Game"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
         )}
 
         {/* 4. AI Chat Tutor */}
