@@ -1043,8 +1043,8 @@ export function FlashcardsModal({
                             <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-200">
                               Green = Correct
                             </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-900 font-bold border border-rose-200">
-                              Red = Incorrect
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-bold border border-amber-200">
+                              Yellow = Incorrect
                             </span>
                           </div>
                         )}
@@ -1058,7 +1058,7 @@ export function FlashcardsModal({
                           if (opt.isCorrect) {
                             btnStyle = 'bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-bold ring-2 ring-emerald-500/20 shadow-xs';
                           } else if (isSelected && !opt.isCorrect) {
-                            btnStyle = 'bg-rose-50 border-2 border-rose-500 text-rose-950 font-bold ring-2 ring-rose-400/30 shadow-xs';
+                            btnStyle = 'bg-amber-50 border-2 border-amber-500 text-amber-950 font-bold ring-2 ring-amber-400/30 shadow-xs';
                           } else {
                             btnStyle = 'opacity-45 bg-neutral-50 border-neutral-200 text-neutral-400';
                           }
@@ -1075,7 +1075,7 @@ export function FlashcardsModal({
                               quizAnswered && opt.isCorrect
                                 ? 'bg-emerald-600 text-white border-emerald-600'
                                 : quizAnswered && isSelected && !opt.isCorrect
-                                ? 'bg-rose-600 text-white border-rose-600'
+                                ? 'bg-amber-500 text-white border-amber-500'
                                 : ''
                             }`}>
                               {String.fromCharCode(65 + idx)}
@@ -1088,7 +1088,7 @@ export function FlashcardsModal({
                                 </p>
                               )}
                               {quizAnswered && opt.explanation && (
-                                <p className={`text-[11px] mt-1.5 font-medium ${opt.isCorrect ? 'text-emerald-800' : 'text-rose-800'}`}>
+                                <p className={`text-[11px] mt-1.5 font-medium ${opt.isCorrect ? 'text-emerald-800' : 'text-amber-800'}`}>
                                   {opt.explanation}
                                 </p>
                               )}
@@ -1097,7 +1097,7 @@ export function FlashcardsModal({
                               <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 stroke-[3]" />
                             )}
                             {quizAnswered && isSelected && !opt.isCorrect && (
-                              <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                              <XCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                             )}
                           </button>
                         );

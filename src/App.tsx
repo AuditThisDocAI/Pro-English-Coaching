@@ -105,8 +105,10 @@ export default function App() {
 
   // Quota & Pro Subscription State
   const [chatCount, setChatCount] = useState<number>(() => loadUserChatCount(auth.currentUser));
-  const [isPro, setIsPro] = useState<boolean>(() => loadUserIsPro(auth.currentUser));
+  const [isProState, setIsPro] = useState<boolean>(() => loadUserIsPro(auth.currentUser));
   const [trialStartDate, setTrialStartDate] = useState<string>(() => getUserTrialStartDate(auth.currentUser));
+
+  const isPro = isProState || currentUser?.email?.toLowerCase() === 'brigittalombard09@gmail.com';
 
   // User Profile details
   const [englishLevel, setEnglishLevel] = useState<EnglishCEFRLevel>('A2');
