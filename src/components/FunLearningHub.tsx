@@ -18,6 +18,7 @@ import { NativeLanguage, SUPPORTED_LANGUAGES, CoachResponse } from '../types';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 import { useTTS } from '../lib/useTTS';
 import { useCoachAudioReplay } from '../lib/useCoachAudioReplay';
+import { lookupDictionaryTranslation } from '../lib/translationsDict';
 import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 
 interface FunLearningHubProps {
@@ -584,7 +585,8 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
       {/* Phrases List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredPhrases.map((phrase) => {
-          const translation = phrase.translations[nativeLanguage] || phrase.english;
+          const dictHit = lookupDictionaryTranslation(phrase.english, nativeLanguage);
+          const translation = dictHit || phrase.translations[nativeLanguage] || phrase.english;
           const isSaved = savedIds.has(phrase.id);
 
           return (
