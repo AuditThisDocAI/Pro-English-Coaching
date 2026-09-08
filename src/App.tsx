@@ -596,6 +596,8 @@ export default function App() {
             onSavePhrase={handleSavePhrase}
             onAddXP={handleAddXP}
             initialTopic={selectedHubTopic}
+            isExpired={trialInfo.isTrialExpired && !isPro}
+            onOpenPricing={() => navigate('/pricing')}
           />
         )}
 
@@ -687,6 +689,7 @@ export default function App() {
                 selectedDeckId={flashcardDeckId}
                 onSelectDeckId={(id) => setFlashcardDeckId(id)}
                 isPro={isPro}
+                isExpired={trialInfo.isTrialExpired && !isPro}
               />
             </div>
           ) : (
@@ -849,6 +852,8 @@ export default function App() {
         nativeLanguage={nativeLanguage}
         onSendToChat={handleOpenSendToChat}
         initialDeckId={flashcardDeckId}
+        isExpired={trialInfo.isTrialExpired && !isPro}
+        onOpenPricing={() => navigate('/pricing')}
       />
 
       {/* Saved Phrases Vault Modal */}

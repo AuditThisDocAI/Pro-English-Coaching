@@ -100,6 +100,7 @@ interface Props {
   selectedDeckId?: string;
   onSelectDeckId?: (deckId: string) => void;
   isPro?: boolean;
+  isExpired?: boolean;
 }
 
 export function FlashcardsPracticeHub({
@@ -113,6 +114,7 @@ export function FlashcardsPracticeHub({
   selectedDeckId: controlledDeckId,
   onSelectDeckId,
   isPro = false,
+  isExpired = false,
 }: Props) {
   const currentUser = auth.currentUser;
   const { speak, isSpeaking, isSupported, speed } = useTTS();
@@ -440,6 +442,10 @@ export function FlashcardsPracticeHub({
 
   // Card Generator Actions
   const handleGenerateCards = async () => {
+    if (isExpired && onOpenPricing) {
+      onOpenPricing();
+      return;
+    }
     const topicToUse = genCustomTopic.trim() || genTopic;
     setIsGenerating(true);
     setGeneratorSuccessMessage(null);

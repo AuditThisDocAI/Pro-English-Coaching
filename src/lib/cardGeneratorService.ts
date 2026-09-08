@@ -1,5 +1,6 @@
 import { Flashcard } from '../types';
 import { translateText } from './translationService';
+import { lookupDictionaryTranslation } from './translationsDict';
 
 export interface StarterCardPack {
   id: string;
@@ -329,15 +330,31 @@ export async function generateBasicEnglishCards(
   );
 
   if (matchedPreset) {
-    return matchedPreset.cards.slice(0, count).map(c => ({
-      ...c,
-      id: `gen_preset_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      isCustom: true,
-    }));
+    return matchedPreset.cards.slice(0, count).map(c => {
+      const dictHit = lookupDictionaryTranslation(c.backProfessional, nativeLanguage);
+      return {
+        ...c,
+        id: `gen_preset_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        backTranslation: dictHit || undefined,
+        isCustom: true,
+      };
+    });
   }
 
   // Dynamic synthesized card
   const promptTranslation = await translateText(topic, nativeLanguage);
+  
+  let genericTranslation = `Translation in ${nativeLanguage}`;
+  if (nativeLanguage.toLowerCase().includes('span')) {
+    genericTranslation = promptTranslation ? `Disculpe, ¿podría ayudarme con ${promptTranslation}?` : 'Disculpe, ¿podría ayudarme?';
+  } else if (nativeLanguage.toLowerCase().includes('zulu')) {
+    genericTranslation = promptTranslation ? `Uxolo, ungangisiza nge ${promptTranslation}?` : 'Uxolo, ungangisiza?';
+  } else if (nativeLanguage.toLowerCase().includes('xhosa')) {
+    genericTranslation = promptTranslation ? `Ndicela uxolo, ungandinceda nge ${promptTranslation}?` : 'Ndicela uxolo, ungandinceda?';
+  } else if (promptTranslation) {
+    genericTranslation = `[${nativeLanguage}]: Excuse me, could you please help me with ${promptTranslation}?`;
+  }
+
   return [
     {
       id: `gen_dyn_${Date.now()}_1`,
@@ -346,7 +363,7 @@ export async function generateBasicEnglishCards(
       front: `How do you speak politely about "${topic}" in everyday English?`,
       backProfessional: `Excuse me, could you please help me with ${topic.toLowerCase()}?`,
       backWhy: '"Could you please help me with..." is simple, polite, and universally understood.',
-      backTranslation: promptTranslation ? `Disculpe, ¿podría ayudarme con ${promptTranslation}?` : undefined,
+      backTranslation: genericTranslation,
       grammarNote: 'Always use "Could you please..." for polite everyday requests.',
       level: 'Beginner',
       tier: 'free',

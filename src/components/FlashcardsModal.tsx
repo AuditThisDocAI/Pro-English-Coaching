@@ -72,6 +72,8 @@ interface Props {
   nativeLanguage: NativeLanguage;
   onSendToChat?: (text: string) => void;
   initialDeckId?: string;
+  isExpired?: boolean;
+  onOpenPricing?: () => void;
 }
 
 export function FlashcardsModal({
@@ -81,6 +83,8 @@ export function FlashcardsModal({
   nativeLanguage,
   onSendToChat,
   initialDeckId = 'all',
+  isExpired = false,
+  onOpenPricing,
 }: Props) {
   const currentUser = auth.currentUser;
   const { speak, isSpeaking, isSupported } = useTTS();
@@ -399,6 +403,10 @@ export function FlashcardsModal({
 
   // Card Generator Actions
   const handleGenerateCards = async () => {
+    if (isExpired && onOpenPricing) {
+      onOpenPricing();
+      return;
+    }
     const topicToUse = genCustomTopic.trim() || genTopic;
     setIsGenerating(true);
     setGeneratorSuccessMessage(null);

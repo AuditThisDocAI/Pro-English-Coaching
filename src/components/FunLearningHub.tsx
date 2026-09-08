@@ -27,6 +27,8 @@ interface FunLearningHubProps {
   onSavePhrase: (data: CoachResponse) => Promise<boolean | void>;
   onAddXP: (amount: number) => void;
   initialTopic?: string;
+  isExpired?: boolean;
+  onOpenPricing?: () => void;
 }
 
 interface LessonPhrase {
@@ -350,7 +352,9 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
   onSendToChat,
   onSavePhrase,
   onAddXP,
-  initialTopic
+  initialTopic,
+  isExpired,
+  onOpenPricing
 }) => {
   const [selectedTopic, setSelectedTopic] = useState<string>(initialTopic || 'all');
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'starter' | 'everyday' | 'confident'>('all');
@@ -383,6 +387,11 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
   );
 
   const handleGenerateMore = async () => {
+    if (isExpired && onOpenPricing) {
+      onOpenPricing();
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const topicString = selectedTopic === 'all' ? 'Everyday Life' : selectedTopic;

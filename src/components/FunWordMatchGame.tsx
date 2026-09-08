@@ -562,8 +562,9 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
                     {isMatched ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     ) : (
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePlayAudio(pair.english);
@@ -574,7 +575,7 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
                         title="Listen to pronunciation"
                       >
                         <Volume2 className="w-4 h-4" />
-                      </button>
+                      </div>
                     )}
                   </div>
                 </button>
@@ -637,8 +638,9 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
                     {isMatched ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     ) : (
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePlayAudio(pair.english);
@@ -649,7 +651,7 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
                         title="Listen to English word pronunciation"
                       >
                         <Volume2 className="w-4 h-4" />
-                      </button>
+                      </div>
                     )}
                   </div>
                 </button>
