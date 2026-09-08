@@ -33,6 +33,7 @@ import {
   MessageSquarePlus
 } from 'lucide-react';
 import { useTTS } from '../lib/useTTS';
+import { useCoachAudioReplay } from '../lib/useCoachAudioReplay';
 import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
@@ -320,7 +321,26 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const toastTimeoutRef = useRef<any>(null);
-  const { speak, isSpeaking } = useTTS();
+  const { speak, isSpeaking, speed } = useTTS();
+
+  // Find most recent partner message for 'R' keyboard shortcut audio playback
+  const mostRecentPartnerMsg = activeScenario
+    ? [...messages].reverse().find(m => m.sender === 'tutor')
+    : null;
+
+  const { isRecentlyTriggered, triggerReplay } = useCoachAudioReplay(
+    mostRecentPartnerMsg && activeScenario ? {
+      id: `roleplay-${activeScenario.id}-${messages.indexOf(mostRecentPartnerMsg)}`,
+      text: mostRecentPartnerMsg.text,
+      source: 'roleplay',
+      title: activeScenario.partnerName,
+      options: {
+        rate: speed,
+        gender: activeScenario.partnerGender,
+        pitch: activeScenario.partnerGender === 'female' ? 1.08 : 0.95
+      }
+    } : null
+  );
 
   const filteredScenarios = CURATED_SCENARIOS.filter(
     (s) => categoryFilter === 'all' || s.category === categoryFilter
@@ -697,6 +717,27 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                 <p className="text-[11px] text-neutral-600 leading-snug">
                   {activeScenario.description}
                 </p>
+
+                {/* Partner Audio Replay Button */}
+                {mostRecentPartnerMsg && (
+                  <button
+                    type="button"
+                    id="trigger-partner-audio-replay-btn"
+                    onClick={() => triggerReplay()}
+                    className={`w-full mt-1 py-1.5 px-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                      isRecentlyTriggered
+                        ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 shadow-sm scale-102'
+                        : 'bg-white hover:bg-neutral-50 text-indigo-900 border-indigo-200 shadow-2xs'
+                    }`}
+                    title="Press 'R' (or Alt+R) to replay partner audio anytime"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>Replay Audio</span>
+                    <kbd className="px-1.5 py-0.2 bg-neutral-100 text-neutral-800 font-mono text-[10px] rounded border border-neutral-300 font-black">
+                      R
+                    </kbd>
+                  </button>
+                )}
               </div>
 
               {/* Scenario Objectives */}
@@ -929,9 +970,22 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                               gender: activeScenario.partnerGender,
                               pitch: activeScenario.partnerGender === 'female' ? 1.08 : 0.95
                             })}
-                            className="text-xs font-bold text-neutral-600 hover:text-indigo-600 flex items-center gap-1 cursor-pointer"
+                            className={`text-xs font-bold flex items-center gap-1 cursor-pointer transition-all ${
+                              m === mostRecentPartnerMsg && isRecentlyTriggered
+                                ? 'text-indigo-600 ring-2 ring-indigo-300 px-2 py-0.5 rounded-lg bg-indigo-50 font-black scale-102'
+                                : m === mostRecentPartnerMsg
+                                ? 'text-indigo-700 hover:text-indigo-900 bg-indigo-50/80 px-2 py-0.5 rounded-lg border border-indigo-200'
+                                : 'text-neutral-600 hover:text-indigo-600'
+                            }`}
+                            title={m === mostRecentPartnerMsg ? "Listen (or press 'R' to replay anytime)" : "Listen"}
                           >
-                            <Volume2 className="w-3.5 h-3.5" /> Listen
+                            <Volume2 className="w-3.5 h-3.5" />
+                            <span>Listen</span>
+                            {m === mostRecentPartnerMsg && (
+                              <kbd className="ml-0.5 px-1 py-0.2 bg-indigo-100 text-indigo-800 font-mono text-[9px] rounded font-black border border-indigo-200">
+                                R
+                              </kbd>
+                            )}
                           </button>
 
                           {m.translation && (

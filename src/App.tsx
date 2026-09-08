@@ -29,6 +29,7 @@ import { FunLearningHub } from './components/FunLearningHub';
 import { FunWordMatchGame } from './components/FunWordMatchGame';
 import { SpeakerSpeedControl } from './components/SpeakerSpeedControl';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
+import { CoachAudioReplayBanner } from './components/CoachAudioReplayBanner';
 import { 
   LandingHero, 
   HowItWorksSection, 
@@ -886,6 +887,9 @@ export default function App() {
 
       {/* GDPR / CCPA Cookie Consent Banner */}
       <CookieConsentBanner />
+
+      {/* Global Coach Audio Replay Toast / Notification */}
+      <CoachAudioReplayBanner />
 
     </div>
   );

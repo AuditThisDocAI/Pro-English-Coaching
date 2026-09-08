@@ -20,6 +20,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useTTS } from '../lib/useTTS';
+import { useCoachAudioReplay } from '../lib/useCoachAudioReplay';
 import { motion, AnimatePresence } from 'motion/react';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 
@@ -90,6 +91,34 @@ export const TalkPalCallMode: React.FC<TalkPalCallModeProps> = ({
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const { speak, stop } = useTTS();
+
+  // Find most recent caller audio response for 'R' shortcut playback
+  const mostRecentCaller = [...transcript].reverse().find(t => t.sender === 'caller');
+
+  const { isRecentlyTriggered, triggerReplay } = useCoachAudioReplay(
+    isCallActive && mostRecentCaller ? {
+      id: `call-msg-${transcript.indexOf(mostRecentCaller)}`,
+      text: mostRecentCaller.text,
+      source: 'call',
+      title: selectedScenario.callerName,
+      options: {
+        gender: selectedScenario.gender,
+        pitch: selectedScenario.voicePitch,
+        rate: selectedScenario.voiceRate
+      },
+      playFn: () => {
+        setIsCoachSpeaking(true);
+        speak(mostRecentCaller.text, {
+          gender: selectedScenario.gender,
+          pitch: selectedScenario.voicePitch,
+          rate: selectedScenario.voiceRate,
+          onEnd: () => {
+            setIsCoachSpeaking(false);
+          }
+        });
+      }
+    } : null
+  );
 
   // Call timer
   useEffect(() => {
@@ -482,6 +511,27 @@ export const TalkPalCallMode: React.FC<TalkPalCallModeProps> = ({
             >
               <FileText className="w-6 h-6" />
             </button>
+
+            {/* Replay Caller Audio Shortcut Button [R] */}
+            {mostRecentCaller && (
+              <button
+                type="button"
+                id="trigger-call-audio-replay-btn"
+                onClick={() => triggerReplay()}
+                className={`w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all cursor-pointer relative ${
+                  isRecentlyTriggered
+                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-400 scale-105 shadow-xl'
+                    : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white'
+                }`}
+                title="Press 'R' (or Alt+R) to replay what the caller just said"
+              >
+                <Volume2 className="w-5 h-5" />
+                <span className="text-[8px] font-black uppercase tracking-wider mt-0.5">Replay</span>
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 bg-indigo-500 text-white font-mono text-[9px] rounded-full font-black border border-neutral-900 shadow-xs">
+                  R
+                </span>
+              </button>
+            )}
           </div>
 
         </div>

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 import { auth } from '../lib/firebase';
 import { syncUserProfile } from '../lib/firestoreService';
+import asianManComputer from '../assets/images/asian_man_computer_1788796518513.jpg';
 
 export const WelcomePage: React.FC = () => {
   useEffect(() => {
@@ -49,8 +50,8 @@ export const WelcomePage: React.FC = () => {
 
           <div className="rounded-2xl overflow-hidden shadow-sm border border-neutral-200/50 relative mb-6">
             <img 
-              src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800&h=450" 
-              alt="People celebrating learning" 
+              src={asianManComputer} 
+              alt="Asian man behind computer celebrating progress" 
               className="w-full h-[140px] object-cover"
               referrerPolicy="no-referrer"
             />

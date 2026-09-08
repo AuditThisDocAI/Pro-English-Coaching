@@ -580,6 +580,16 @@ const COMMON_WORKPLACE_GLOSSARY: Record<string, Record<string, string>> = {
     Turkish: 'Sabrınız için teşekkürler',
     Vietnamese: 'Cảm ơn sự kiên nhẫn của bạn',
     Indonesian: 'Terima kasih atas kesabaran Anda',
+    Swahili: 'Asante kwa subira yako',
+    Yoruba: 'O ṣeun fun suuru rẹ',
+    Igbo: 'Dalu maka ndidi gị',
+    Hausa: 'Nagode da haƙurinku',
+    Amharic: 'ለትዕግስትዎ እናመሰግናለን',
+    Zulu: 'Ngiyabonga ngokubekezela kwakho',
+    Xhosa: 'Enkosi ngomonde wakho',
+    Afrikaans: 'Dankie vir jou geduld',
+    Somali: 'Waad ku mahadsan tahay samirkaaga',
+    Oromo: 'Obsa keessaniif galatoomaa',
   },
   'I would appreciate an update': {
     Spanish: 'Agradecería una actualización',
@@ -597,6 +607,16 @@ const COMMON_WORKPLACE_GLOSSARY: Record<string, Record<string, string>> = {
     Turkish: 'Bir durum güncellemesi paylaşırsanız sevinirim',
     Vietnamese: 'Tôi rất mong nhận được cập nhật',
     Indonesian: 'Saya akan menghargai pembaruan terkait hal ini',
+    Swahili: 'Ningeshukuru kupata taarifa mpya',
+    Yoruba: 'Inu mi yoo dun lati gba imudojuiwọn',
+    Igbo: 'A ga-enwe ekele maka mmelite',
+    Hausa: 'Zan yaba idan na sami sabon bayani',
+    Amharic: 'አዲስ መረጃ ቢያጋሩኝ ደስ ይለኛል',
+    Zulu: 'Ngingabonga ukuthola isibuyekezo',
+    Xhosa: 'Ndingavuya ukufumana ingxelo ehlaziyiweyo',
+    Afrikaans: 'Ek sal \'n opdatering waardeer',
+    Somali: 'Waxaan ku qadarin lahaa cusboonaysiin',
+    Oromo: 'Odeeffannoo haaraa yoo naaf qooddan nan galateeffadha',
   },
 };
 
@@ -604,7 +624,7 @@ const COMMON_WORKPLACE_GLOSSARY: Record<string, Record<string, string>> = {
  * Normalizes any language input into standard title-case matching SUPPORTED_LANGUAGES.
  */
 export function normalizeLanguageName(rawLanguage?: string): string {
-  if (!rawLanguage) return 'Spanish';
+  if (!rawLanguage) return 'English';
   const clean = rawLanguage.trim().toLowerCase();
 
   const found = SUPPORTED_LANGUAGES.find(
@@ -612,32 +632,32 @@ export function normalizeLanguageName(rawLanguage?: string): string {
   );
   if (found) return found.name;
 
-  if (clean.includes('span') || clean.includes('españ')) return 'Spanish';
-  if (clean.includes('port')) return 'Portuguese';
-  if (clean.includes('fren') || clean.includes('fran')) return 'French';
-  if (clean.includes('germ') || clean.includes('deut')) return 'German';
-  if (clean.includes('hind')) return 'Hindi';
-  if (clean.includes('chin') || clean.includes('mand')) return 'Mandarin';
-  if (clean.includes('japan')) return 'Japanese';
-  if (clean.includes('kore')) return 'Korean';
-  if (clean.includes('arab')) return 'Arabic';
-  if (clean.includes('russ')) return 'Russian';
-  if (clean.includes('ital')) return 'Italian';
-  if (clean.includes('pol')) return 'Polish';
-  if (clean.includes('turk')) return 'Turkish';
-  if (clean.includes('viet')) return 'Vietnamese';
-  if (clean.includes('tag') || clean.includes('filip')) return 'Tagalog';
-  if (clean.includes('indo')) return 'Indonesian';
-  if (clean.includes('swah') || clean.includes('kiswah')) return 'Swahili';
-  if (clean.includes('yorub')) return 'Yoruba';
-  if (clean.includes('igbo')) return 'Igbo';
-  if (clean.includes('haus')) return 'Hausa';
-  if (clean.includes('amhar')) return 'Amharic';
-  if (clean.includes('zulu')) return 'Zulu';
-  if (clean.includes('xhosa')) return 'Xhosa';
-  if (clean.includes('afrikaans')) return 'Afrikaans';
-  if (clean.includes('somal')) return 'Somali';
-  if (clean.includes('oromo')) return 'Oromo';
+  if (clean.includes('span') || clean.includes('españ') || clean === 'es') return 'Spanish';
+  if (clean.includes('port') || clean === 'pt') return 'Portuguese';
+  if (clean.includes('fren') || clean.includes('fran') || clean === 'fr') return 'French';
+  if (clean.includes('germ') || clean.includes('deut') || clean === 'de') return 'German';
+  if (clean.includes('hind') || clean === 'hi') return 'Hindi';
+  if (clean.includes('chin') || clean.includes('mand') || clean === 'zh') return 'Mandarin';
+  if (clean.includes('japan') || clean === 'ja') return 'Japanese';
+  if (clean.includes('kore') || clean === 'ko') return 'Korean';
+  if (clean.includes('arab') || clean === 'ar') return 'Arabic';
+  if (clean.includes('russ') || clean === 'ru') return 'Russian';
+  if (clean.includes('ital') || clean === 'it') return 'Italian';
+  if (clean.includes('pol') || clean === 'pl') return 'Polish';
+  if (clean.includes('turk') || clean === 'tr') return 'Turkish';
+  if (clean.includes('viet') || clean === 'vi') return 'Vietnamese';
+  if (clean.includes('tag') || clean.includes('filip') || clean === 'tl') return 'Tagalog';
+  if (clean.includes('indo') || clean === 'id') return 'Indonesian';
+  if (clean.includes('swah') || clean.includes('kiswah') || clean === 'sw' || clean.startsWith('sw-')) return 'Swahili';
+  if (clean.includes('yorub') || clean.includes('èdè') || clean.includes('ede') || clean === 'yo' || clean.startsWith('yo-')) return 'Yoruba';
+  if (clean.includes('igbo') || clean.includes('asụsụ') || clean.includes('asusu') || clean === 'ig' || clean.startsWith('ig-')) return 'Igbo';
+  if (clean.includes('haus') || clean.includes('harshen') || clean === 'ha' || clean.startsWith('ha-')) return 'Hausa';
+  if (clean.includes('amhar') || clean.includes('አማር') || clean === 'am' || clean.startsWith('am-')) return 'Amharic';
+  if (clean.includes('zulu') || clean.includes('isizulu') || clean === 'zu' || clean.startsWith('zu-')) return 'Zulu';
+  if (clean.includes('xhosa') || clean.includes('isixhosa') || clean === 'xh' || clean.startsWith('xh-')) return 'Xhosa';
+  if (clean.includes('afrikaans') || clean === 'af' || clean.startsWith('af-')) return 'Afrikaans';
+  if (clean.includes('somal') || clean.includes('soomaali') || clean === 'so' || clean.startsWith('so-')) return 'Somali';
+  if (clean.includes('oromo') || clean.includes('oromoo') || clean === 'om' || clean.startsWith('om-')) return 'Oromo';
 
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
@@ -682,7 +702,13 @@ export function getFlashcardTranslation(
     return translationCache[cacheKey];
   }
 
-  // 4. Try matching standard workplace phrases
+  // 4. Try matching direct dictionary phrases for African and international languages
+  const dictMatch = lookupDictionaryTranslation(card.backProfessional, normalizedLang);
+  if (dictMatch) {
+    return dictMatch;
+  }
+
+  // 5. Try matching standard workplace phrases
   for (const [englishPrefix, translations] of Object.entries(COMMON_WORKPLACE_GLOSSARY)) {
     if (card.backProfessional.toLowerCase().includes(englishPrefix.toLowerCase())) {
       if (translations[normalizedLang]) {
@@ -691,8 +717,8 @@ export function getFlashcardTranslation(
     }
   }
 
-  // 5. Fallback gracefully with an accurate language-specific label in the actual target language
-  return generateSmartRuleBasedTranslation(card.backWhy || card.backProfessional, normalizedLang);
+  // 6. Fallback gracefully with an accurate language-specific label in the actual target language
+  return generateSmartRuleBasedTranslation(card.backProfessional, normalizedLang);
 }
 
 /**

@@ -6,6 +6,7 @@ import {
   Play, BookOpen, Layers, Speech
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import asianManComputer from '../assets/images/asian_man_computer_1788796518513.jpg';
 
 export interface FunLandingPageProps {
   onOpenAuth: () => void;
@@ -250,24 +251,30 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
             {/* Mockup Screen Content with Parallax */}
             <div className="flex-1 relative bg-[#0B0B0F] overflow-hidden">
               <motion.div style={{ y: parallaxY }} className="absolute inset-x-0 top-0 h-[150%] p-8">
-                {/* Simulated Dashboard UI */}
-                <div className="w-full h-full bg-white/[0.02] border border-white/5 rounded-2xl p-8 shadow-2xl flex flex-col gap-6">
-                  <div className="flex justify-between items-center pb-6 border-b border-white/5">
-                    <div className="h-8 w-48 bg-white/10 rounded-lg" />
-                    <div className="h-10 w-32 bg-purple-500/20 rounded-full" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-6">
-                    <div className="col-span-2 space-y-4">
-                      <div className="h-64 bg-white/5 rounded-xl border border-white/5 p-6 flex flex-col gap-4">
-                        <div className="h-4 w-1/4 bg-white/10 rounded-md" />
-                        <div className="h-24 w-full bg-white/5 rounded-md mt-auto" />
+                {/* Real Platform Preview with Asian Man behind computer */}
+                <div className="w-full h-full rounded-2xl overflow-hidden relative border border-white/10 shadow-2xl flex flex-col justify-end min-h-[380px]">
+                  <img 
+                    src={asianManComputer} 
+                    alt="Asian man behind a computer practicing English" 
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0F] via-[#0B0B0F]/30 to-transparent pointer-events-none" />
+                  <div className="relative z-10 m-6 p-5 rounded-2xl bg-black/70 backdrop-blur-md border border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Live AI Fluency Coaching</p>
                       </div>
-                      <div className="h-32 bg-white/5 rounded-xl border border-white/5" />
+                      <p className="text-sm font-semibold text-white">"Thank you for your patience. I apologize for the delay."</p>
                     </div>
-                    <div className="col-span-1 space-y-4">
-                      <div className="h-48 bg-blue-500/10 border border-blue-500/20 rounded-xl p-6" />
-                      <div className="h-48 bg-white/5 border border-white/5 rounded-xl" />
-                    </div>
+                    <button 
+                      onClick={onOpenAuth}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-xs shrink-0 hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Try Free
+                    </button>
                   </div>
                 </div>
               </motion.div>

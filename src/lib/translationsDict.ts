@@ -17,7 +17,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Доброе утро',
     Turkish: 'Günaydın',
     Polish: 'Dzień dobry',
-    Indonesian: 'Selamat pagi'
+    Indonesian: 'Selamat pagi',
+    Swahili: 'Habari za asubuhi',
+    Yoruba: 'Ẹ ku aarọ',
+    Igbo: 'Ụtụtụ ọma',
+    Hausa: 'Ina kwana',
+    Amharic: 'እንደምን አደሩ',
+    Zulu: 'Sawubona ekuseni',
+    Xhosa: 'Molo kusasa',
+    Afrikaans: 'Goeiemôre',
+    Somali: 'Subax wanaagsan',
+    Oromo: 'Akkam bulte'
   },
   'good afternoon': {
     Spanish: 'Buenas tardes',
@@ -35,7 +45,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Добрый день',
     Turkish: 'Tünaydın',
     Polish: 'Dzień dobry',
-    Indonesian: 'Selamat siang'
+    Indonesian: 'Selamat siang',
+    Swahili: 'Habari za mchana',
+    Yoruba: 'Ẹ ku ọsan',
+    Igbo: 'Ehihie ọma',
+    Hausa: 'Ina wuni',
+    Amharic: 'እንደምን ዋሉ',
+    Zulu: 'Sawubona emini',
+    Xhosa: 'Molo emva kwemini',
+    Afrikaans: 'Goeiemiddag',
+    Somali: 'Galab wanaagsan',
+    Oromo: 'Akkam oolte'
   },
   'good evening': {
     Spanish: 'Buenas noches',
@@ -53,7 +73,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Добрый вечер',
     Turkish: 'İyi akşamlar',
     Polish: 'Dobry wieczór',
-    Indonesian: 'Selamat malam'
+    Indonesian: 'Selamat malam',
+    Swahili: 'Habari za jioni',
+    Yoruba: 'Ẹ ku irọlẹ',
+    Igbo: 'Mgbede ọma',
+    Hausa: 'Barka da yamma',
+    Amharic: 'እንደምን አመሹ',
+    Zulu: 'Sawubona kusihlwa',
+    Xhosa: 'Molo ngokuhlwa',
+    Afrikaans: 'Goeienaand',
+    Somali: 'Fiid wanaagsan',
+    Oromo: 'Akkam galgala'
   },
   'hello': {
     Spanish: 'Hola',
@@ -127,7 +157,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Как дела?',
     Turkish: 'Nasılsınız?',
     Polish: 'Jak się masz?',
-    Indonesian: 'Bagaimana kabar Anda?'
+    Indonesian: 'Bagaimana kabar Anda?',
+    Swahili: 'Habari yako?',
+    Yoruba: 'Bawo ni?',
+    Igbo: 'Kedu ka ị mere?',
+    Hausa: 'Yaya kake?',
+    Amharic: 'እንዴት ነህ?',
+    Zulu: 'Unjani?',
+    Xhosa: 'Unjani?',
+    Afrikaans: 'Hoe gaan dit?',
+    Somali: 'Sidee tahay?',
+    Oromo: 'Akkam jirta?'
   },
   'how is your day going': {
     Spanish: '¿Cómo va tu día?',
@@ -145,7 +185,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Как проходит твой день?',
     Turkish: 'Gününüz nasıl geçiyor?',
     Polish: 'Jak mija ci dzień?',
-    Indonesian: 'Bagaimana hari Anda?'
+    Indonesian: 'Bagaimana hari Anda?',
+    Swahili: 'Siku yako inaendaje?',
+    Yoruba: 'Bawo ni ọjọ rẹ ṣe n lọ?',
+    Igbo: 'Kedu ka ụbọchị gị si aga?',
+    Hausa: 'Yaya ranarka take tafiya?',
+    Amharic: 'ቀንህ እንዴት እያለፈ ነው?',
+    Zulu: 'Iya kanjani usuku lwakho?',
+    Xhosa: 'Iinjani imini yakho?',
+    Afrikaans: 'Hoe verloop jou dag?',
+    Somali: 'Sidee maalintaadu ku socotaa?',
+    Oromo: 'Guyyaan kee akkam deemaa jira?'
   },
   'thank you very much': {
     Spanish: 'Muchas gracias',
@@ -219,7 +269,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Пожалуйста',
     Turkish: 'Rica ederim',
     Polish: 'Nie ma za co',
-    Indonesian: 'Sama-sama'
+    Indonesian: 'Sama-sama',
+    Swahili: 'Karibu sana',
+    Yoruba: 'Ko tọpẹ',
+    Igbo: 'Nnọọ / Imeela',
+    Hausa: 'Babu damuwa',
+    Amharic: 'ምንም አይደል',
+    Zulu: 'Wamukelekile',
+    Xhosa: 'Wamkelekile',
+    Afrikaans: 'Jy is welkom',
+    Somali: 'Adaa mudan',
+    Oromo: 'Homaa miti'
   },
   'excuse me': {
     Spanish: 'Disculpe',
@@ -237,7 +297,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Извините',
     Turkish: 'Afedersiniz',
     Polish: 'Przepraszam',
-    Indonesian: 'Permisi'
+    Indonesian: 'Permisi',
+    Swahili: 'Samahani',
+    Yoruba: 'Ẹ dariji mi',
+    Igbo: 'Biko gbaghara m',
+    Hausa: 'Gafara dai',
+    Amharic: 'ይቅርታ',
+    Zulu: 'Uxolo',
+    Xhosa: 'Uxolo',
+    Afrikaans: 'Verskoon my',
+    Somali: 'Iga raali noqo',
+    Oromo: 'Dhiifama'
   },
   'please': {
     Spanish: 'Por favor',
@@ -255,7 +325,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Пожалуйста',
     Turkish: 'Lütfen',
     Polish: 'Proszę',
-    Indonesian: 'Tolong / Silakan'
+    Indonesian: 'Tolong / Silakan',
+    Swahili: 'Tafadhali',
+    Yoruba: 'Jọwọ',
+    Igbo: 'Biko',
+    Hausa: 'Don Allah',
+    Amharic: 'እባክዎ',
+    Zulu: 'Ngicela',
+    Xhosa: 'Nceda',
+    Afrikaans: 'Asseblief',
+    Somali: 'Fadlan',
+    Oromo: 'Maaloo'
   },
   'nice to meet you': {
     Spanish: 'Mucho gusto en conocerte',
@@ -273,7 +353,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Приятно познакомиться',
     Turkish: 'Tanıştığımıza memnun oldum',
     Polish: 'Miło cię poznać',
-    Indonesian: 'Senang berkenalan dengan Anda'
+    Indonesian: 'Senang berkenalan dengan Anda',
+    Swahili: 'Nimefurahi kukutana nawe',
+    Yoruba: 'Inu mi dun lati mọ ọ',
+    Igbo: 'Ọ dị m mma izute gị',
+    Hausa: 'Na ji daɗin haɗuwa da kai',
+    Amharic: 'ስለተዋወቅን ደስ ብሎኛል',
+    Zulu: 'Ngijabulile ukukwazi',
+    Xhosa: 'Kumnandi ukukwazi',
+    Afrikaans: 'Aangename kennis',
+    Somali: 'Waa ku faraxsanahay la kulankaaga',
+    Oromo: 'Si beekuu kiyyatiif gammadeera'
   },
   'how much does it cost': {
     Spanish: '¿Cuánto cuesta?',
@@ -291,7 +381,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Сколько это стоит?',
     Turkish: 'Bunun fiyatı ne kadar?',
     Polish: 'Ile to kosztuje?',
-    Indonesian: 'Berapa harganya ini?'
+    Indonesian: 'Berapa harganya ini?',
+    Swahili: 'Hii inagharimu kiasi gani?',
+    Yoruba: 'Elo ni eyi jẹ?',
+    Igbo: 'Ego ole ka nke a na-eri?',
+    Hausa: 'Nawa ne wannan?',
+    Amharic: 'ዋጋው ስንት ነው?',
+    Zulu: 'Kubiza malini lokhu?',
+    Xhosa: 'Ibiza malini le nto?',
+    Afrikaans: 'Hoeveel kos dit?',
+    Somali: 'Immisa ayey tani ku kacaysaa?',
+    Oromo: 'Gatiin isaa meeqa?'
   },
   'where is the bathroom': {
     Spanish: '¿Dónde está el baño?',
@@ -309,7 +409,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Где находится туалет?',
     Turkish: 'Tuvalet nerede?',
     Polish: 'Gdzie jest toaleta?',
-    Indonesian: 'Di mana kamar mandinya?'
+    Indonesian: 'Di mana kamar mandinya?',
+    Swahili: 'Choo kiko wapi?',
+    Yoruba: 'Ibo ni baluwe wa?',
+    Igbo: 'Ebee ka ụlọ mposi dị?',
+    Hausa: 'Ina banɗaki yake?',
+    Amharic: 'መታጠቢያ ቤቱ የት ነው?',
+    Zulu: 'Iphi indlu yangasese?',
+    Xhosa: 'Liphi igumbi langasese?',
+    Afrikaans: 'Waar is die badkamer?',
+    Somali: 'Xaggee musqushu ku taallaa?',
+    Oromo: 'Mana fincaanii eessa jira?'
   },
   'could you help me please': {
     Spanish: '¿Podría ayudarme, por favor?',
@@ -327,7 +437,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Не могли бы вы мне помочь?',
     Turkish: 'Lütfen bana yardım edebilir misiniz?',
     Polish: 'Czy mógłbyś mi pomóc?',
-    Indonesian: 'Bisakah Anda membantu saya?'
+    Indonesian: 'Bisakah Anda membantu saya?',
+    Swahili: 'Unaweza kunisaidia tafadhali?',
+    Yoruba: 'Ṣe o le ran mi lọwọ, jọwọ?',
+    Igbo: 'Biko, ị nwere ike inyere m aka?',
+    Hausa: 'Za ka iya taimaka mini, don Allah?',
+    Amharic: 'እባክዎ ሊረዱኝ ይችላሉ?',
+    Zulu: 'Ungangisiza ngicela?',
+    Xhosa: 'Ungandinceda nceda?',
+    Afrikaans: 'Kan jy my asseblief help?',
+    Somali: 'Ma i caawin kartaa fadlan?',
+    Oromo: 'Mee na gargaaruu dandeessaa?'
   },
   'can i please have a large latte with oat milk': {
     Spanish: '¿Me das un latte grande con leche de avena, por favor?',
@@ -345,7 +465,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Можно мне, пожалуйста, большой латте на овсяном молоке?',
     Turkish: 'Lütfen yulaf sütlü büyük boy latte alabilir miyim?',
     Polish: 'Czy mogę poprosić o duże latte z mlekiem owsianym?',
-    Indonesian: 'Bolehkah saya minta latte besar dengan susu oat, tolong?'
+    Indonesian: 'Bolehkah saya minta latte besar dengan susu oat, tolong?',
+    Swahili: 'Naomba kupata latte kubwa yenye maziwa ya shayiri, tafadhali?',
+    Yoruba: 'Ṣe mo le gba latte nla pẹlu wara oat, jọwọ?',
+    Igbo: 'Biko, enwere m ike ịnweta nnukwu latte nwere mmiri ara ehi oat?',
+    Hausa: 'Don Allah zan iya samun babban latte tare da madarar oat?',
+    Amharic: 'እባክዎ ትልቅ ላቴ ከኦት ወተት ጋር ማግኘት እችላለሁ?',
+    Zulu: 'Ngingayithola i-latte enkulu enobisi lwe-oat ngicela?',
+    Xhosa: 'Ndingayifumana i-latte enkulu enobisi lwe-oat nceda?',
+    Afrikaans: 'Kan ek asseblief \'n groot latte met hawermelk kry?',
+    Somali: 'Ma heli karaa latte weyn oo leh caano oat fadlan?',
+    Oromo: 'Mee laattee guddaa aannan oat qabu argachuu danda\'aa?'
   },
   'can i please have a warm cappuccino with oat milk': {
     Spanish: '¿Me das un cappuccino tibio con leche de avena, por favor?',
@@ -363,7 +493,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Можно мне, пожалуйста, тёплый капучино на овсяном молоке?',
     Turkish: 'Lütfen yulaf sütlü sıcak bir cappuccino alabilir miyim?',
     Polish: 'Czy mogę poprosić o ciepłe cappuccino z mlekiem owsianym?',
-    Indonesian: 'Bolehkah saya minta cappuccino hangat dengan susu oat, tolong?'
+    Indonesian: 'Bolehkah saya minta cappuccino hangat dengan susu oat, tolong?',
+    Swahili: 'Naomba kupata cappuccino ya joto yenye maziwa ya shayiri, tafadhali?',
+    Yoruba: 'Ṣe mo le gba cappuccino gbigbona pẹlu wara oat, jọwọ?',
+    Igbo: 'Biko enwere m ike ịnweta cappuccino na-ekpo ọkụ nwere mmiri ara ehi oat?',
+    Hausa: 'Don Allah zan iya samun cappuccino mai ɗumi tare da madarar oat?',
+    Amharic: 'እባክዎ ሞቅ ያለ ካፑቺኖ ከኦት ወተት ጋር ማግኘት እችላለሁ?',
+    Zulu: 'Ngingayithola i-cappuccino efudumele enobisi lwe-oat ngicela?',
+    Xhosa: 'Ndingayifumana i-cappuccino efudumeleyo enobisi lwe-oat nceda?',
+    Afrikaans: 'Kan ek asseblief \'n warm cappuccino met hawermelk kry?',
+    Somali: 'Ma heli karaa cappuccino diiran oo leh caano oat fadlan?',
+    Oromo: 'Mee cappuccino ho\'aa aannan oat qabu argachuu danda\'aa?'
   },
   'could we please get the check when you have a moment': {
     Spanish: '¿Nos trae la cuenta cuando tenga un momento, por favor?',
@@ -381,7 +521,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Не могли бы вы принести нам счёт, когда освободитесь?',
     Turkish: 'Müsait olduğunuzda hesabı alabilir miyiz lütfen?',
     Polish: 'Czy moglibyśmy prosić o rachunek, kiedy będzie miał pan/pani chwilę?',
-    Indonesian: 'Bisakah kami minta tagihannya saat Anda ada waktu luang?'
+    Indonesian: 'Bisakah kami minta tagihannya saat Anda ada waktu luang?',
+    Swahili: 'Tafadhali tunaweza kupata bili unapopata nafasi?',
+    Yoruba: 'Ṣe a le gba iwe-owo nigbati o ba ni akoko diẹ, jọwọ?',
+    Igbo: 'Biko, anyị nwere ike ịnweta akwụkwọ ụgwọ mgbe ị nwere oge?',
+    Hausa: 'Don Allah za mu iya samun lissafin kuɗi idan ka sami ɗan lokaci?',
+    Amharic: 'እባክዎ ጊዜ ሲኖርዎት ሂሳቡን ሊያመጡልን ይችላሉ?',
+    Zulu: 'Singasicela isikweletu uma unethuba ngicela?',
+    Xhosa: 'Singasicela na isikweletu xa unexesha nceda?',
+    Afrikaans: 'Kan ons asseblief die rekening kry wanneer jy \'n oomblik het?',
+    Somali: 'Fadlan ma heli karnaa biilka markaad waqti hesho?',
+    Oromo: 'Mee yeroo yeroo qabaattan nagahee kaffaltii nuuf fiduu dandeessuu?'
   },
   'could you please help me with this when you have a free moment': {
     Spanish: '¿Podrías ayudarme con esto cuando tengas un momento libre, por favor?',
@@ -399,7 +549,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Не могли бы вы помочь мне с этим, когда у вас будет свободная минута?',
     Turkish: 'Boş bir vaktiniz olduğunda lütfen bana bu konuda yardımcı olabilir misiniz?',
     Polish: 'Czy mógłbyś mi w tym pomóc, kiedy będziesz miał wolną chwilę?',
-    Indonesian: 'Bisakah Anda membantu saya dengan ini ketika Anda memiliki waktu luang?'
+    Indonesian: 'Bisakah Anda membantu saya dengan ini ketika Anda memiliki waktu luang?',
+    Swahili: 'Unaweza kunisaidia na hili unapopata nafasi tafadhali?',
+    Yoruba: 'Ṣe o le ran mi lọwọ pẹlu eyi nigba ti o ba ni akoko diẹ, jọwọ?',
+    Igbo: 'Biko ị nwere ike inyere m aka na nke a mgbe ị nwere oge ntakịrị?',
+    Hausa: 'Za ka iya taimaka mini da wannan idan ka sami ɗan lokaci don Allah?',
+    Amharic: 'እባክዎ ጊዜ ሲኖርዎት በዚህ ሊረዱኝ ይችላሉ?',
+    Zulu: 'Ungangisiza kulokhu uma unethuba ngicela?',
+    Xhosa: 'Ungandinceda kule nto xa unexesha nceda?',
+    Afrikaans: 'Kan jy my asseblief hiermee help wanneer jy \'n oomblik het?',
+    Somali: 'Ma igu caawin kartaa tan markaad waqti hesho fadlan?',
+    Oromo: 'Mee yeroo yeroo qabaattan kanarratti na gargaaruu dandeessuu?'
   },
   'i understand': {
     Spanish: 'Entiendo',
@@ -417,7 +577,17 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Я понимаю',
     Turkish: 'Anlıyorum',
     Polish: 'Rozumiem',
-    Indonesian: 'Saya mengerti'
+    Indonesian: 'Saya mengerti',
+    Swahili: 'Naelewa',
+    Yoruba: 'Mo loye',
+    Igbo: 'Aghọtara m',
+    Hausa: 'Na gane',
+    Amharic: 'ተረድቻለሁ',
+    Zulu: 'Ngiyaqonda',
+    Xhosa: 'Ndiyaqonda',
+    Afrikaans: 'Ek verstaan',
+    Somali: 'Waan fahamsanahay',
+    Oromo: 'Naaf galeera'
   },
   'have a great day': {
     Spanish: '¡Que tengas un excelente día!',
@@ -435,7 +605,422 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
     Russian: 'Хорошего дня!',
     Turkish: 'Harika bir gün dilerim!',
     Polish: 'Miłego dnia!',
-    Indonesian: 'Semoga hari Anda menyenangkan!'
+    Indonesian: 'Semoga hari Anda menyenangkan!',
+    Swahili: 'Uwe na siku njema!',
+    Yoruba: 'Kí ọjọ́ rẹ dára!',
+    Igbo: 'Nwee ụbọchị magburu onwe ya!',
+    Hausa: 'A wuni lafiya!',
+    Amharic: 'መልካም ቀን ይሁንልዎ!',
+    Zulu: 'Ube nosuku oluhle!',
+    Xhosa: 'Ube nosuku oluhle!',
+    Afrikaans: 'Geniet \'n wonderlike dag!',
+    Somali: 'Maalin wacan!',
+    Oromo: 'Guyyaa gaarii qabaadhaa!'
+  },
+  'stop shouting at me': {
+    Spanish: '¡Deja de gritarme!',
+    Portuguese: 'Pare de gritar comigo!',
+    French: 'Arrête de me crier dessus !',
+    German: 'Hör auf, mich anzuschreien!',
+    Hindi: 'मुझ पर चिल्लाना बंद करो!',
+    Mandarin: '别对我大喊大叫！',
+    Japanese: '私に怒鳴るのはやめてください！',
+    Korean: '나한테 소리 지르지 마세요!',
+    Arabic: 'توقف عن الصراخ في وجهي!',
+    Vietnamese: 'Đừng hét vào mặt tôi nữa!',
+    Tagalog: 'Huwag mo akong sigawan!',
+    Italian: 'Smettila di urlarmi contro!',
+    Russian: 'Перестань на меня кричать!',
+    Turkish: 'Bana bağırmayı kes!',
+    Polish: 'Przestań na mnie krzyczeć!',
+    Indonesian: 'Berhentilah berteriak padaku!',
+    Swahili: 'Acha kunipigia kelele!',
+    Yoruba: 'Dẹkun kígbe mọ́ mi!',
+    Igbo: 'Kwụsị iti m mkpu!',
+    Hausa: 'Daina yi min tsawa!',
+    Amharic: 'በእኔ ላይ መጮህ አቁም!',
+    Zulu: 'Yeka ukungimemeza!',
+    Xhosa: 'Yeka ukundikhwaza!',
+    Afrikaans: 'Hou op om vir my te skree!',
+    Somali: 'Jooji inaad igu qayliso!',
+    Oromo: 'Natti iyyuu dhiisi!'
+  },
+  'stop shouting': {
+    Spanish: '¡Deja de gritar!',
+    Portuguese: 'Pare de gritar!',
+    French: 'Arrête de crier !',
+    German: 'Hör auf zu schreien!',
+    Hindi: 'चिल्लाना बंद करो!',
+    Mandarin: '别喊了！',
+    Japanese: '叫ぶのをやめて！',
+    Korean: '소리 지르지 마세요!',
+    Arabic: 'توقف عن الصراخ!',
+    Vietnamese: 'Đừng la hét nữa!',
+    Tagalog: 'Itigil ang pagsigaw!',
+    Italian: 'Smettila di urlare!',
+    Russian: 'Перестань кричать!',
+    Turkish: 'Bağırmayı kes!',
+    Polish: 'Przestań krzyczeć!',
+    Indonesian: 'Berhentilah berteriak!',
+    Swahili: 'Acha kupiga kelele!',
+    Yoruba: 'Dẹkun kígbe!',
+    Igbo: 'Kwụsị iti mkpu!',
+    Hausa: 'Daina kururuwa!',
+    Amharic: 'መጮህ አቁም!',
+    Zulu: 'Yeka ukumemeza!',
+    Xhosa: 'Yeka ukukhwaza!',
+    Afrikaans: 'Hou op skree!',
+    Somali: 'Jooji qaylada!',
+    Oromo: 'Iyyuu dhiisi!'
+  },
+  'please help me': {
+    Spanish: 'Por favor, ayúdame',
+    Portuguese: 'Por favor, ajude-me',
+    French: 'S\'il vous plaît, aidez-moi',
+    German: 'Bitte hilf mir',
+    Hindi: 'कृपया मेरी मदद करें',
+    Mandarin: '请帮帮我',
+    Japanese: '手伝ってください',
+    Korean: '도와주세요',
+    Arabic: 'من فضلك ساعدني',
+    Vietnamese: 'Làm ơn giúp tôi',
+    Tagalog: 'Pakiusap tulungan mo ako',
+    Italian: 'Per favore aiutami',
+    Russian: 'Пожалуйста, помогите мне',
+    Turkish: 'Lütfen bana yardım edin',
+    Polish: 'Proszę, pomóż mi',
+    Indonesian: 'Tolong bantu saya',
+    Swahili: 'Tafadhali nisaidie',
+    Yoruba: 'Jọ̀wọ́ ràn mí lọ́wọ́',
+    Igbo: 'Biko nyere m aka',
+    Hausa: 'Don Allah taimake ni',
+    Amharic: 'እባክዎን እርዳኝ',
+    Zulu: 'Ngicela ungisize!',
+    Xhosa: 'Nceda undincede!',
+    Afrikaans: 'Help my asseblief!',
+    Somali: 'Fadlan i caawi!',
+    Oromo: 'Moo nagargaaraa!'
+  },
+  'please help': {
+    Spanish: 'Por favor, ayuda',
+    Portuguese: 'Por favor, ajude',
+    French: 'De l\'aide s\'il vous plaît',
+    German: 'Bitte um Hilfe',
+    Hindi: 'कृपया मदद करें',
+    Mandarin: '请帮忙',
+    Japanese: '助けてください',
+    Korean: '도와주세요',
+    Arabic: 'الرجاء المساعدة',
+    Vietnamese: 'Xin hãy giúp',
+    Tagalog: 'Pakiusap tumulong',
+    Italian: 'Per favore aiuto',
+    Russian: 'Пожалуйста, помогите',
+    Turkish: 'Lütfen yardım edin',
+    Polish: 'Proszę o pomoc',
+    Indonesian: 'Tolong bantu',
+    Swahili: 'Tafadhali msaada',
+    Yoruba: 'Ẹ jọ̀wọ́ ranlọ́wọ́',
+    Igbo: 'Biko enyemaka',
+    Hausa: 'Don Allah taimaka',
+    Amharic: 'እባክዎን እርዳታ',
+    Zulu: 'Ngicela usizo!',
+    Xhosa: 'Nceda uncedo!',
+    Afrikaans: 'Help asseblief!',
+    Somali: 'Fadlan gargaar!',
+    Oromo: 'Gargaarsa maaloo!'
+  },
+  'i need help': {
+    Spanish: 'Necesito ayuda',
+    Portuguese: 'Preciso de ajuda',
+    French: 'J\'ai besoin d\'aide',
+    German: 'Ich brauche Hilfe',
+    Hindi: 'मुझे मदद चाहिए',
+    Mandarin: '我需要帮助',
+    Japanese: '助けが必要です',
+    Korean: '도움이 필요해요',
+    Arabic: 'أحتاج إلى مساعدة',
+    Vietnamese: 'Tôi cần giúp đỡ',
+    Tagalog: 'Kailangan ko ng tulong',
+    Italian: 'Ho bisogno di aiuto',
+    Russian: 'Мне нужна помощь',
+    Turkish: 'Yardıma ihtiyacım var',
+    Polish: 'Potrzebuję pomocy',
+    Indonesian: 'Saya butuh bantuan',
+    Swahili: 'Nahitaji msaada',
+    Yoruba: 'Mo nilo iranlọwọ',
+    Igbo: 'Achọrọ m enyemaka',
+    Hausa: 'Ina bukatar taimako',
+    Amharic: 'እርዳታ እፈልጋለሁ',
+    Zulu: 'Ngidinga usizo',
+    Xhosa: 'Ndifuna uncedo',
+    Afrikaans: 'Ek het hulp nodig',
+    Somali: 'Waxaan u baahanahay caawimaad',
+    Oromo: 'Gargaarsa nan barbaada'
+  },
+  'how are you': {
+    Spanish: '¿Cómo estás?',
+    Portuguese: 'Como você está?',
+    French: 'Comment allez-vous ?',
+    German: 'Wie geht es dir?',
+    Hindi: 'आप कैसे हैं?',
+    Mandarin: '你好吗？',
+    Japanese: 'お元気ですか？',
+    Korean: '어떻게 지내세요?',
+    Arabic: 'كيف حالك؟',
+    Vietnamese: 'Bạn có khỏe không?',
+    Tagalog: 'Kumusta ka?',
+    Italian: 'Come stai?',
+    Russian: 'Как дела?',
+    Turkish: 'Nasılsın?',
+    Polish: 'Jak się masz?',
+    Indonesian: 'Bagaimana kabarmu?',
+    Swahili: 'Habari yako?',
+    Yoruba: 'Bawo ni o ṣe wa?',
+    Igbo: 'Kedu ka ị mere?',
+    Hausa: 'Yaya kake?',
+    Amharic: 'እንዴት ነህ?',
+    Zulu: 'Unjani?',
+    Xhosa: 'Kunjani?',
+    Afrikaans: 'Hoe gaan dit met jou?',
+    Somali: 'Sidee tahay?',
+    Oromo: 'Akkam jirta?'
+  },
+  'i am fine': {
+    Spanish: 'Estoy bien',
+    Portuguese: 'Estou bem',
+    French: 'Je vais bien',
+    German: 'Mir geht es gut',
+    Hindi: 'मैं ठीक हूँ',
+    Mandarin: '我很好',
+    Japanese: '元気です',
+    Korean: '잘 지내고 있어요',
+    Arabic: 'أنا بخير',
+    Vietnamese: 'Tôi ổn',
+    Tagalog: 'Mabuti naman ako',
+    Italian: 'Sto bene',
+    Russian: 'Я в порядке',
+    Turkish: 'İyiyim',
+    Polish: 'Mam się dobrze',
+    Indonesian: 'Saya baik-baik saja',
+    Swahili: 'Mimi niko salama',
+    Yoruba: 'Mo wa daadaa',
+    Igbo: 'Adị m mma',
+    Hausa: 'Ina lafiya',
+    Amharic: 'ደህና ነኝ',
+    Zulu: 'Ngiyaphila',
+    Xhosa: 'Ndiphilile',
+    Afrikaans: 'Dit gaan goed met my',
+    Somali: 'Waan fiicanahay',
+    Oromo: 'Fayyaa kooti'
+  },
+  'i do not understand': {
+    Spanish: 'No entiendo',
+    Portuguese: 'Não entendo',
+    French: 'Je ne comprends pas',
+    German: 'Ich verstehe nicht',
+    Hindi: 'मुझे समझ नहीं आया',
+    Mandarin: '我不明白',
+    Japanese: '分かりません',
+    Korean: '이해하지 못했어요',
+    Arabic: 'لا أفهم',
+    Vietnamese: 'Tôi không hiểu',
+    Tagalog: 'Hindi ko naiintindihan',
+    Italian: 'Non capisco',
+    Russian: 'Я не понимаю',
+    Turkish: 'Anlamıyorum',
+    Polish: 'Nie rozumiem',
+    Indonesian: 'Saya tidak mengerti',
+    Swahili: 'Sielewi',
+    Yoruba: 'Emi ko ye mi',
+    Igbo: 'Aghọtaghị m',
+    Hausa: 'Ban gane ba',
+    Amharic: 'አልገባኝም',
+    Zulu: 'Angiqondi',
+    Xhosa: 'Andiqondi',
+    Afrikaans: 'Ek verstaan nie',
+    Somali: 'Ma fahmin',
+    Oromo: 'Naaf hin galle'
+  },
+  'i understand': {
+    Spanish: 'Entiendo',
+    Portuguese: 'Eu entendo',
+    French: 'Je comprends',
+    German: 'Ich verstehe',
+    Hindi: 'मैं समझता हूँ',
+    Mandarin: '我明白了',
+    Japanese: '理解しました',
+    Korean: '이해했습니다',
+    Arabic: 'أفهم',
+    Vietnamese: 'Tôi hiểu rồi',
+    Tagalog: 'Naiintindihan ko',
+    Italian: 'Capisco',
+    Russian: 'Я понимаю',
+    Turkish: 'Anlıyorum',
+    Polish: 'Rozumiem',
+    Indonesian: 'Saya mengerti',
+    Swahili: 'Naelewa',
+    Yoruba: 'Mo loye',
+    Igbo: 'Aghọtara m',
+    Hausa: 'Na fahimta',
+    Amharic: 'ገብቶኛል',
+    Zulu: 'Ngiyezwa',
+    Xhosa: 'Ndiyaqonda',
+    Afrikaans: 'Ek verstaan',
+    Somali: 'Waan fahmay',
+    Oromo: 'Naaf galeera'
+  },
+  'thank you': {
+    Spanish: 'Gracias',
+    Portuguese: 'Obrigado',
+    French: 'Merci',
+    German: 'Danke',
+    Hindi: 'धन्यवाद',
+    Mandarin: '谢谢',
+    Japanese: 'ありがとうございます',
+    Korean: '감사합니다',
+    Arabic: 'شكراً لك',
+    Vietnamese: 'Cảm ơn bạn',
+    Tagalog: 'Salamat',
+    Italian: 'Grazie',
+    Russian: 'Спасибо',
+    Turkish: 'Teşekkürler',
+    Polish: 'Dziękuję',
+    Indonesian: 'Terima kasih',
+    Swahili: 'Asante',
+    Yoruba: 'E dupe',
+    Igbo: 'Daalụ',
+    Hausa: 'Na gode',
+    Amharic: 'አመሰግናለሁ',
+    Zulu: 'Ngiyabonga',
+    Xhosa: 'Enkosi',
+    Afrikaans: 'Dankie',
+    Somali: 'Mahadsanid',
+    Oromo: 'Galatoomi'
+  },
+  'you are welcome': {
+    Spanish: 'De nada',
+    Portuguese: 'De nada',
+    French: 'De rien',
+    German: 'Gern geschehen',
+    Hindi: 'आपका स्वागत है',
+    Mandarin: '不客气',
+    Japanese: 'どういたしまして',
+    Korean: '천만에요',
+    Arabic: 'عفواً',
+    Vietnamese: 'Không có chi',
+    Tagalog: 'Walang anuman',
+    Italian: 'Prego',
+    Russian: 'Пожалуйста',
+    Turkish: 'Rica ederim',
+    Polish: 'Nie ma za co',
+    Indonesian: 'Sama-sama',
+    Swahili: 'Karibu',
+    Yoruba: 'Kò tọ́pẹ́',
+    Igbo: 'Nnọọ',
+    Hausa: 'Babu komai',
+    Amharic: 'ምንም አይደለም',
+    Zulu: 'Wamukelekile',
+    Xhosa: 'Wamkelekile',
+    Afrikaans: 'Jy is welkom',
+    Somali: 'Adaa mudan',
+    Oromo: 'Baga nagaan dhufte'
+  },
+  'excuse me': {
+    Spanish: 'Disculpe',
+    Portuguese: 'Com licença',
+    French: 'Excusez-moi',
+    German: 'Entschuldigung',
+    Hindi: 'क्षमा करें',
+    Mandarin: '打扰一下',
+    Japanese: 'すみません',
+    Korean: '실례합니다',
+    Arabic: 'عذراً',
+    Vietnamese: 'Xin lỗi',
+    Tagalog: 'Mawalang-galang na',
+    Italian: 'Scusi',
+    Russian: 'Извините',
+    Turkish: 'Afedersiniz',
+    Polish: 'Przepraszam',
+    Indonesian: 'Permisi',
+    Swahili: 'Samahani',
+    Yoruba: 'Ẹ gba mi láàyè',
+    Igbo: 'Ndo',
+    Hausa: 'Gafara dai',
+    Amharic: 'ይቅርታ',
+    Zulu: 'Uxolo',
+    Xhosa: 'Uxolo',
+    Afrikaans: 'Verskoon my',
+    Somali: 'I raali gali',
+    Oromo: 'Dhiifama'
+  },
+  'i am sorry': {
+    Spanish: 'Lo siento',
+    Portuguese: 'Desculpe-me',
+    French: 'Je suis désolé',
+    German: 'Es tut mir leid',
+    Hindi: 'मुझे खेद है',
+    Mandarin: '对不起',
+    Japanese: '申し訳ありません',
+    Korean: '죄송합니다',
+    Arabic: 'أنا آسف',
+    Vietnamese: 'Tôi xin lỗi',
+    Tagalog: 'Patawad',
+    Italian: 'Mi dispiace',
+    Russian: 'Простите',
+    Turkish: 'Özür dilerim',
+    Polish: 'Przepraszam',
+    Indonesian: 'Maafkan saya',
+    Swahili: 'Samahani',
+    Yoruba: 'Mo binu',
+    Igbo: 'Ewela iwe',
+    Hausa: 'Kayi hakuri',
+    Amharic: 'ይቅርታ እጠይቃለሁ',
+    Zulu: 'Ngiyaxolisa',
+    Xhosa: 'Ndiyaxolisa',
+    Afrikaans: 'Ek is jammer',
+    Somali: 'Waan ka xumahay',
+    Oromo: 'Dhiifama naaf godhi'
+  },
+  'yes': {
+    Spanish: 'Sí', Portuguese: 'Sim', French: 'Oui', German: 'Ja', Hindi: 'हाँ', Mandarin: '是',
+    Japanese: 'はい', Korean: '네', Arabic: 'نعم', Vietnamese: 'Vâng', Tagalog: 'Oo',
+    Italian: 'Sì', Russian: 'Да', Turkish: 'Evet', Polish: 'Tak', Indonesian: 'Ya',
+    Swahili: 'Ndiyo', Yoruba: 'Bẹ́ẹ̀ni', Igbo: 'Ee', Hausa: 'Eh', Amharic: 'አዎ',
+    Zulu: 'Yebo', Xhosa: 'Ewe', Afrikaans: 'Ja', Somali: 'Haa', Oromo: 'Eeyyee'
+  },
+  'no': {
+    Spanish: 'No', Portuguese: 'Não', French: 'Non', German: 'Nein', Hindi: 'नहीं', Mandarin: '不',
+    Japanese: 'いいえ', Korean: '아니요', Arabic: 'لا', Vietnamese: 'Không', Tagalog: 'Hindi',
+    Italian: 'No', Russian: 'Нет', Turkish: 'Hayır', Polish: 'Nie', Indonesian: 'Tidak',
+    Swahili: 'Hapana', Yoruba: 'Rárá', Igbo: 'Mba', Hausa: 'A\'a', Amharic: 'አይ',
+    Zulu: 'Cha', Xhosa: 'Hayi', Afrikaans: 'Nee', Somali: 'Maya', Oromo: 'Lakki'
+  },
+  'what is your name': {
+    Spanish: '¿Cómo te llamas?', Portuguese: 'Qual é o seu nome?', French: 'Comment vous appelez-vous ?', German: 'Wie heißt du?',
+    Hindi: 'आपका नाम क्या है?', Mandarin: '你叫什么名字？', Japanese: 'お名前は何ですか？', Korean: '이름이 무엇인가요?',
+    Arabic: 'ما اسمك؟', Vietnamese: 'Tên bạn là gì?', Tagalog: 'Ano ang pangalan mo?', Italian: 'Come ti chiami?',
+    Russian: 'Как вас зовут?', Turkish: 'Adınız nedir?', Polish: 'Jak masz na imię?', Indonesian: 'Siapa nama Anda?',
+    Swahili: 'Jina lako nani?', Yoruba: 'Kí ni orúkọ rẹ?', Igbo: 'Gịnị bụ aha gị?', Hausa: 'Menene sunanka?',
+    Amharic: 'ስምህ ማን ነው?', Zulu: 'Ungubani igama lakho?', Xhosa: 'Ngubani igama lakho?', Afrikaans: 'Wat is jou naam?',
+    Somali: 'Magacaa?', Oromo: 'Maqaan kee eenyu?'
+  },
+  'where is the restroom': {
+    Spanish: '¿Dónde está el baño?', Portuguese: 'Onde fica o banheiro?', French: 'Où sont les toilettes ?', German: 'Wo ist die Toilette?',
+    Hindi: 'शौचालय कहाँ है?', Mandarin: '洗手间在哪里？', Japanese: 'お手洗いはどこですか？', Korean: '화장실이 어디에 있나요?',
+    Arabic: 'أين الحمام؟', Vietnamese: 'Nhà vệ sinh ở đâu?', Tagalog: 'Nasaan ang banyo?', Italian: 'Dov\'è il bagno?',
+    Russian: 'Где туалет?', Turkish: 'Tuvalet nerede?', Polish: 'Gdzie jest toaleta?', Indonesian: 'Di mana kamar kecilnya?',
+    Swahili: 'Choo kiko wapi?', Yoruba: 'Nibo ni ile igbọnsẹ wa?', Igbo: 'Kedu ebe ụlọ mposi dị?', Hausa: 'Ina ban daki yake?',
+    Amharic: 'ሽንት ቤት የት ነው?', Zulu: 'Iphi indlu yangasese?', Xhosa: 'Iphi indlu yangasese?', Afrikaans: 'Waar is die badkamer?',
+    Somali: 'Xagee musqusha ku taal?', Oromo: 'Manni fincaanii eessa jira?'
+  },
+  'nice to meet you': {
+    Spanish: 'Mucho gusto', Portuguese: 'Prazer em conhecê-lo', French: 'Ravi de vous rencontrer', German: 'Freut mich, Sie kennenzulernen',
+    Hindi: 'आपसे मिलकर अच्छा लगा', Mandarin: '很高兴认识你', Japanese: 'はじめまして', Korean: '만나서 반갑습니다',
+    Arabic: 'تشرفت بلقائك', Vietnamese: 'Rất vui được gặp bạn', Tagalog: 'Ikinagagalak kitang makilala', Italian: 'Piacere di conoscerti',
+    Russian: 'Приятно познакомиться', Turkish: 'Tanıştığımıza memnun oldum', Polish: 'Miło cię poznać', Indonesian: 'Senang bertemu dengan Anda',
+    Swahili: 'Nafurahi kukutana nawe', Yoruba: 'Inu mi dun lati mọ ọ', Igbo: 'Ọ dị m ụtọ izute gị', Hausa: 'Na ji daɗin haɗuwa da kai',
+    Amharic: 'ስላገኘሁህ ደስ ብሎኛል', Zulu: 'Ngijabulile ukukwazi', Xhosa: 'Ndiyavuya ukukwazi', Afrikaans: 'Aangename kennis',
+    Somali: 'Waan ku faraxsanahay la kulankaaga', Oromo: 'Wal arguun keenya na gammachiise'
   }
 };
 
@@ -445,7 +1030,7 @@ export const COMMON_PHRASES_MAP: Record<string, Record<string, string>> = {
 export function cleanTranslationOutput(raw: string): string {
   if (!raw) return '';
   return raw
-    .replace(/^(traducci[oó]n|tradução|traduction|übersetzung|перевод|traduzione|tłumaczenie|çeviri|bản dịch|terjemahan|translation|翻訳|번역|翻译)[\w\s\(\)]*[:：]\s*/i, '')
+    .replace(/^(traducci[oó]n|tradução|traduction|übersetzung|перевод|traduzione|tłumaczenie|çeviri|bản dịch|terjemahan|translation|翻訳|번역|翻译|inguqulelo|ukuhumusha|tafsiri|itumọ|nsụgharị|fassarar|vertaling|hiika|turjumaada|ትርጉም)[\w\s\(\)'-]*[:：]\s*/i, '')
     .replace(/^["']|["']$/g, '')
     .trim();
 }
@@ -462,7 +1047,7 @@ export function lookupDictionaryTranslation(text: string, targetLanguage: string
 
   const entry = COMMON_PHRASES_MAP[clean];
   if (entry) {
-    return entry[targetLanguage] || entry['Spanish'] || null;
+    return entry[targetLanguage] || null;
   }
 
   // Check partial key matches
@@ -476,3 +1061,90 @@ export function lookupDictionaryTranslation(text: string, targetLanguage: string
 
   return null;
 }
+
+/**
+ * Looks up a native language word or phrase (e.g. isiZulu, Spanish, French, etc.)
+ * and finds the corresponding English phrase.
+ */
+export function lookupReverseDictionaryTranslation(nativeText: string, nativeLanguage?: string): string | null {
+  if (!nativeText) return null;
+  const cleanInput = nativeText
+    .toLowerCase()
+    .replace(/[.,?!;:¡¿"']/g, '')
+    .trim();
+
+  if (!cleanInput) return null;
+
+  for (const [englishKey, translations] of Object.entries(COMMON_PHRASES_MAP)) {
+    if (nativeLanguage && translations[nativeLanguage]) {
+      const val = translations[nativeLanguage].toLowerCase().replace(/[.,?!;:¡¿"']/g, '').trim();
+      if (val === cleanInput || cleanInput.includes(val) || val.includes(cleanInput)) {
+        // Capitalize first letter of English key
+        return englishKey.charAt(0).toUpperCase() + englishKey.slice(1);
+      }
+    }
+
+    // Check across all languages if no specific native language matched
+    for (const [lang, valRaw] of Object.entries(translations)) {
+      if (lang === 'English') continue;
+      const val = valRaw.toLowerCase().replace(/[.,?!;:¡¿"']/g, '').trim();
+      if (val === cleanInput || (cleanInput.length > 4 && val.includes(cleanInput))) {
+        return englishKey.charAt(0).toUpperCase() + englishKey.slice(1);
+      }
+    }
+  }
+
+  // Common Zulu specific words and greetings mapping
+  const ZULU_QUICK_MAP: Record<string, string> = {
+    'sawubona': 'Hello / Greetings',
+    'sanibonani': 'Hello everyone',
+    'unjani': 'How are you?',
+    'ninjani': 'How are you all?',
+    'ngiyaphila': 'I am well / fine',
+    'ngiyabonga': 'Thank you',
+    'ngiyabonga kakhulu': 'Thank you very much',
+    'siyabonga': 'We thank you',
+    'yebo': 'Yes',
+    'cha': 'No',
+    'uxolo': 'Excuse me / Sorry',
+    'ngiyaxolisa': 'I apologize / I am sorry',
+    'ngicela': 'Please / I request',
+    'ngicela usizo': 'Please help / I need help',
+    'ngicela ungisize': 'Please help me',
+    'ngidinga usizo': 'I need assistance',
+    'yeka': 'Stop',
+    'yeka ukungimemeza': 'Stop shouting at me!',
+    'yeka ukumemeza': 'Stop shouting!',
+    'ungamemezi': 'Do not shout',
+    'hamba kahle': 'Go well / Goodbye',
+    'sala kahle': 'Stay well / Goodbye',
+    'sizobonana': 'See you soon',
+    'ngijabulile': 'I am happy / Nice to meet you',
+    'kuhle': 'Good / Great',
+    'angazi': 'I do not know',
+    'angizwa': 'I do not hear / I do not understand',
+    'ngiyezwa': 'I understand / I hear you',
+    'angisiye': 'I am not',
+    'ubani': 'Who / What',
+    'igama lami': 'My name is',
+    'imalini': 'How much is it?',
+    'kuphi': 'Where',
+    'kanjani': 'How',
+    'nini': 'When',
+    'kungani': 'Why'
+  };
+
+  if (!nativeLanguage || nativeLanguage.toLowerCase().includes('zulu')) {
+    if (ZULU_QUICK_MAP[cleanInput]) {
+      return ZULU_QUICK_MAP[cleanInput];
+    }
+    for (const [zuluWord, eng] of Object.entries(ZULU_QUICK_MAP)) {
+      if (cleanInput.includes(zuluWord) || zuluWord.includes(cleanInput)) {
+        return eng;
+      }
+    }
+  }
+
+  return null;
+}
+

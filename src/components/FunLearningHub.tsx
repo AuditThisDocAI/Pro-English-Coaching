@@ -17,6 +17,7 @@ import {
 import { NativeLanguage, SUPPORTED_LANGUAGES, CoachResponse } from '../types';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 import { useTTS } from '../lib/useTTS';
+import { useCoachAudioReplay } from '../lib/useCoachAudioReplay';
 import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 
 interface FunLearningHubProps {
@@ -357,6 +358,7 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [lessons, setLessons] = useState<LessonPhrase[]>(LESSON_PHRASES);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [lastPlayedPhraseId, setLastPlayedPhraseId] = useState<string | null>(null);
   const { speed, speak, isSpeaking, stop } = useTTS();
 
   // Filter phrases
@@ -365,6 +367,20 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
     const matchesLevel = selectedLevel === 'all' || p.level === selectedLevel;
     return matchesTopic && matchesLevel;
   });
+
+  // Track active lesson phrase for fast 'R' keyboard shortcut playback
+  const activePhrase = lessons.find(l => l.id === lastPlayedPhraseId) || filteredPhrases[0] || lessons[0];
+
+  const { isRecentlyTriggered, triggerReplay } = useCoachAudioReplay(
+    activePhrase ? {
+      id: activePhrase.id,
+      text: activePhrase.english,
+      source: 'lesson',
+      title: activePhrase.topicName,
+      options: { rate: speed },
+      playFn: () => handlePlayAudio(activePhrase, speed)
+    } : null
+  );
 
   const handleGenerateMore = async () => {
     setIsGenerating(true);
@@ -397,6 +413,7 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
   };
 
   const handlePlayAudio = (phrase: LessonPhrase, customSpeed?: number) => {
+    setLastPlayedPhraseId(phrase.id);
     const rateToUse = customSpeed ?? speed;
     const playKey = `${phrase.id}-${rateToUse}`;
     if (playingId === playKey) {
@@ -414,7 +431,7 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
   };
 
   const handleBookmarkPhrase = async (phrase: LessonPhrase) => {
-    const translation = phrase.translations[nativeLanguage] || phrase.translations.Spanish;
+    const translation = phrase.translations[nativeLanguage] || phrase.english;
     const coachData: CoachResponse = {
       original: phrase.english,
       professional: phrase.english,
@@ -459,6 +476,31 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
 
         {/* Language selector & Speaker speed setting */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Replay Lesson Audio Shortcut Button */}
+          {activePhrase && (
+            <button
+              type="button"
+              id="trigger-lesson-replay-btn"
+              onClick={() => triggerReplay()}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                isRecentlyTriggered
+                  ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 shadow-md scale-102'
+                  : 'bg-white hover:bg-neutral-100 text-neutral-700 border-neutral-200 shadow-2xs'
+              }`}
+              title={`Press 'R' to replay "${activePhrase.english}"`}
+            >
+              <Volume2 className={`w-3.5 h-3.5 ${isRecentlyTriggered ? 'text-white' : 'text-indigo-600'}`} />
+              <span>Replay</span>
+              <kbd className={`px-1.5 py-0.2 font-mono text-[10px] rounded border font-black ${
+                isRecentlyTriggered
+                  ? 'bg-indigo-700 text-white border-indigo-500'
+                  : 'bg-neutral-100 text-neutral-800 border-neutral-300'
+              }`}>
+                R
+              </kbd>
+            </button>
+          )}
+
           <SpeakerSpeedControl variant="header" idPrefix="lessons-hub-speed" />
 
           <div className="flex items-center gap-2 bg-neutral-50 px-3 py-1.5 rounded-xl border border-neutral-200">
@@ -533,7 +575,7 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
       {/* Phrases List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredPhrases.map((phrase) => {
-          const translation = phrase.translations[nativeLanguage] || phrase.translations.Spanish;
+          const translation = phrase.translations[nativeLanguage] || phrase.english;
           const isSaved = savedIds.has(phrase.id);
 
           return (
@@ -595,11 +637,24 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
                   <button
                     type="button"
                     onClick={() => handlePlayAudio(phrase, speed)}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
-                    title={`Listen with speakerphone at chosen speed (${speed}x)`}
+                    className={`px-3 py-1.5 rounded-xl text-white text-xs font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer ${
+                      playingId?.startsWith(phrase.id)
+                        ? 'bg-indigo-700 ring-2 ring-indigo-300'
+                        : phrase.id === activePhrase?.id && isRecentlyTriggered
+                        ? 'bg-indigo-600 ring-2 ring-indigo-400 scale-105 shadow-md font-black'
+                        : phrase.id === activePhrase?.id
+                        ? 'bg-indigo-600 hover:bg-indigo-700 ring-1 ring-indigo-300'
+                        : 'bg-indigo-600 hover:bg-indigo-700'
+                    }`}
+                    title={phrase.id === activePhrase?.id ? `Listen (${speed}x) - Or press 'R' to replay anytime` : `Listen with speakerphone at chosen speed (${speed}x)`}
                   >
                     <Volume2 className="w-3.5 h-3.5" />
                     <span>Listen ({speed}x)</span>
+                    {phrase.id === activePhrase?.id && (
+                      <kbd className="ml-0.5 px-1 py-0.2 bg-indigo-800/80 text-white font-mono text-[9px] rounded font-bold">
+                        R
+                      </kbd>
+                    )}
                   </button>
 
                   <button

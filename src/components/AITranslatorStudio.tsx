@@ -205,12 +205,14 @@ export const AITranslatorStudio: React.FC<AITranslatorStudioProps> = ({
           <div className="flex items-center gap-1 overflow-x-auto max-w-[280px] sm:max-w-[340px] scrollbar-none py-0.5">
             <span className="text-[9px] font-bold text-neutral-400 uppercase shrink-0">African & Popular:</span>
             {[
+              { name: 'Xhosa' as NativeLanguage, flag: '🇿🇦' },
+              { name: 'Zulu' as NativeLanguage, flag: '🇿🇦' },
               { name: 'Swahili' as NativeLanguage, flag: '🇹🇿' },
               { name: 'Yoruba' as NativeLanguage, flag: '🇳🇬' },
               { name: 'Igbo' as NativeLanguage, flag: '🇳🇬' },
               { name: 'Hausa' as NativeLanguage, flag: '🇳🇬' },
-              { name: 'Zulu' as NativeLanguage, flag: '🇿🇦' },
               { name: 'Amharic' as NativeLanguage, flag: '🇪🇹' },
+              { name: 'Afrikaans' as NativeLanguage, flag: '🇿🇦' },
               { name: 'Spanish' as NativeLanguage, flag: '🇪🇸' },
             ].map(item => (
               <button

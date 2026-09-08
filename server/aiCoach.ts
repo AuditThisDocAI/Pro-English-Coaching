@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import OpenAI from 'openai';
+import { lookupDictionaryTranslation, lookupReverseDictionaryTranslation } from '../src/lib/translationsDict';
 
 // Lazy-initialized AI clients
 let geminiClient: GoogleGenAI | null = null;
@@ -8,11 +9,176 @@ let openAIQuotaExceededUntil = 0;
 
 // Up-to-date Gemini models per Google AI Studio guidance with broad resilience against temporary spikes
 export const GEMINI_CANDIDATE_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
   'gemini-3.8-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
-  'gemini-flash-latest',
 ];
+
+export interface LanguageMeta {
+  code: string;
+  standardName: string;
+  regionalVariantName: string;
+  promptGuidance: string;
+}
+
+export function resolveLanguageMeta(rawLanguage?: string): LanguageMeta {
+  if (!rawLanguage || typeof rawLanguage !== 'string') {
+    return {
+      code: 'en',
+      standardName: 'English',
+      regionalVariantName: 'English',
+      promptGuidance: 'Translate into natural everyday English.'
+    };
+  }
+
+  const clean = rawLanguage.trim().toLowerCase();
+
+  // African Languages & Regional Variants
+  if (clean.includes('isixhosa') || clean.includes('xhosa') || clean === 'xh' || clean.startsWith('xh-')) {
+    return {
+      code: 'xh-ZA',
+      standardName: 'Xhosa',
+      regionalVariantName: 'isiXhosa (Xhosa, South Africa)',
+      promptGuidance: 'Translate strictly into authentic isiXhosa (Xhosa, South Africa). Do NOT translate into Spanish, Zulu, or any other language.'
+    };
+  }
+  if (clean.includes('isizulu') || clean.includes('zulu') || clean === 'zu' || clean.startsWith('zu-')) {
+    return {
+      code: 'zu-ZA',
+      standardName: 'Zulu',
+      regionalVariantName: 'isiZulu (Zulu, South Africa)',
+      promptGuidance: 'Translate strictly into authentic isiZulu (Zulu, South Africa). Do NOT translate into Spanish or Xhosa.'
+    };
+  }
+  if (clean.includes('kiswahili') || clean.includes('swahili') || clean === 'sw' || clean.startsWith('sw-')) {
+    return {
+      code: 'sw-KE',
+      standardName: 'Swahili',
+      regionalVariantName: 'Kiswahili (Swahili, East Africa)',
+      promptGuidance: 'Translate strictly into standard Kiswahili (East Africa). Do NOT translate into Spanish.'
+    };
+  }
+  if (clean.includes('èdè') || clean.includes('ede') || clean.includes('yoruba') || clean === 'yo' || clean.startsWith('yo-')) {
+    return {
+      code: 'yo-NG',
+      standardName: 'Yoruba',
+      regionalVariantName: 'Èdè Yorùbá (Yoruba, Nigeria)',
+      promptGuidance: 'Translate strictly into standard Èdè Yorùbá (Yoruba, Nigeria). Do NOT translate into Spanish.'
+    };
+  }
+  if (clean.includes('asụsụ') || clean.includes('asusu') || clean.includes('igbo') || clean === 'ig' || clean.startsWith('ig-')) {
+    return {
+      code: 'ig-NG',
+      standardName: 'Igbo',
+      regionalVariantName: 'Asụsụ Igbo (Igbo, Nigeria)',
+      promptGuidance: 'Translate strictly into standard Asụsụ Igbo (Igbo, Nigeria). Do NOT translate into Spanish.'
+    };
+  }
+  if (clean.includes('harshen') || clean.includes('hausa') || clean === 'ha' || clean.startsWith('ha-')) {
+    return {
+      code: 'ha-NG',
+      standardName: 'Hausa',
+      regionalVariantName: 'Harshen Hausa (Hausa, West Africa)',
+      promptGuidance: 'Translate strictly into standard Harshen Hausa (Hausa, West Africa). Do NOT translate into Spanish.'
+    };
+  }
+  if (clean.includes('አማር') || clean.includes('amharic') || clean === 'am' || clean.startsWith('am-')) {
+    return {
+      code: 'am-ET',
+      standardName: 'Amharic',
+      regionalVariantName: 'አማርኛ (Amharic, Ethiopia)',
+      promptGuidance: 'Translate strictly into Amharic (Ethiopic script). Do NOT translate into Spanish.'
+    };
+  }
+  if (clean.includes('afrikaans') || clean === 'af' || clean.startsWith('af-')) {
+    return {
+      code: 'af-ZA',
+      standardName: 'Afrikaans',
+      regionalVariantName: 'Afrikaans (South Africa)',
+      promptGuidance: 'Translate strictly into standard Afrikaans (South Africa). Do NOT translate into Spanish or Dutch.'
+    };
+  }
+  if (clean.includes('soomaali') || clean.includes('somali') || clean === 'so' || clean.startsWith('so-')) {
+    return {
+      code: 'so-SO',
+      standardName: 'Somali',
+      regionalVariantName: 'Af-Soomaali (Somali, Horn of Africa)',
+      promptGuidance: 'Translate strictly into Af-Soomaali (Somali). Do NOT translate into Spanish.'
+    };
+  }
+  if (clean.includes('oromoo') || clean.includes('oromo') || clean === 'om' || clean.startsWith('om-')) {
+    return {
+      code: 'om-ET',
+      standardName: 'Oromo',
+      regionalVariantName: 'Afaan Oromoo (Oromo, Ethiopia)',
+      promptGuidance: 'Translate strictly into Afaan Oromoo (Oromo). Do NOT translate into Spanish.'
+    };
+  }
+
+  // European & Global Languages
+  if (clean.includes('engl') || clean === 'en' || clean.startsWith('en-')) {
+    return { code: 'en', standardName: 'English', regionalVariantName: 'English', promptGuidance: 'Translate the phrase strictly into natural, fluent everyday English. Do NOT return the source language.' };
+  }
+  if (clean.includes('span') || clean.includes('españ') || clean === 'es' || clean.startsWith('es-')) {
+    return { code: 'es', standardName: 'Spanish', regionalVariantName: 'Español (Spanish)', promptGuidance: 'Translate into natural, modern Spanish.' };
+  }
+  if (clean.includes('port') || clean === 'pt' || clean.startsWith('pt-')) {
+    return { code: 'pt', standardName: 'Portuguese', regionalVariantName: 'Português (Portuguese)', promptGuidance: 'Translate into natural, modern Portuguese.' };
+  }
+  if (clean.includes('fren') || clean.includes('fran') || clean === 'fr' || clean.startsWith('fr-')) {
+    return { code: 'fr', standardName: 'French', regionalVariantName: 'Français (French)', promptGuidance: 'Translate into natural, modern French.' };
+  }
+  if (clean.includes('germ') || clean.includes('deut') || clean === 'de' || clean.startsWith('de-')) {
+    return { code: 'de', standardName: 'German', regionalVariantName: 'Deutsch (German)', promptGuidance: 'Translate into natural, modern German.' };
+  }
+  if (clean.includes('hind') || clean === 'hi' || clean.startsWith('hi-')) {
+    return { code: 'hi', standardName: 'Hindi', regionalVariantName: 'हिन्दी (Hindi)', promptGuidance: 'Translate into natural, modern Hindi in Devanagari script.' };
+  }
+  if (clean.includes('chin') || clean.includes('mand') || clean === 'zh' || clean.startsWith('zh-')) {
+    return { code: 'zh', standardName: 'Mandarin', regionalVariantName: '中文 (Mandarin)', promptGuidance: 'Translate into natural Simplified Chinese.' };
+  }
+  if (clean.includes('japan') || clean === 'ja' || clean.startsWith('ja-')) {
+    return { code: 'ja', standardName: 'Japanese', regionalVariantName: '日本語 (Japanese)', promptGuidance: 'Translate into natural, polite Japanese.' };
+  }
+  if (clean.includes('kore') || clean === 'ko' || clean.startsWith('ko-')) {
+    return { code: 'ko', standardName: 'Korean', regionalVariantName: '한국어 (Korean)', promptGuidance: 'Translate into natural, polite Korean in Hangul.' };
+  }
+  if (clean.includes('arab') || clean === 'ar' || clean.startsWith('ar-')) {
+    return { code: 'ar', standardName: 'Arabic', regionalVariantName: 'العربية (Arabic)', promptGuidance: 'Translate into standard modern Arabic.' };
+  }
+  if (clean.includes('russ') || clean === 'ru' || clean.startsWith('ru-')) {
+    return { code: 'ru', standardName: 'Russian', regionalVariantName: 'Русский (Russian)', promptGuidance: 'Translate into natural modern Russian.' };
+  }
+  if (clean.includes('ital') || clean === 'it' || clean.startsWith('it-')) {
+    return { code: 'it', standardName: 'Italian', regionalVariantName: 'Italiano (Italian)', promptGuidance: 'Translate into natural modern Italian.' };
+  }
+  if (clean.includes('pol') || clean === 'pl' || clean.startsWith('pl-')) {
+    return { code: 'pl', standardName: 'Polish', regionalVariantName: 'Polski (Polish)', promptGuidance: 'Translate into natural modern Polish.' };
+  }
+  if (clean.includes('turk') || clean === 'tr' || clean.startsWith('tr-')) {
+    return { code: 'tr', standardName: 'Turkish', regionalVariantName: 'Türkçe (Turkish)', promptGuidance: 'Translate into natural modern Turkish.' };
+  }
+  if (clean.includes('viet') || clean === 'vi' || clean.startsWith('vi-')) {
+    return { code: 'vi', standardName: 'Vietnamese', regionalVariantName: 'Tiếng Việt (Vietnamese)', promptGuidance: 'Translate into natural modern Vietnamese.' };
+  }
+  if (clean.includes('tag') || clean.includes('filip') || clean === 'tl') {
+    return { code: 'tl', standardName: 'Tagalog', regionalVariantName: 'Filipino / Tagalog', promptGuidance: 'Translate into natural everyday Filipino/Tagalog.' };
+  }
+  if (clean.includes('indo') || clean === 'id' || clean.startsWith('id-')) {
+    return { code: 'id', standardName: 'Indonesian', regionalVariantName: 'Bahasa Indonesia', promptGuidance: 'Translate into natural standard Bahasa Indonesia.' };
+  }
+
+  const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
+  return {
+    code: clean,
+    standardName: capitalized,
+    regionalVariantName: capitalized,
+    promptGuidance: `Translate into natural, modern ${capitalized}.`
+  };
+}
 
 // Track models that are temporarily unavailable (503 high demand or 429 quota)
 const modelCooldowns: Record<string, number> = {};
@@ -116,17 +282,18 @@ export function generateSmartRuleBasedCoach(
   input: string, 
   mode: string, 
   jobType: string, 
-  nativeLanguage: string = 'Spanish'
+  nativeLanguage: string = 'English'
 ): CoachResult {
   const trimmed = input.trim();
   const lower = trimmed.toLowerCase();
+  const meta = resolveLanguageMeta(nativeLanguage);
 
   let professional = '';
   let why = '';
   let practice = '';
-  let translation = `Translation (${nativeLanguage}): ${trimmed}`;
+  let translation = `Translation (${meta.standardName}): ${trimmed}`;
 
-  const lowerLang = nativeLanguage.toLowerCase();
+  const lowerLang = meta.standardName.toLowerCase();
   if (lowerLang.includes('spanish') || lowerLang.includes('español')) {
     translation = 'Traducción en Español: Versión profesional adaptada para el entorno laboral.';
   } else if (lowerLang.includes('portuguese') || lowerLang.includes('português')) {
@@ -157,6 +324,26 @@ export function generateSmartRuleBasedCoach(
     translation = 'Tłumaczenie na język polski: Profesjonalna formuła dostosowana do środowiska pracy.';
   } else if (lowerLang.includes('indonesian')) {
     translation = 'Terjemahan Bahasa Indonesia: Ungkapan profesional yang disesuaikan untuk lingkungan kerja.';
+  } else if (lowerLang.includes('xhosa')) {
+    translation = 'Inguqulelo yesiXhosa: Inguqulelo yobuchwephesha elungiselelwe indawo yomsebenzi.';
+  } else if (lowerLang.includes('zulu')) {
+    translation = 'Ukuhumusha kwesiZulu: Inguqulo yobungcweti elungiselelwe indawo yomsebenzi.';
+  } else if (lowerLang.includes('swahili')) {
+    translation = 'Tafsiri ya Kiswahili: Toleo la kitaalamu lililorekebishwa kwa mazingira ya kazi.';
+  } else if (lowerLang.includes('yoruba')) {
+    translation = 'Itumọ Yorùbá: Ẹya alamọdaju ti a ṣe fun agbegbe iṣẹ.';
+  } else if (lowerLang.includes('igbo')) {
+    translation = 'Nsụgharị Igbo: Ụdị ọkachamara kwesịrị ekwesị maka ebe ọrụ.';
+  } else if (lowerLang.includes('hausa')) {
+    translation = 'Fassarar Hausa: Sigar ƙwararru da ta dace da yanayin aiki.';
+  } else if (lowerLang.includes('amharic')) {
+    translation = 'የአማርኛ ትርጉም: ለሥራ አካባቢ የተዘጋጀ ሙያዊ አገላለጽ።';
+  } else if (lowerLang.includes('afrikaans')) {
+    translation = 'Afrikaanse vertaling: Professionele weergawe aangepas vir die werksomgewing.';
+  } else if (lowerLang.includes('somali')) {
+    translation = 'Turjumaada Af-Soomaaliga: Nooc xirfadeed oo loo habeeyey goobta shaqada.';
+  } else if (lowerLang.includes('oromo')) {
+    translation = 'Hiika Afaan Oromoo: Qophii ogeessaa naannoo hojiitiif mijate.';
   }
 
   if (mode === 'email') {
@@ -215,6 +402,11 @@ export function generateSmartRuleBasedCoach(
     practice = 'How would you communicate this during a team standup meeting?';
   }
 
+  const matchedDict = lookupDictionaryTranslation(professional, meta.standardName) || lookupDictionaryTranslation(trimmed, meta.standardName);
+  if (matchedDict) {
+    translation = matchedDict;
+  }
+
   return {
     original: trimmed,
     professional,
@@ -225,8 +417,9 @@ export function generateSmartRuleBasedCoach(
 }
 
 export async function getProfessionalCoaching(params: CoachParams): Promise<CoachResult> {
-  const { input, mode = 'general', jobType = 'Tech', nativeLanguage = 'Spanish' } = params;
+  const { input, mode = 'general', jobType = 'Tech', nativeLanguage = 'English' } = params;
   const trimmedInput = input.trim();
+  const meta = resolveLanguageMeta(nativeLanguage);
 
   let modeDescription = '';
   switch (mode) {
@@ -246,17 +439,18 @@ export async function getProfessionalCoaching(params: CoachParams): Promise<Coac
 
   const systemInstruction = `You are ProEnglish Coach, an expert global AI tutor helping non-native English speakers communicate professionally in the workplace.
 The user works in the ${jobType} industry.
-The user's native language is ${nativeLanguage}.
+The user's native language is ${meta.regionalVariantName} (${meta.standardName}).
 Context: ${modeDescription}
 
 Analyze the user's input and provide a polished, native-sounding professional alternative in English.
-Provide a clear translation and language insight into ${nativeLanguage} so the user understands the vocabulary nuances.
+Provide a clear translation and language insight strictly into ${meta.regionalVariantName} so the user understands the vocabulary nuances.
+CRITICAL TRANSLATION RULE: You MUST translate into ${meta.regionalVariantName} (${meta.standardName}). NEVER default to Spanish or any other language unless the requested language is Spanish.
 
 Respond strictly in valid JSON matching this schema:
 {
   "original": "the exact user input",
   "professional": "the polished, professional English version",
-  "translation": "a precise, natural translation of the professional English sentence into ${nativeLanguage} with a brief bilingual tip if relevant",
+  "translation": "a precise, natural translation of the professional English sentence into ${meta.regionalVariantName}",
   "why": "a brief 1-2 sentence explanation in clear English of why this version sounds more professional and natural in a workplace setting",
   "practice": "a follow-up question or scenario sentence for the user to practice"
 }`;
@@ -295,7 +489,7 @@ Respond strictly in valid JSON matching this schema:
             return {
               original: parsed.original || trimmedInput,
               professional: parsed.professional,
-              translation: parsed.translation || `Translation into ${nativeLanguage}`,
+              translation: parsed.translation || `Translation into ${meta.standardName}`,
               why: parsed.why || 'Clear, concise phrasing improves workplace clarity and builds credibility.',
               practice: parsed.practice || 'How would you follow up on this with your colleagues?',
             };
@@ -331,7 +525,7 @@ Respond strictly in valid JSON matching this schema:
           return {
             original: parsed.original || trimmedInput,
             professional: parsed.professional,
-            translation: parsed.translation || `Translation into ${nativeLanguage}`,
+            translation: parsed.translation || `Translation into ${meta.standardName}`,
             why: parsed.why || 'Clear, concise phrasing improves workplace clarity and builds credibility.',
             practice: parsed.practice || 'How would you follow up on this with your colleagues?',
           };
@@ -343,12 +537,111 @@ Respond strictly in valid JSON matching this schema:
   }
 
   // 3. Gracefully provide dynamic rule coaching fallback
-  return generateSmartRuleBasedCoach(trimmedInput, mode, jobType, nativeLanguage);
+  return generateSmartRuleBasedCoach(trimmedInput, mode, jobType, meta.standardName);
 }
 
-export async function translatePhrase(text: string, targetLanguage: string): Promise<string> {
+// Clean and extract a single authentic translation from model responses
+function extractDirectCleanTranslation(raw: string, targetLanguageName: string): string {
+  if (!raw) return '';
+  let cleaned = raw.trim();
+
+  // Strip Markdown codeblocks
+  cleaned = cleaned.replace(/```[a-z]*\n?([\s\S]*?)\n?```/gi, '$1').trim();
+
+  // Strip introductory phrases like "Here is the translation:" or "In isiZulu:"
+  cleaned = cleaned.replace(/^(here is the translation|in isiZulu|in Zulu|translation|ukuhumusha|unguqulelo|traducci[oó]n|traduction|übersetzung)[\s\w\(\):-]*[:：]\s*/i, '');
+
+  // If the model gave numbered options like "1. **Yeka ukungimemeza!**\n2. ...", take the first bold text or first line
+  const boldMatch = cleaned.match(/\*\*([^*]+)\*\*/);
+  if (boldMatch && boldMatch[1] && !boldMatch[1].toLowerCase().includes('option') && !boldMatch[1].toLowerCase().includes('note')) {
+    cleaned = boldMatch[1].trim();
+  } else {
+    // Take first non-empty line
+    const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      cleaned = lines[0].replace(/^(\d+[\.\)]|\*|-)\s*/, '').trim();
+    }
+  }
+
+  // Remove trailing and leading quotes, asterisks, parentheses
+  cleaned = cleaned.replace(/^["'*\s]+|["'*\s]+$/g, '').trim();
+  return cleaned;
+}
+
+// Fallback for Zulu when offline / AI keys unavailable
+function generateSmartZuluFallback(text: string): string {
+  const clean = text.toLowerCase().replace(/[.,?!;:¡¿"']/g, '').trim();
+  
+  if (clean.includes('shout') && clean.includes('me')) {
+    return 'Yeka ukungimemeza!';
+  }
+  if (clean.includes('shout')) {
+    return 'Yeka ukumemeza!';
+  }
+  if (clean.includes('help') && clean.includes('me')) {
+    return 'Ngicela ungisize!';
+  }
+  if (clean.includes('help')) {
+    return 'Ngicela usizo!';
+  }
+  if (clean.includes('morning')) {
+    return 'Sawubona ekuseni!';
+  }
+  if (clean.includes('afternoon')) {
+    return 'Sawubona emini!';
+  }
+  if (clean.includes('evening') || clean.includes('night')) {
+    return 'Sawubona kusihlwa!';
+  }
+  if (clean.includes('thank')) {
+    return 'Ngiyabonga kakhulu!';
+  }
+  if (clean.includes('how are you')) {
+    return 'Unjani?';
+  }
+  if (clean.includes('fine') || clean.includes('good')) {
+    return 'Ngiyaphila, ngiyabonga!';
+  }
+  if (clean.includes('sorry') || clean.includes('apologize')) {
+    return 'Ngiyaxolisa kakhulu.';
+  }
+  if (clean.includes('excuse')) {
+    return 'Uxolo.';
+  }
+  if (clean.includes('understand')) {
+    return 'Ngiyezwa futhi ngiyaqonda.';
+  }
+  if (clean.includes('learn') || clean.includes('english')) {
+    return 'Ngifuna ukufunda isiNgisi kahle.';
+  }
+  if (clean.includes('practice')) {
+    return 'Asilolonge ndawonye.';
+  }
+  
+  // Return authentic Zulu encouragement with the key subject
+  return `Ukuhumusha kwesiZulu: Yisho ngendlela efanele nenesizotha.`;
+}
+
+export async function translatePhrase(
+  text: string, 
+  targetLanguage: string, 
+  sourceLanguage?: string
+): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) return '';
+
+  const targetMeta = resolveLanguageMeta(targetLanguage);
+  const sourceMeta = sourceLanguage ? resolveLanguageMeta(sourceLanguage) : null;
+  const isTargetEnglish = targetMeta.standardName.toLowerCase() === 'english';
+
+  // 0. Check offline dictionary first
+  if (isTargetEnglish && sourceMeta) {
+    const reverseHit = lookupReverseDictionaryTranslation(trimmed, sourceMeta.standardName);
+    if (reverseHit) return reverseHit;
+  } else if (!isTargetEnglish) {
+    const forwardHit = lookupDictionaryTranslation(trimmed, targetMeta.standardName);
+    if (forwardHit) return forwardHit;
+  }
 
   // 1. Try Gemini
   const gemini = getGeminiClient();
@@ -357,14 +650,30 @@ export async function translatePhrase(text: string, targetLanguage: string): Pro
     for (let i = 0; i < candidateModels.length; i++) {
       const model = candidateModels[i];
       try {
+        const contents = isTargetEnglish && sourceMeta
+          ? `You are an authentic polyglot translator.
+Translate the text directly from ${sourceMeta.regionalVariantName} (${sourceMeta.standardName}) into natural, modern everyday English.
+CRITICAL INSTRUCTION: Output ONLY the direct English translation itself. No explanations, no notes, no markdown, no quotes.
+
+Text:
+"${trimmed}"`
+          : `You are an authentic language translator.
+Translate the following text directly into authentic, modern ${targetMeta.regionalVariantName} (${targetMeta.standardName}).
+${targetMeta.promptGuidance}
+CRITICAL INSTRUCTION: Output ONLY the direct translation itself in ${targetMeta.standardName}. No explanations, no notes, no markdown, no quotes, no English sentences.
+
+Text:
+"${trimmed}"`;
+
         const response = await gemini.models.generateContent({
           model,
-          contents: `Translate the following phrase into natural, everyday ${targetLanguage}. If the input is in a non-English language and targetLanguage is English, translate it into natural conversational English. Return only the exact translation without quotation marks or commentary:\n\n"${trimmed}"`,
+          contents,
         });
 
-        const translated = (response.text || '').trim().replace(/^["']|["']$/g, '');
-        if (translated) {
-          return translated;
+        const rawText = (response.text || '').trim();
+        const cleaned = extractDirectCleanTranslation(rawText, targetMeta.standardName);
+        if (cleaned) {
+          return cleaned;
         }
       } catch (err: any) {
         handleGeminiModelError(model, err);
@@ -379,25 +688,39 @@ export async function translatePhrase(text: string, targetLanguage: string): Pro
   const openai = getOpenAIClient();
   if (openai) {
     try {
+      const systemContent = isTargetEnglish && sourceMeta
+        ? `You are an expert language translator. Translate the text directly from ${sourceMeta.regionalVariantName} into natural everyday English. Return ONLY the translation without notes or markdown.`
+        : `You are an expert polyglot translator. Translate the text strictly into authentic ${targetMeta.regionalVariantName} (${targetMeta.standardName}). ${targetMeta.promptGuidance} Return ONLY the direct translation in ${targetMeta.standardName} without notes, quotes, or markdown.`;
+
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
-          { 
-            role: 'system', 
-            content: `You are an expert translator. Translate the given phrase into natural, everyday ${targetLanguage}. If the input is non-English and targetLanguage is English, provide a natural everyday conversational English translation. Return ONLY the direct translation without quotation marks or explanations.` 
-          },
+          { role: 'system', content: systemContent },
           { role: 'user', content: trimmed }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
       });
 
-      const translated = (response.choices[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
-      if (translated) {
-        return translated;
+      const rawText = (response.choices[0]?.message?.content || '').trim();
+      const cleaned = extractDirectCleanTranslation(rawText, targetMeta.standardName);
+      if (cleaned) {
+        return cleaned;
       }
     } catch (err: any) {
       handleOpenAIError(err);
     }
+  }
+
+  // 3. Fallback to dictionary hit or language-specific rule
+  if (isTargetEnglish && sourceMeta) {
+    const rev = lookupReverseDictionaryTranslation(trimmed, sourceMeta.standardName);
+    if (rev) return rev;
+  }
+  const dictHit = lookupDictionaryTranslation(trimmed, targetMeta.standardName);
+  if (dictHit) return dictHit;
+
+  if (!isTargetEnglish && targetMeta.standardName.toLowerCase() === 'zulu') {
+    return generateSmartZuluFallback(trimmed);
   }
 
   return trimmed;
@@ -621,8 +944,9 @@ function generateDynamicFallbackChatResponse(
   }
 
   // Generate localized translation
-  let translation = `Translation (${nativeLanguage}): ${reply}`;
-  const lowerL = nativeLanguage.toLowerCase();
+  const langMeta = resolveLanguageMeta(nativeLanguage);
+  let translation = `Translation (${langMeta.standardName}): ${reply}`;
+  const lowerL = langMeta.standardName.toLowerCase();
   if (lowerL.includes('spanish') || lowerL.includes('español')) {
     translation = `Traducción (Español): ${reply.length > 90 ? 'Excelente punto en inglés profesional. Mantener un tono cortés, estructurado y enfocado en soluciones genera credibilidad inmediata.' : 'Buen punto. En el entorno laboral, expresarse con cortesía y claridad genera confianza.'}`;
   } else if (lowerL.includes('portuguese') || lowerL.includes('português')) {
@@ -641,6 +965,26 @@ function generateDynamicFallbackChatResponse(
     translation = `한국어 번역: 훌륭한 의견입니다! 비즈니스 영어에서는 정중하고 체계적이며 해결책 중심의 어조를 유지할 때 신뢰를 얻을 수 있습니다.`;
   } else if (lowerL.includes('arabic')) {
     translation = `الترجمة (العربية): نقطة ممتازة! في اللغة الإنجليزية المهنية، يساعد الحفاظ على نبرة مهذبة ومنظمة وتركز على الحلول في بناء الثقة الفورية.`;
+  } else if (lowerL.includes('xhosa')) {
+    translation = `Inguqulelo (isiXhosa): Ingongoma ebalaseleyo! Kwi-intanethi yomsebenzi, ukugcina intetho enembeko nenesidima kwakha ukuthembana.`;
+  } else if (lowerL.includes('zulu')) {
+    translation = `Ukuhumusha (isiZulu): Iphuzu elihle kakhulu! Ezingxoxweni zomsebenzi, ukusebenzisa amagama ahloniphekile kwakha ukwethembana.`;
+  } else if (lowerL.includes('swahili')) {
+    translation = `Tafsiri (Kiswahili): Hoja nzuri sana! Katika mawasiliano ya kitaalamu, kudumisha heshima na uwazi hujenga uaminifu wa haraka.`;
+  } else if (lowerL.includes('yoruba')) {
+    translation = `Itumọ (Yorùbá): Ojuami to dara julọ! Ninu ibaraẹnisọrọ iṣẹ, mimu ohun orin oniwa rere ati oye kọ igbẹkẹle to daju.`;
+  } else if (lowerL.includes('igbo')) {
+    translation = `Nsụgharị (Igbo): Isi okwu dị oke mma! N'ebe ọrụ, iji asụsụ nkwanye ùgwù na-ewulite ntụkwasị obi ozugbo.`;
+  } else if (lowerL.includes('hausa')) {
+    translation = `Fassarar (Hausa): Kyakkyawan batu! A wurin aiki, magana cikin ladabi da tsari yana gina aminci nan take.`;
+  } else if (lowerL.includes('amharic')) {
+    translation = `ትርጉም (አማርኛ): በጣም ጥሩ ነጥብ! በሙያዊ ግንኙነት ውስጥ ትሁት እና ግልጽ ቋንቋ መጠቀም ፈጣን እምነትን ይገነባል።`;
+  } else if (lowerL.includes('afrikaans')) {
+    translation = `Vertaling (Afrikaans): Uitstekende punt! In professionele Engels bou 'n beleefde en gestruktureerde toon vinnig vertroue.`;
+  } else if (lowerL.includes('somali')) {
+    translation = `Turjumaad (Af-Soomaali): Qodob aad u fiican! Xiriirka xirfadeed, isticmaalka luuqad edeb leh waxay dhistaa kalsooni degdeg ah.`;
+  } else if (lowerL.includes('oromo')) {
+    translation = `Hiika (Afaan Oromoo): Yaada baay'ee gaarii! Hojii keessatti kabajaan dubbachuun amantee cimaa uuma.`;
   }
 
   return {
@@ -660,14 +1004,15 @@ export async function getChatTutorResponse(params: ChatTutorParams): Promise<Cha
   const { 
     messages, 
     userInput, 
-    nativeLanguage = 'Spanish', 
+    nativeLanguage = 'English', 
     englishLevel = 'B1', 
     coachPersona = 'Elena - Senior Executive English Coach' 
   } = params;
+  const meta = resolveLanguageMeta(nativeLanguage);
 
   const systemInstruction = `You are ${coachPersona}, an expert AI English language coach on Pro English Coach, specializing in teaching Basic & Formal Workplace English.
 The learner's current English level is ${englishLevel} (CEFR).
-The learner's native language for translations and explanations is ${nativeLanguage}.
+The learner's native language for translations and explanations is ${meta.regionalVariantName} (${meta.standardName}).
 
 CRITICAL ANTI-REPETITION & CONVERSATIONAL DIRECTIVES:
 1. NEVER repeat previous responses, canned phrases, or generic boilerplate lectures. Do NOT echo or parrot the learner's exact words back to them.
@@ -681,13 +1026,13 @@ CRITICAL ANTI-REPETITION & CONVERSATIONAL DIRECTIVES:
 5. If correcting or formalizing their sentence:
    - Provide an authentic, polite English alternative tailored specifically to what the learner intended to say.
    - Explain the nuance simply in 1 sentence.
-6. Translate your conversational reply into natural, encouraging ${nativeLanguage}.
+6. Translate your conversational reply strictly into authentic, natural ${meta.regionalVariantName} (${meta.standardName}). DO NOT translate into Spanish or any other language unless ${meta.standardName} is explicitly Spanish.
 7. Give 3 diverse, contextually relevant follow-up suggestions for what the learner can say next.
 
 Respond strictly in valid JSON matching this schema:
 {
   "reply": "Your conversational response in English",
-  "translation": "Your reply translated into ${nativeLanguage}",
+  "translation": "Your reply translated strictly into ${meta.regionalVariantName}",
   "formalCorrection": {
     "original": "user's text",
     "formalAlternative": "better formal/polite English version",
@@ -965,8 +1310,9 @@ function generateScenarioSpecificFallbackReply(
   }
 
   // Generate culturally authentic translation
-  let translation = `Translation (${nativeLanguage}): ${partnerReply}`;
-  const lowerLang = nativeLanguage.toLowerCase();
+  const meta = resolveLanguageMeta(nativeLanguage);
+  let translation = `Translation (${meta.standardName}): ${partnerReply}`;
+  const lowerLang = meta.standardName.toLowerCase();
   if (lowerLang.includes('spanish') || lowerLang.includes('español')) {
     translation = `Traducción (Español): Respuesta profesional en contexto de "${partnerRole}".`;
   } else if (lowerLang.includes('french') || lowerLang.includes('français')) {
@@ -983,6 +1329,22 @@ function generateScenarioSpecificFallbackReply(
     translation = `한국어 번역: "${partnerRole}"의 비즈니스 맥락에 맞춘 전문적인 답변입니다.`;
   } else if (lowerLang.includes('arabic')) {
     translation = `الترجمة (العربية): رد مهني وسياقي من "${partnerRole}".`;
+  } else if (lowerLang.includes('xhosa')) {
+    translation = `Inguqulelo (isiXhosa): Impendulo yobuchwephesha kwimeko ka "${partnerRole}".`;
+  } else if (lowerLang.includes('zulu')) {
+    translation = `Ukuhumusha (isiZulu): Impendulo yobungcweti esimweni sika "${partnerRole}".`;
+  } else if (lowerLang.includes('swahili')) {
+    translation = `Tafsiri (Kiswahili): Jibu la kitaalamu katika muktadha wa "${partnerRole}".`;
+  } else if (lowerLang.includes('yoruba')) {
+    translation = `Itumọ (Yorùbá): Idahun alamọdaju ninu ipo ti "${partnerRole}".`;
+  } else if (lowerLang.includes('igbo')) {
+    translation = `Nsụgharị (Igbo): Nzaghachi ọkachamara n'ọnọdụ "${partnerRole}".`;
+  } else if (lowerLang.includes('hausa')) {
+    translation = `Fassarar (Hausa): Amsar ƙwararru a cikin yanayin "${partnerRole}".`;
+  } else if (lowerLang.includes('amharic')) {
+    translation = `ትርጉም (አማርኛ): ከ "${partnerRole}" የተሰጠ ሙያዊ ምላሽ።`;
+  } else if (lowerLang.includes('afrikaans')) {
+    translation = `Vertaling (Afrikaans): Professionele antwoord in die konteks van "${partnerRole}".`;
   }
 
   const allCompleted = objectives.every(o => o.completed || completedObjectiveIds.includes(o.id));
@@ -998,7 +1360,8 @@ function generateScenarioSpecificFallbackReply(
 }
 
 export async function getRoleplayPartnerResponse(params: RoleplayChatParams): Promise<RoleplayChatResult> {
-  const { scenarioTitle, partnerRole, objectives, messages, userInput, nativeLanguage = 'Spanish' } = params;
+  const { scenarioTitle, partnerRole, objectives, messages, userInput, nativeLanguage = 'English' } = params;
+  const meta = resolveLanguageMeta(nativeLanguage);
 
   const systemInstruction = `You are playing the role of "${partnerRole}" in a professional English roleplay scenario titled "${scenarioTitle}" on Pro English Coach.
 The user is a non-native English learner practicing basic and formal business English.
@@ -1012,12 +1375,12 @@ CRITICAL ROLEPLAY & ANTI-REPETITION MANDATES:
 3. React specifically to the latest ideas, foods, requests, questions, or proposals mentioned by the user. Progress the scenario storyline forward realistically.
 4. Check if the user's latest input fulfilled any of the unfinished objectives. If so, return their IDs in completedObjectiveIds.
 5. Provide a brief feedback tip in English on how the user's formal phrasing can be polished.
-6. Translate your in-character reply into ${nativeLanguage}.
+6. Translate your in-character reply strictly into authentic ${meta.regionalVariantName} (${meta.standardName}). CRITICAL: DO NOT translate into Spanish or any other language unless the requested language is Spanish.
 
 Respond strictly in valid JSON matching:
 {
   "partnerReply": "Your response in character",
-  "translation": "Your response translated into ${nativeLanguage}",
+  "translation": "Your response translated strictly into ${meta.regionalVariantName}",
   "completedObjectiveIds": ["id1", "id2"],
   "feedbackTip": "Brief tip on formal etiquette or vocabulary",
   "isScenarioComplete": false,
@@ -1143,8 +1506,9 @@ export interface GeneratedCard {
 }
 
 export async function generateBasicEnglishFlashcards(params: GenerateCardsParams): Promise<GeneratedCard[]> {
-  const { topic = 'Everyday English', nativeLanguage = 'Spanish', count = 3 } = params;
+  const { topic = 'Everyday English', nativeLanguage = 'English', count = 3 } = params;
   const safeCount = Math.min(Math.max(count, 1), 6);
+  const meta = resolveLanguageMeta(nativeLanguage);
 
   const systemInstruction = `You are an expert English language coach creating flashcards for English Coach.
 CRITICAL CONSTRAINT: STRICTLY BASIC ENGLISH ONLY (A1–A2 Level).
@@ -1157,7 +1521,7 @@ For each card:
 2. "frontContext": The situation context (e.g. "At the Grocery Store", "Ordering Food").
 3. "backProfessional": The recommended polite, natural Basic English phrase (short, friendly, clear).
 4. "backWhy": A simple 1-sentence reason why this phrase is polite and easy to use.
-5. "backTranslation": Accurate, natural translation of the back phrase into ${nativeLanguage}.
+5. "backTranslation": Accurate, natural translation of the back phrase strictly into ${meta.regionalVariantName} (${meta.standardName}). DO NOT translate into Spanish or English unless that is the target language.
 6. "grammarNote": A short, simple 1-sentence grammar or usage tip.
 7. "options": Exactly 3 multiple-choice options for the quiz:
    - 1 correct option (matches backProfessional).
@@ -1166,7 +1530,7 @@ For each card:
 
 Return valid JSON with an array named "cards".`;
 
-  const prompt = `Topic: "${topic}"\nTarget Language for translation: ${nativeLanguage}\nGenerate ${safeCount} basic English flashcards strictly for basic everyday fluency.`;
+  const prompt = `Topic: "${topic}"\nTarget Language for translation: ${meta.regionalVariantName} (${meta.standardName})\nGenerate ${safeCount} basic English flashcards strictly for basic everyday fluency. Translate strictly into ${meta.regionalVariantName}.`;
 
   // 1. Try Gemini
   const gemini = getGeminiClient();
@@ -1228,7 +1592,7 @@ Return valid JSON with an array named "cards".`;
               front: c.front,
               backProfessional: c.backProfessional,
               backWhy: c.backWhy || 'Simple, polite, and natural everyday English.',
-              backTranslation: c.backTranslation || `Translation in ${nativeLanguage}`,
+              backTranslation: c.backTranslation || `Translation in ${meta.standardName}`,
               grammarNote: c.grammarNote || 'Use polite words like please and thank you.',
               level: 'Beginner' as const,
               tier: 'free' as const,
@@ -1246,17 +1610,35 @@ Return valid JSON with an array named "cards".`;
   }
 
   // 2. High-quality Rule-based Fallback for Basic English
-  return getFallbackBasicCards(topic, nativeLanguage, safeCount);
+  return getFallbackBasicCards(topic, meta.standardName, safeCount);
 }
 
 function getFallbackBasicCards(topic: string, nativeLanguage: string, count: number): GeneratedCard[] {
+  const meta = resolveLanguageMeta(nativeLanguage);
+  const targetLang = meta.standardName;
+
   const bank = [
     {
       frontContext: 'Supermarket & Shopping',
       front: 'How do you ask an employee where the bread is?',
       backProfessional: 'Excuse me, where can I find the bread?',
       backWhy: 'Starting with "Excuse me" is polite, and "where can I find..." is clear and simple.',
-      backTranslation: 'Disculpe, ¿dónde puedo encontrar el pan?',
+      translations: {
+        Spanish: 'Disculpe, ¿dónde puedo encontrar el pan?',
+        French: 'Excusez-moi, où puis-je trouver le pain ?',
+        Portuguese: 'Com licença, onde posso encontrar o pão?',
+        German: 'Entschuldigung, wo finde ich das Brot?',
+        Italian: 'Mi scusi, dove posso trovare il pane?',
+        Xhosa: 'Ndicela uxolo, ndingasifumana phi isonka?',
+        Zulu: 'Uxolo, ngingasithola kuphi isinkwa?',
+        Swahili: 'Samahani, naweza kupata wapi mkate?',
+        Yoruba: 'Ẹ jọ̀wọ́, ibo ni mo ti lè rí búrẹ́dì?',
+        Igbo: 'Biko, ebee ka m ga-ahụ achịcha?',
+        Hausa: 'Gafara dai, a ina zan iya samun burodi?',
+        Afrikaans: 'Verskoon my, waar kan ek die brood kry?',
+        Amharic: 'ይቅርታ፣ ዳቦ የት ማግኘት እችላለሁ?',
+        Somali: 'Iga raali noqo, xagee ka heli karaa rootiga?',
+      } as Record<string, string>,
       grammarNote: 'Use "Excuse me" to get someone’s attention politely before asking a question.',
       options: [
         { text: 'Excuse me, where can I find the bread?', isCorrect: true, explanation: 'Perfect! Polite, clear, and natural basic English.' },
@@ -1269,7 +1651,22 @@ function getFallbackBasicCards(topic: string, nativeLanguage: string, count: num
       front: 'How do you order a hot coffee with milk politely?',
       backProfessional: 'Could I please have a hot coffee with milk?',
       backWhy: '"Could I please have..." is the friendliest way to order food or drinks in English.',
-      backTranslation: '¿Podría darme un café caliente con leche, por favor?',
+      translations: {
+        Spanish: '¿Podría darme un café caliente con leche, por favor?',
+        French: 'Pourrais-je avoir un café chaud au lait, s\'il vous plaît ?',
+        Portuguese: 'Poderia me dar um café quente com leite, por favor?',
+        German: 'Könnte ich bitte einen heißen Kaffee mit Milch haben?',
+        Italian: 'Potrei avere un caffè caldo con latte, per favore?',
+        Xhosa: 'Ndingacela ikofu eshushu enobisi, ndicela?',
+        Zulu: 'Ngingacela ikhofi elishisayo elinobisi, ngiyacela?',
+        Swahili: 'Naomba kahawa ya moto yenye maziwa, tafadhali?',
+        Yoruba: 'Ṣe mo le gba kọfi gbigbona pẹlu wara, jọwọ?',
+        Igbo: 'Enwere m ike inweta kọfị dị ọkụ nwere mmiri ara ehi, biko?',
+        Hausa: 'Zan iya samun kofi mai zafi da madara, don Allah?',
+        Afrikaans: 'Kan ek asseblief \'n warm koffie met melk kry?',
+        Amharic: 'እባክዎ ትኩስ ቡና ከወተት ጋር ማግኘት እችላለሁ?',
+        Somali: 'Ma heli karaa qaxwo kulul oo caano leh, fadlan?',
+      } as Record<string, string>,
       grammarNote: '"Could I please have..." + item is the gold standard for ordering.',
       options: [
         { text: 'Could I please have a hot coffee with milk?', isCorrect: true, explanation: 'Great choice! Very polite and easy to understand.' },
@@ -1282,7 +1679,22 @@ function getFallbackBasicCards(topic: string, nativeLanguage: string, count: num
       front: 'How do you ask someone for the nearest bus station?',
       backProfessional: 'Excuse me, where is the nearest bus stop?',
       backWhy: '"Nearest" means closest to you, and the sentence is short and direct.',
-      backTranslation: 'Disculpe, ¿dónde está la parada de autobús más cercana?',
+      translations: {
+        Spanish: 'Disculpe, ¿dónde está la parada de autobús más cercana?',
+        French: 'Excusez-moi, où est l\'arrêt de bus le plus proche ?',
+        Portuguese: 'Com licença, onde fica o ponto de ônibus mais próximo?',
+        German: 'Entschuldigung, wo ist die nächste Bushaltestelle?',
+        Italian: 'Mi scusi, dov\'è la fermata dell\'autobus più vicina?',
+        Xhosa: 'Ndicela uxolo, siphi isitishi sebhasi esikufutshane?',
+        Zulu: 'Uxolo, siphi isitobhi sebhasi esiseduze kakhulu?',
+        Swahili: 'Samahani, kituo cha basi kilicho karibu kiko wapi?',
+        Yoruba: 'Ẹ jọ̀wọ́, ibo ni ibudo ọkọ akero to sunmọ julọ wa?',
+        Igbo: 'Biko, ebee ka ebe nkwụsị bọs kacha nso dị?',
+        Hausa: 'Gafara dai, ina tashar mota mafi kusa take?',
+        Afrikaans: 'Verskoon my, waar is die naaste bushalte?',
+        Amharic: 'ይቅርታ፣ በአቅራቢያው ያለው የአውቶቡስ ማቆሚያ የት ነው?',
+        Somali: 'Iga raali noqo, xagee ku taal boostada baska ugu dhow?',
+      } as Record<string, string>,
       grammarNote: 'Use "nearest" + noun when looking for the closest place.',
       options: [
         { text: 'Excuse me, where is the nearest bus stop?', isCorrect: true, explanation: 'Correct! Simple, natural, and polite.' },
@@ -1295,7 +1707,22 @@ function getFallbackBasicCards(topic: string, nativeLanguage: string, count: num
       front: 'How do you tell a doctor or pharmacist you have a bad headache?',
       backProfessional: 'I have a bad headache. What do you recommend?',
       backWhy: 'Clearly states the symptom and asks for helpful advice politely.',
-      backTranslation: 'Tengo un fuerte dolor de cabeza. ¿Qué me recomienda?',
+      translations: {
+        Spanish: 'Tengo un fuerte dolor de cabeza. ¿Qué me recomienda?',
+        French: 'J\'ai un fort mal de tête. Que me conseillez-vous ?',
+        Portuguese: 'Estou com uma forte dor de cabeça. O que você recomenda?',
+        German: 'Ich habe starke Kopfschmerzen. Was empfehlen Sie?',
+        Italian: 'Ho un forte mal di testa. Cosa mi consiglia?',
+        Xhosa: 'Ndinentloko ebuhlungu kakhulu. Ucebisa ntoni?',
+        Zulu: 'Nginobuhlungu bekhanda obunzima. Uphakamisa ini?',
+        Swahili: 'Nina maumivu makali ya kichwa. Unapendekeza nini?',
+        Yoruba: 'Mo ni orififo to lagbara. Kini o ṣeduro?',
+        Igbo: 'Isi na-awa m nke ukwuu. Gịnị ka ị na-atụ aro?',
+        Hausa: 'Ina da ciwon kai mai tsanani. Me kuke ba da shawara?',
+        Afrikaans: 'Ek het \'n erge hoofpyn. Wat beveel jy aan?',
+        Amharic: 'ከባድ ራስ ምታት አለብኝ። ምን ይመክራሉ?',
+        Somali: 'Waxaan qabaa madax-xanuun daran. Maxaad kugula talinaysaa?',
+      } as Record<string, string>,
       grammarNote: 'Say "I have a headache / stomachache / fever" to describe symptoms.',
       options: [
         { text: 'I have a bad headache. What do you recommend?', isCorrect: true, explanation: 'Accurate and polite medical communication.' },
@@ -1308,7 +1735,22 @@ function getFallbackBasicCards(topic: string, nativeLanguage: string, count: num
       front: 'How do you greet a neighbor or colleague in the morning?',
       backProfessional: 'Good morning! How is your day going so far?',
       backWhy: 'A warm, friendly greeting that shows kindness without being too personal.',
-      backTranslation: '¡Buenos días! ¿Cómo va tu día hasta ahora?',
+      translations: {
+        Spanish: '¡Buenos días! ¿Cómo va tu día hasta ahora?',
+        French: 'Bonjour ! Comment se passe votre journée jusqu\'à présent ?',
+        Portuguese: 'Bom dia! Como está indo o seu dia até agora?',
+        German: 'Guten Morgen! Wie läuft dein Tag bisher?',
+        Italian: 'Buongiorno! Come sta andando la tua giornata finora?',
+        Xhosa: 'Molo kusasa! Injani imini yakho ukuza kuthi ga ngoku?',
+        Zulu: 'Sawubona ekuseni! Unjani usuku lwakho kuze kube manje?',
+        Swahili: 'Habari za asubuhi! Siku yako inaendeleaje hadi sasa?',
+        Yoruba: 'Ẹ ku owurọ! Bawo ni ọjọ rẹ ṣe n lọ titi di isisiyi?',
+        Igbo: 'Ụtụtụ ọma! Kedu ka ụbọchị gị si aga ugbu a?',
+        Hausa: 'Ina kwana! Yaya ranarku ke tafiya ya zuwa yanzu?',
+        Afrikaans: 'Goeiemôre! Hoe gaan jou dag tot dusver?',
+        Amharic: 'እንደምን አደሩ! እስካሁን ቀንዎ እንዴት እያለፈ ነው?',
+        Somali: 'Subax wanaagsan! Sidee maalintaadu u socotaa ilaa hadda?',
+      } as Record<string, string>,
       grammarNote: '"Good morning" is used until 12:00 PM (noon).',
       options: [
         { text: 'Good morning! How is your day going so far?', isCorrect: true, explanation: 'Friendly, warm, and natural everyday English.' },
@@ -1318,17 +1760,351 @@ function getFallbackBasicCards(topic: string, nativeLanguage: string, count: num
     }
   ];
 
-  return bank.slice(0, count).map((item, idx) => ({
-    id: `fb_${Date.now()}_${idx}`,
-    category: topic,
-    frontContext: item.frontContext,
-    front: item.front,
-    backProfessional: item.backProfessional,
-    backWhy: item.backWhy,
-    backTranslation: item.backTranslation,
-    grammarNote: item.grammarNote,
-    level: 'Beginner' as const,
-    tier: 'free' as const,
-    options: item.options
-  }));
+  return bank.slice(0, count).map((item, idx) => {
+    const dictHit = lookupDictionaryTranslation(item.backProfessional, targetLang);
+    const translation = dictHit || item.translations[targetLang] || `Translation in ${targetLang}`;
+
+    return {
+      id: `fb_${Date.now()}_${idx}`,
+      category: topic,
+      frontContext: item.frontContext,
+      front: item.front,
+      backProfessional: item.backProfessional,
+      backWhy: item.backWhy,
+      backTranslation: translation,
+      grammarNote: item.grammarNote,
+      level: 'Beginner' as const,
+      tier: 'free' as const,
+      options: item.options
+    };
+  });
+}
+
+export interface QuizQuestionItem {
+  id: string;
+  topic: string;
+  sentenceBefore: string;
+  sentenceAfter: string;
+  completeSentence: string;
+  bracketTranslation: string;
+  options: {
+    letter: 'A' | 'B' | 'C' | 'D';
+    text: string;
+    color: 'yellow' | 'cyan' | 'green' | 'purple';
+    isCorrect: boolean;
+  }[];
+  explanation: string;
+  explanationTranslation?: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+}
+
+export interface GenerateQuizParams {
+  topic?: string;
+  count?: number;
+  difficulty?: string;
+  nativeLanguage?: string;
+}
+
+export async function generateQuizQuestions(params: GenerateQuizParams): Promise<QuizQuestionItem[]> {
+  const { topic = 'Prepositions & Collocations', count = 4, difficulty = 'Beginner', nativeLanguage = 'Zulu' } = params;
+  const safeCount = Math.min(Math.max(count, 1), 10);
+  const meta = resolveLanguageMeta(nativeLanguage);
+
+  // 1. Try Gemini candidate models first
+  const gemini = getGeminiClient();
+  if (gemini) {
+    const candidateModels = getActiveCandidateModels();
+    const systemInstruction = `You are a world-class English grammar and fluency tutor creating fill-in-the-blank quiz cards.
+The quiz card design shows a broken sentence with a missing word:
+Example:
+sentenceBefore: "Stop shouting"
+sentenceAfter: "me!"
+completeSentence: "Stop shouting at me!"
+bracketTranslation: Translation of completeSentence strictly into ${meta.regionalVariantName} (${meta.standardName}) in square brackets.
+options: 3 or 4 choices with letters A, B, C, D. Colors assigned: A=yellow, B=cyan, C=green, D=purple. Exactly one isCorrect=true.
+explanation: Clear 1-2 sentence explanation of why the correct option fits and why common errors are wrong.
+difficulty: "Beginner", "Intermediate", or "Advanced".
+
+CRITICAL: Return valid JSON with an array named "questions". Each bracketTranslation MUST be in ${meta.regionalVariantName} (${meta.standardName}).`;
+
+    const prompt = `Topic: "${topic}"\nDifficulty: "${difficulty}"\nTarget Language for translation: ${meta.regionalVariantName} (${meta.standardName})\nGenerate ${safeCount} fill-in-the-blank questions.`;
+
+    for (let i = 0; i < candidateModels.length; i++) {
+      const model = candidateModels[i];
+      try {
+        const response = await gemini.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                questions: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      sentenceBefore: { type: Type.STRING },
+                      sentenceAfter: { type: Type.STRING },
+                      completeSentence: { type: Type.STRING },
+                      bracketTranslation: { type: Type.STRING },
+                      options: {
+                        type: Type.ARRAY,
+                        items: {
+                          type: Type.OBJECT,
+                          properties: {
+                            letter: { type: Type.STRING },
+                            text: { type: Type.STRING },
+                            color: { type: Type.STRING },
+                            isCorrect: { type: Type.BOOLEAN }
+                          },
+                          required: ['letter', 'text', 'color', 'isCorrect']
+                        }
+                      },
+                      explanation: { type: Type.STRING },
+                      difficulty: { type: Type.STRING }
+                    },
+                    required: ['sentenceBefore', 'sentenceAfter', 'completeSentence', 'options', 'explanation']
+                  }
+                }
+              },
+              required: ['questions']
+            }
+          }
+        });
+
+        if (response.text) {
+          const parsed = JSON.parse(response.text);
+          if (Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+            return parsed.questions.map((q: any, idx: number) => {
+              let bracket = q.bracketTranslation || '';
+              if (!bracket.startsWith('[')) bracket = `[${bracket}]`;
+              return {
+                id: `quiz_ai_${Date.now()}_${idx}`,
+                topic,
+                sentenceBefore: q.sentenceBefore || '',
+                sentenceAfter: q.sentenceAfter || '',
+                completeSentence: q.completeSentence || `${q.sentenceBefore} _____ ${q.sentenceAfter}`,
+                bracketTranslation: bracket,
+                options: (q.options || []).map((opt: any, optIdx: number) => ({
+                  letter: (opt.letter || ['A', 'B', 'C', 'D'][optIdx]) as 'A' | 'B' | 'C' | 'D',
+                  text: opt.text || '',
+                  color: (opt.color || ['yellow', 'cyan', 'green', 'purple'][optIdx % 4]) as any,
+                  isCorrect: Boolean(opt.isCorrect)
+                })),
+                explanation: q.explanation || '',
+                difficulty: (q.difficulty || difficulty) as any
+              };
+            });
+          }
+        }
+      } catch (err: any) {
+        handleGeminiModelError(model, err);
+        if (i < candidateModels.length - 1) await delay(150);
+      }
+    }
+  }
+
+  // 2. High-Yield Curated Fallback Question Bank (includes exact card from user screenshot)
+  const CURATED_QUIZ_BANK: Array<{
+    topic: string;
+    sentenceBefore: string;
+    sentenceAfter: string;
+    completeSentence: string;
+    translations: Record<string, string>;
+    options: { letter: 'A' | 'B' | 'C' | 'D'; text: string; color: 'yellow' | 'cyan' | 'green' | 'purple'; isCorrect: boolean }[];
+    explanation: string;
+    difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  }> = [
+    {
+      topic: 'Prepositions & Feelings',
+      sentenceBefore: 'Stop shouting',
+      sentenceAfter: 'me!',
+      completeSentence: 'Stop shouting at me!',
+      translations: {
+        Zulu: 'Yeka ukungimemeza!',
+        Xhosa: 'Yeka ukundikhwaza!',
+        Afrikaans: 'Hou op om vir my te skree!',
+        Spanish: '¡Deja de gritarme!',
+        French: 'Arrête de me crier dessus !',
+        German: 'Hör auf, mich anzuschreien!',
+        Portuguese: 'Pare de gritar comigo!',
+        Swahili: 'Acha kunipigia kelele!',
+        Yoruba: 'Dẹkun kígbe mọ́ mi!',
+        Igbo: 'Kwụsị iti m mkpu!',
+        Hausa: 'Daina yi min tsawa!',
+        Amharic: 'በእኔ ላይ መጮህ አቁም!',
+        Somali: 'Jooji inaad igu qayliso!'
+      },
+      options: [
+        { letter: 'A', text: 'in', color: 'yellow', isCorrect: false },
+        { letter: 'B', text: 'at', color: 'cyan', isCorrect: true },
+        { letter: 'C', text: 'on', color: 'green', isCorrect: false }
+      ],
+      explanation: "We say 'shout at' someone when we are angry or hostile ('Stop shouting at me!'). We only use 'shout to' when projecting our voice so someone far away can hear us.",
+      difficulty: 'Beginner'
+    },
+    {
+      topic: 'Everyday Collocations',
+      sentenceBefore: 'I am looking forward',
+      sentenceAfter: 'seeing you!',
+      completeSentence: 'I am looking forward to seeing you!',
+      translations: {
+        Zulu: 'Ngilangazelele ukukubona!',
+        Xhosa: 'Ndijonge phambili ekukuboneni!',
+        Afrikaans: 'Ek sien daarna uit om jou te sien!',
+        Spanish: '¡Tengo muchas ganas de verte!',
+        French: 'J\'ai hâte de vous voir !',
+        German: 'Ich freue mich darauf, dich zu sehen!',
+        Portuguese: 'Estou ansioso para ver você!',
+        Swahili: 'Natarajia kukuona!',
+        Yoruba: 'Mo n nireti lati ri ọ!',
+        Igbo: 'A na m atụ anya ịhụ gị!',
+        Hausa: 'Ina fatan ganin ku!',
+        Amharic: 'እርስዎን ለማየት በጉጉት እጠብቃለሁ!',
+        Somali: 'Waxaan rajeynayaa inaan ku arko!'
+      },
+      options: [
+        { letter: 'A', text: 'for', color: 'yellow', isCorrect: false },
+        { letter: 'B', text: 'to', color: 'cyan', isCorrect: true },
+        { letter: 'C', text: 'with', color: 'green', isCorrect: false }
+      ],
+      explanation: "The phrasal verb is 'look forward to', and it is followed by a gerund (-ing form): 'looking forward to seeing you'.",
+      difficulty: 'Beginner'
+    },
+    {
+      topic: 'Skills & Abilities',
+      sentenceBefore: 'She is very good',
+      sentenceAfter: 'learning new languages.',
+      completeSentence: 'She is very good at learning new languages.',
+      translations: {
+        Zulu: 'Unekghono kakhulu ekufundeni izilimi ezintsha.',
+        Xhosa: 'Ugcwele ubugcisa ekufundeni iilwimi ezintsha.',
+        Afrikaans: 'Sy is baie goed daarin om nuwe tale te leer.',
+        Spanish: 'Ella es muy buena aprendiendo nuevos idiomas.',
+        French: 'Elle est très douée pour apprendre de nouvelles langues.',
+        German: 'Sie ist sehr gut darin, neue Sprachen zu lernen.',
+        Portuguese: 'Ela é muito boa em aprender novos idiomas.',
+        Swahili: 'Yeye ni mzuri sana katika kujifunza lugha mpya.',
+        Yoruba: 'Ó dára púpọ̀ ní kíkọ́ àwọn èdè tuntun.',
+        Igbo: 'Ọ na-ama ezigbo aka n\'ịmụ asụsụ ọhụrụ.',
+        Hausa: 'Tana da ƙwarewa sosai wajen koyon sabbin harsuna.',
+        Amharic: 'አዳዲስ ቋንቋዎችን በመማር በጣም ጎበዝ ነች።',
+        Somali: 'Aad bay ugu fiican tahay barashada luqadaha cusub.'
+      },
+      options: [
+        { letter: 'A', text: 'in', color: 'yellow', isCorrect: false },
+        { letter: 'B', text: 'at', color: 'cyan', isCorrect: true },
+        { letter: 'C', text: 'on', color: 'green', isCorrect: false }
+      ],
+      explanation: "In English, we say someone is 'good at' an activity or skill (e.g., 'good at English', 'good at cooking').",
+      difficulty: 'Beginner'
+    },
+    {
+      topic: 'Everyday Household',
+      sentenceBefore: 'Could you please turn',
+      sentenceAfter: 'the lights? It is getting dark.',
+      completeSentence: 'Could you please turn on the lights? It is getting dark.',
+      translations: {
+        Zulu: 'Ungacela ukukhanyisa izibani? Kuseduze kuhlwale.',
+        Xhosa: 'Ungacela ukulilayita ilahla? Kusiya kuhlwa.',
+        Afrikaans: 'Kan jy asseblief die ligte aanskakel? Dit raak donker.',
+        Spanish: '¿Podrías encender las luces? Se está oscureciendo.',
+        French: 'Pourriez-vous allumer les lumières ? Il commence à faire nuit.',
+        German: 'Könntest du bitte das Licht anmachen? Es wird dunkel.',
+        Portuguese: 'Você poderia acender as luzes? Está escurecendo.',
+        Swahili: 'Je, unaweza kuwasha taa tafadhali? Giza linaingia.',
+        Yoruba: 'Ṣe o le tan imọlẹ jọ̀wọ́? Ilẹ ti n ṣokunkun.',
+        Igbo: 'Biko ị nwere ike ịgbanye ọkụ? Ọchịchịrị na-agba.',
+        Hausa: 'Za ka iya kunna fitilu don Allah? Yana yin duhu.',
+        Amharic: 'እባክዎን መብራቶቹን ማብራት ይችላሉ? እየጨለመ ነው።',
+        Somali: 'Fadlan ma shidi kartaa laydhadhka? Waa mugdi.'
+      },
+      options: [
+        { letter: 'A', text: 'on', color: 'yellow', isCorrect: true },
+        { letter: 'B', text: 'up', color: 'cyan', isCorrect: false },
+        { letter: 'C', text: 'in', color: 'green', isCorrect: false }
+      ],
+      explanation: "To start an electrical device or light, we say 'turn on'. To shut it down, we say 'turn off'.",
+      difficulty: 'Beginner'
+    },
+    {
+      topic: 'Conversations & Agreement',
+      sentenceBefore: 'I agree completely',
+      sentenceAfter: 'your idea.',
+      completeSentence: 'I agree completely with your idea.',
+      translations: {
+        Zulu: 'Ngivumelana ngokuphelele nomqondo wakho.',
+        Xhosa: 'Ndivumelana ngokupheleleyo nembono yakho.',
+        Afrikaans: 'Ek stem heeltemal saam met jou idee.',
+        Spanish: 'Estoy completamente de acuerdo con tu idea.',
+        French: 'Je suis entièrement d\'accord avec votre idée.',
+        German: 'Ich stimme deiner Idee vollkommen zu.',
+        Portuguese: 'Concordo totalmente com a sua ideia.',
+        Swahili: 'Ninakubaliana kabisa na wazo lako.',
+        Yoruba: 'Mo gba pẹlu ero rẹ patapata.',
+        Igbo: 'Ekwenyere m kpamkpam na echiche gị.',
+        Hausa: 'Na yarda gaba daya da ra\'ayinka.',
+        Amharic: 'ከሃሳብዎ ጋር ሙሉ በሙሉ እስማማለሁ።',
+        Somali: 'Gabi ahaanba waan ku raacsanahay fikradaada.'
+      },
+      options: [
+        { letter: 'A', text: 'to', color: 'yellow', isCorrect: false },
+        { letter: 'B', text: 'with', color: 'cyan', isCorrect: true },
+        { letter: 'C', text: 'about', color: 'green', isCorrect: false }
+      ],
+      explanation: "We say 'agree with' a person or idea ('I agree with you'). 'Agree to' is used when consenting to an action or contract.",
+      difficulty: 'Intermediate'
+    },
+    {
+      topic: 'Time & Duration',
+      sentenceBefore: 'She has been studying English',
+      sentenceAfter: 'three months.',
+      completeSentence: 'She has been studying English for three months.',
+      translations: {
+        Zulu: 'Ubefunda isiNgisi izinyanga ezintathu.',
+        Xhosa: 'Ufunde isiNgesi iinyanga ezintathu.',
+        Afrikaans: 'Sy leer al drie maande lank Engels.',
+        Spanish: 'Ella ha estado estudiando inglés durante tres meses.',
+        French: 'Elle étudie l\'anglais depuis trois mois.',
+        German: 'Sie lernt seit drei Monaten Englisch.',
+        Portuguese: 'Ela está estudando inglês há três meses.',
+        Swahili: 'Amekuwa akijifunza Kiingereza kwa miezi mitatu.',
+        Yoruba: 'O ti n kọ ẹkọ Gẹẹsi fun oṣu mẹta.',
+        Igbo: 'Ọ na-amụ Bekee ọnwa atọ.',
+        Hausa: 'Tana koyon Turanci tsawon watanni uku.',
+        Amharic: 'እንግሊዝኛን ለሦስት ወራት ስትማር ቆይታለች።',
+        Somali: 'Waxay baraneysay Ingiriisiga seddex bilood.'
+      },
+      options: [
+        { letter: 'A', text: 'since', color: 'yellow', isCorrect: false },
+        { letter: 'B', text: 'for', color: 'cyan', isCorrect: true },
+        { letter: 'C', text: 'in', color: 'green', isCorrect: false }
+      ],
+      explanation: "Use 'for' with a period of duration (for three months, for two hours). Use 'since' with a specific starting point in time (since January, since 2022).",
+      difficulty: 'Intermediate'
+    }
+  ];
+
+  const targetLang = meta.standardName;
+  const filtered = CURATED_QUIZ_BANK.slice(0, safeCount);
+
+  return filtered.map((item, idx) => {
+    const rawTrans = item.translations[targetLang] || lookupDictionaryTranslation(item.completeSentence, targetLang) || item.completeSentence;
+    const bracket = rawTrans.startsWith('[') ? rawTrans : `[${rawTrans}]`;
+
+    return {
+      id: `quiz_curated_${Date.now()}_${idx}`,
+      topic: item.topic,
+      sentenceBefore: item.sentenceBefore,
+      sentenceAfter: item.sentenceAfter,
+      completeSentence: item.completeSentence,
+      bracketTranslation: bracket,
+      options: item.options,
+      explanation: item.explanation,
+      difficulty: item.difficulty
+    };
+  });
 }

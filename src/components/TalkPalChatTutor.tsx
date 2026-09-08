@@ -34,9 +34,11 @@ import {
   Wand2,
   CheckCircle2,
   SlidersHorizontal,
-  Loader2
+  Loader2,
+  Keyboard
 } from 'lucide-react';
 import { useTTS } from '../lib/useTTS';
+import { useCoachAudioReplay } from '../lib/useCoachAudioReplay';
 import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 import { motion, AnimatePresence } from 'motion/react';
 import { translateText, generateSmartRuleBasedTranslation } from '../lib/translationService';
@@ -308,6 +310,22 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
   const langDropdownRef = useRef<HTMLDivElement>(null);
 
   const { speed, setSpeed, speak, isSpeaking, stop } = useTTS();
+
+  // Find the most recent tutor response for fast keyboard replay ('R' shortcut)
+  const mostRecentCoachMsg = [...messages].reverse().find(m => m.sender === 'tutor');
+  const { isRecentlyTriggered, triggerReplay } = useCoachAudioReplay(
+    mostRecentCoachMsg ? {
+      id: mostRecentCoachMsg.id,
+      text: mostRecentCoachMsg.text,
+      source: 'chat',
+      title: selectedPersona.name,
+      options: {
+        rate: speed,
+        gender: selectedPersona.gender,
+        pitch: selectedPersona.voicePitch
+      }
+    } : null
+  );
 
   const currentLangObj = SUPPORTED_LANGUAGES.find(l => l.name === nativeLanguage) || {
     name: nativeLanguage,
@@ -801,6 +819,31 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
             <span className="hidden sm:inline">Quick Lookup</span>
           </button>
 
+          {/* Replay Audio Shortcut Button */}
+          {mostRecentCoachMsg && (
+            <button
+              type="button"
+              id="trigger-chat-audio-replay-button"
+              onClick={() => triggerReplay()}
+              className={`px-2.5 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                isRecentlyTriggered
+                  ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 shadow-md scale-102'
+                  : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-100 shadow-2xs'
+              }`}
+              title="Press 'R' (or Alt+R) to replay the most recent coach response anytime"
+            >
+              <Volume2 className={`w-3.5 h-3.5 ${isRecentlyTriggered ? 'text-white' : 'text-indigo-600'}`} />
+              <span>Replay</span>
+              <kbd className={`px-1.5 py-0.2 font-mono text-[10px] rounded border font-black ${
+                isRecentlyTriggered 
+                  ? 'bg-indigo-700 text-white border-indigo-500' 
+                  : 'bg-neutral-100 text-neutral-800 border-neutral-300'
+              }`}>
+                R
+              </kbd>
+            </button>
+          )}
+
         </div>
       </div>
 
@@ -955,7 +998,9 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                   <p className="font-normal whitespace-pre-wrap">{msg.text}</p>
 
                   {/* Audio & Actions toolbar for tutor */}
-                  {!isUser && (
+                  {!isUser && (() => {
+                    const isMostRecentCoach = msg.id === mostRecentCoachMsg?.id;
+                    return (
                     <div className="mt-3 pt-2.5 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2 text-xs">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <button
@@ -968,13 +1013,26 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                           })}
                           className={`p-1.5 rounded-lg border transition-all flex items-center gap-1 font-bold cursor-pointer ${
                             isCurrentSpeaking
-                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300'
+                              : isMostRecentCoach && isRecentlyTriggered
+                              ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-400 scale-105 shadow-sm'
+                              : isMostRecentCoach
+                              ? 'bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 border-indigo-300 shadow-2xs'
                               : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
                           }`}
-                          title="Listen with native English pronunciation"
+                          title={isMostRecentCoach ? "Listen (or press 'R' to replay anytime)" : "Listen with native English pronunciation"}
                         >
                           <Volume2 className="w-3.5 h-3.5" />
                           <span>{isCurrentSpeaking ? 'Speaking...' : 'Listen'}</span>
+                          {isMostRecentCoach && (
+                            <kbd className={`ml-0.5 px-1.5 py-0.2 font-mono text-[9px] rounded font-black border ${
+                              isCurrentSpeaking || (isMostRecentCoach && isRecentlyTriggered)
+                                ? 'bg-indigo-700 text-white border-indigo-500'
+                                : 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                            }`}>
+                              R
+                            </kbd>
+                          )}
                         </button>
 
                         {/* Speakerphone Speed Controls */}
@@ -1028,7 +1086,8 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                         {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* User message action toolbar (allows translating user's message back to native language) */}
                   {isUser && (
@@ -1360,6 +1419,15 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
             <Send className="w-4 h-4" />
           </button>
         </form>
+
+        {/* Quick Keyboard Helper */}
+        <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-400 px-1">
+          <div className="flex items-center gap-1.5">
+            <Volume2 className="w-3 h-3 text-indigo-500 shrink-0" />
+            <span>Shortcut: Press <kbd className="font-mono font-bold bg-neutral-100 text-neutral-700 px-1.5 py-0.5 rounded border border-neutral-200 text-[10px]">R</kbd> (or <kbd className="font-mono font-bold bg-neutral-100 text-neutral-700 px-1.5 py-0.5 rounded border border-neutral-200 text-[10px]">Alt+R</kbd>) to replay coach voice</span>
+          </div>
+          <span className="hidden sm:inline font-medium text-neutral-500">Speed: {speed}x</span>
+        </div>
       </div>
 
     </div>

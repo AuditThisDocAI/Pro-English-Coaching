@@ -14,7 +14,8 @@ import {
   translatePhrase,
   getChatTutorResponse,
   getRoleplayPartnerResponse,
-  generateBasicEnglishFlashcards
+  generateBasicEnglishFlashcards,
+  generateQuizQuestions
 } from './server/aiCoach.ts';
 
 async function startServer() {
@@ -120,7 +121,7 @@ async function startServer() {
     res.setHeader('Content-Type', 'application/json');
 
     try {
-      const { input, mode = 'general', jobType = 'Tech', nativeLanguage = 'Spanish' } = req.body || {};
+      const { input, mode = 'general', jobType = 'Tech', nativeLanguage = 'English' } = req.body || {};
 
       if (!input || typeof input !== 'string' || !input.trim()) {
         return res.status(400).json({ error: 'Please enter a sentence or phrase to practice.' });
@@ -146,10 +147,10 @@ async function startServer() {
   app.post('/api/generate-cards', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const { topic = 'Everyday English', nativeLanguage = 'Spanish', count = 3 } = req.body || {};
+      const { topic = 'Everyday English', nativeLanguage = 'English', count = 3 } = req.body || {};
       const cards = await generateBasicEnglishFlashcards({
         topic: typeof topic === 'string' ? topic : 'Everyday English',
-        nativeLanguage: typeof nativeLanguage === 'string' ? nativeLanguage : 'Spanish',
+        nativeLanguage: typeof nativeLanguage === 'string' ? nativeLanguage : 'English',
         count: typeof count === 'number' ? count : 3,
       });
 
@@ -162,20 +163,41 @@ async function startServer() {
     }
   });
 
-  // AI Translation API Route
+  // AI Translation API Route (supports bi-directional: native to English or English to native)
   app.post('/api/translate', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const { text, targetLanguage = 'Spanish' } = req.body || {};
+      const { text, targetLanguage = 'English', sourceLanguage } = req.body || {};
       if (!text || typeof text !== 'string' || !text.trim()) {
         return res.status(400).json({ error: 'Text is required for translation.' });
       }
 
-      const translation = await translatePhrase(text, targetLanguage);
-      return res.json({ status: 'ok', translation, targetLanguage });
+      const translation = await translatePhrase(text, targetLanguage, sourceLanguage);
+      return res.json({ status: 'ok', translation, targetLanguage, sourceLanguage });
     } catch (error: any) {
       console.error('Translation error:', error);
       return res.status(500).json({ error: error?.message || 'Failed to translate phrase.' });
+    }
+  });
+
+  // Fill-in-the-blank Quiz Cards Generator API Route
+  app.post('/api/generate-quiz', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const { topic = 'Prepositions & Collocations', count = 4, difficulty = 'Beginner', nativeLanguage = 'Zulu' } = req.body || {};
+      const questions = await generateQuizQuestions({
+        topic: typeof topic === 'string' ? topic : 'Prepositions & Collocations',
+        count: typeof count === 'number' ? count : 4,
+        difficulty: typeof difficulty === 'string' ? difficulty : 'Beginner',
+        nativeLanguage: typeof nativeLanguage === 'string' ? nativeLanguage : 'Zulu',
+      });
+
+      return res.json({ status: 'ok', questions });
+    } catch (error: any) {
+      console.error('Error generating quiz cards:', error);
+      return res.status(500).json({
+        error: error?.message || 'Failed to generate quiz questions.',
+      });
     }
   });
 
@@ -183,7 +205,7 @@ async function startServer() {
   app.post('/api/chat-tutor', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const { messages = [], userInput = '', nativeLanguage = 'Spanish', englishLevel = 'B1', coachPersona } = req.body || {};
+      const { messages = [], userInput = '', nativeLanguage = 'English', englishLevel = 'B1', coachPersona } = req.body || {};
       if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
         return res.status(400).json({ error: 'User input is required.' });
       }
@@ -207,7 +229,7 @@ async function startServer() {
   app.post('/api/roleplay-chat', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const { scenarioTitle, partnerRole, objectives = [], messages = [], userInput = '', nativeLanguage = 'Spanish' } = req.body || {};
+      const { scenarioTitle, partnerRole, objectives = [], messages = [], userInput = '', nativeLanguage = 'English' } = req.body || {};
       if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
         return res.status(400).json({ error: 'User input is required.' });
       }

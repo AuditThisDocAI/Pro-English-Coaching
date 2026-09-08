@@ -11,7 +11,10 @@ import {
   ArrowRight,
   Flame,
   Layers,
-  BookOpen
+  BookOpen,
+  HelpCircle,
+  X,
+  Keyboard
 } from 'lucide-react';
 import { NativeLanguage, SUPPORTED_LANGUAGES } from '../types';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
@@ -22,6 +25,7 @@ import {
   WORD_GAME_CATEGORIES, 
   WordMatchPair 
 } from '../data/wordGameWords';
+import { getWordGameTranslation } from '../data/wordGameTranslations';
 
 interface FunWordMatchGameProps {
   nativeLanguage: NativeLanguage;
@@ -54,6 +58,7 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
   const [selectedNative, setSelectedNative] = useState<string | null>(null);
   const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set());
   const [wrongMatch, setWrongMatch] = useState<{ eng: string; nat: string } | null>(null);
+  const [showHints, setShowHints] = useState<boolean>(false);
 
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -113,6 +118,14 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
 
   const handleSelectEnglish = (pair: WordMatchPair) => {
     if (matchedIds.has(pair.id)) return;
+    if (wrongMatch) setWrongMatch(null);
+
+    // Clicking again toggles off
+    if (selectedEnglish === pair.id) {
+      setSelectedEnglish(null);
+      return;
+    }
+
     handlePlayAudio(pair.english);
     setSelectedEnglish(pair.id);
 
@@ -123,6 +136,16 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
 
   const handleSelectNative = (pair: WordMatchPair) => {
     if (matchedIds.has(pair.id)) return;
+    if (wrongMatch) setWrongMatch(null);
+
+    // Clicking again toggles off
+    if (selectedNative === pair.id) {
+      setSelectedNative(null);
+      return;
+    }
+
+    // Audio feedback: speak English counterpart so user hears word pronunciation immediately
+    handlePlayAudio(pair.english);
     setSelectedNative(pair.id);
 
     if (selectedEnglish) {
@@ -166,11 +189,12 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
       // Incorrect Match
       setWrongMatch({ eng: engId, nat: natId });
       setStreak(0);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setSelectedEnglish(null);
         setSelectedNative(null);
         setWrongMatch(null);
-      }, 550);
+      }, 700);
+      return () => clearTimeout(timer);
     }
   };
 
@@ -189,8 +213,64 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
     pickNewRoundWords(selectedCategory, currentPairs.map(p => p.id));
   };
 
+  // Desktop keyboard shortcuts: 1-6 for English, A-F for Native
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in an input
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+
+      const key = e.key.toUpperCase();
+
+      // Number keys 1-6 for left column (English)
+      if (['1', '2', '3', '4', '5', '6'].includes(key)) {
+        const idx = parseInt(key, 10) - 1;
+        if (currentPairs[idx]) {
+          handleSelectEnglish(currentPairs[idx]);
+        }
+      }
+
+      // Letter keys A-F for right column (Native meanings matching badges [A]-[F])
+      const letterMap: Record<string, number> = {
+        'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5
+      };
+
+      if (letterMap[key] !== undefined) {
+        const idx = letterMap[key];
+        if (shuffledNativePairs[idx]) {
+          handleSelectNative(shuffledNativePairs[idx]);
+        }
+      }
+
+      if (e.key === 'Escape') {
+        setSelectedEnglish(null);
+        setSelectedNative(null);
+        setWrongMatch(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPairs, shuffledNativePairs, selectedEnglish, selectedNative, matchedIds, wrongMatch]);
+
   const isAllCompleted = currentPairs.length > 0 && matchedIds.size === currentPairs.length;
   const masteredPercentage = Math.round((allMasteredIds.size / BASIC_WORD_BANK.length) * 100);
+
+  const selectedEngPair = currentPairs.find(p => p.id === selectedEnglish);
+  const selectedNatPair = shuffledNativePairs.find(p => p.id === selectedNative);
+
+  // Quick languages for instant switching on desktop
+  const POPULAR_LANGUAGES: { name: NativeLanguage; label: string; flag: string }[] = [
+    { name: 'Xhosa', label: 'isiXhosa', flag: '🇿🇦' },
+    { name: 'Zulu', label: 'isiZulu', flag: '🇿🇦' },
+    { name: 'Swahili', label: 'Kiswahili', flag: '🇹🇿' },
+    { name: 'Afrikaans', label: 'Afrikaans', flag: '🇿🇦' },
+    { name: 'Spanish', label: 'Español', flag: '🇪🇸' },
+    { name: 'French', label: 'Français', flag: '🇫🇷' },
+    { name: 'Portuguese', label: 'Português', flag: '🇧🇷' },
+    { name: 'German', label: 'Deutsch', flag: '🇩🇪' },
+  ];
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -211,10 +291,10 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight mt-1">
-            Match English Words with Your Language
+            Match English Words with {nativeLanguage}
           </h2>
           <p className="text-xs text-neutral-500 mt-0.5">
-            Tap an English word to hear authentic pronunciation, then find its matching meaning in {nativeLanguage}!
+            Click or tap either an English word or its translated meaning in {nativeLanguage} to match them up!
           </p>
         </div>
 
@@ -251,6 +331,55 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
         </div>
       </div>
 
+      {/* Language Switcher Bar directly inside the Game Section */}
+      <div className="bg-white rounded-2xl p-3 sm:p-4 border border-indigo-100/80 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <Globe2 className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Translated Language</div>
+            <div className="text-xs font-bold text-neutral-800">Meanings translated into: <span className="text-indigo-600 font-extrabold">{nativeLanguage}</span></div>
+          </div>
+        </div>
+
+        {/* Quick Language Pills & Full Dropdown */}
+        <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {POPULAR_LANGUAGES.map(lang => (
+              <button
+                key={lang.name}
+                type="button"
+                onClick={() => onLanguageChange(lang.name)}
+                className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                  nativeLanguage === lang.name
+                    ? 'bg-indigo-600 text-white shadow-2xs'
+                    : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
+                }`}
+              >
+                <span>{lang.flag}</span>
+                <span>{lang.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="relative shrink-0">
+            <select
+              value={nativeLanguage}
+              onChange={(e) => onLanguageChange(e.target.value as NativeLanguage)}
+              aria-label="Select translated language"
+              className="px-2.5 py-1 text-xs font-bold bg-neutral-50 hover:bg-neutral-100 border border-neutral-300 rounded-xl text-neutral-800 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.name} value={lang.name}>
+                  {lang.flag} {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Vocabulary Bank Stats Bar & Category Filter */}
       <div className="bg-neutral-50 rounded-2xl p-3 sm:p-4 border border-neutral-200/80 space-y-3">
         
@@ -262,9 +391,23 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
             <span className="text-neutral-400 font-normal">|</span>
             <span className="text-emerald-700 font-extrabold">{allMasteredIds.size} Words Practiced ({masteredPercentage}%)</span>
           </div>
-          <span className="text-[11px] text-neutral-400 font-medium">
-            Showing 6 of {availablePool.length} words in this category
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowHints(!showHints)}
+              className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-colors cursor-pointer flex items-center gap-1 ${
+                showHints 
+                  ? 'bg-amber-100 border-amber-300 text-amber-900' 
+                  : 'bg-white border-neutral-300 text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>{showHints ? 'Hide Hints' : 'Show Meaning Hints'}</span>
+            </button>
+            <span className="text-[11px] text-neutral-400 font-medium">
+              Showing 6 of {availablePool.length} words
+            </span>
+          </div>
         </div>
 
         {/* Category Filter Pills */}
@@ -287,6 +430,51 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
             );
           })}
         </div>
+      </div>
+
+      {/* Guiding Action Status Bar for Desktop & Mobile */}
+      <div className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row items-center justify-between gap-3 text-xs ${
+        selectedEnglish && selectedNative
+          ? 'bg-amber-50 border-amber-200 text-amber-900'
+          : selectedEnglish || selectedNative
+          ? 'bg-indigo-50 border-indigo-200 text-indigo-950'
+          : 'bg-neutral-50/80 border-neutral-200 text-neutral-600'
+      }`}>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+          <span className="text-xs">
+            {selectedEnglish && !selectedNative && (
+              <>
+                Selected English: <span className="font-extrabold text-indigo-700">"{selectedEngPair?.english}"</span> ➔ Now tap its matching meaning in <strong>{nativeLanguage}</strong>!
+              </>
+            )}
+            {selectedNative && !selectedEnglish && selectedNatPair && (
+              <>
+                Selected Meaning: <span className="font-extrabold text-indigo-700">"{getWordGameTranslation(selectedNatPair, nativeLanguage)}"</span> ➔ Now tap its matching English card!
+              </>
+            )}
+            {!selectedEnglish && !selectedNative && (
+              <>
+                💡 <strong>Tip:</strong> Click any English card or translated meaning in {nativeLanguage} to begin matching. You can also use keys <strong>1-6</strong> and <strong>A-F</strong>!
+              </>
+            )}
+          </span>
+        </div>
+
+        {(selectedEnglish || selectedNative) && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedEnglish(null);
+              setSelectedNative(null);
+              setWrongMatch(null);
+            }}
+            className="px-2.5 py-1 rounded-xl bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Cancel selection</span>
+          </button>
+        )}
       </div>
 
       {/* Round Completion Celebration Card */}
@@ -325,8 +513,9 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
         {/* Left Column: English Words */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-              1. Tap English Word (Listen 🔊):
+            <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider flex items-center gap-1.5">
+              <span>1. English Word:</span>
+              <span className="text-[10px] text-neutral-400 font-normal hidden sm:inline">(Keys 1-6)</span>
             </span>
             <span className="text-[11px] text-neutral-400 font-semibold">
               {matchedIds.size} / {currentPairs.length} matched
@@ -334,7 +523,7 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
           </div>
 
           <div className="space-y-2.5">
-            {currentPairs.map((pair) => {
+            {currentPairs.map((pair, index) => {
               const isMatched = matchedIds.has(pair.id);
               const isSelected = selectedEnglish === pair.id;
               const isWrong = wrongMatch?.eng === pair.id;
@@ -347,15 +536,20 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
                   disabled={isMatched}
                   className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                     isMatched
-                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900 opacity-60'
+                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900 opacity-60 cursor-default'
                       : isWrong
                       ? 'bg-rose-50 border-rose-400 text-rose-900 animate-shake'
                       : isSelected
-                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md scale-102 font-extrabold'
-                      : 'bg-white border-neutral-200 hover:border-indigo-300 hover:bg-neutral-50 text-neutral-900'
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md scale-102 font-extrabold ring-2 ring-indigo-300'
+                      : 'bg-white border-neutral-200 hover:border-indigo-400 hover:bg-indigo-50/30 text-neutral-900 shadow-2xs'
                   }`}
                 >
                   <div className="flex items-center gap-3">
+                    <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 ${
+                      isSelected ? 'bg-indigo-800 text-white' : 'bg-neutral-100 text-neutral-600'
+                    }`}>
+                      {index + 1}
+                    </span>
                     <span className="text-2xl">{pair.emoji}</span>
                     <div>
                       <span className="text-sm font-bold block">"{pair.english}"</span>
@@ -364,11 +558,23 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
                       </span>
                     </div>
                   </div>
-                  <div className="shrink-0 flex items-center gap-1.5">
+                  <div className="shrink-0 flex items-center gap-1.5 ml-2">
                     {isMatched ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     ) : (
-                      <Volume2 className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-indigo-600'}`} />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayAudio(pair.english);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          isSelected ? 'hover:bg-indigo-500 text-white' : 'hover:bg-neutral-100 text-neutral-400 hover:text-indigo-600'
+                        }`}
+                        title="Listen to pronunciation"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
                     )}
                   </div>
                 </button>
@@ -380,17 +586,18 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
         {/* Right Column: Native Translations (Shuffled) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-              2. Tap Meaning in {nativeLanguage}:
+            <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider flex items-center gap-1.5">
+              <span>2. Meaning in {nativeLanguage}:</span>
+              <span className="text-[10px] text-neutral-400 font-normal hidden sm:inline">(Keys A-F)</span>
             </span>
             <span className="text-[11px] text-neutral-400 font-semibold">
-              Shuffled order
+              Tap to match or listen
             </span>
           </div>
 
           <div className="space-y-2.5">
-            {shuffledNativePairs.map((pair) => {
-              const translation = pair.translations[nativeLanguage] || pair.translations.Spanish || pair.english;
+            {shuffledNativePairs.map((pair, index) => {
+              const translation = getWordGameTranslation(pair, nativeLanguage);
               const isMatched = matchedIds.has(pair.id);
               const isSelected = selectedNative === pair.id;
               const isWrong = wrongMatch?.nat === pair.id;
@@ -401,18 +608,50 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
                   type="button"
                   onClick={() => handleSelectNative(pair)}
                   disabled={isMatched}
-                  className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer min-h-[64px] ${
+                  className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer min-h-[68px] ${
                     isMatched
-                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900 opacity-60'
+                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900 opacity-60 cursor-default'
                       : isWrong
                       ? 'bg-rose-50 border-rose-400 text-rose-900 animate-shake'
                       : isSelected
-                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md scale-102 font-extrabold'
-                      : 'bg-white border-neutral-200 hover:border-indigo-300 hover:bg-neutral-50 text-neutral-900'
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md scale-102 font-extrabold ring-2 ring-indigo-300'
+                      : 'bg-white border-neutral-200 hover:border-indigo-400 hover:bg-indigo-50/30 text-neutral-900 shadow-2xs'
                   }`}
                 >
-                  <span className="text-sm font-bold">"{translation}"</span>
-                  {isMatched && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 ml-2" />}
+                  <div className="flex items-center gap-3">
+                    <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 ${
+                      isSelected ? 'bg-indigo-800 text-white' : 'bg-neutral-100 text-neutral-600'
+                    }`}>
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                    <div>
+                      <span className="text-sm font-bold block">"{translation}"</span>
+                      {showHints && (
+                        <span className={`text-[11px] font-medium block ${isSelected ? 'text-indigo-200' : 'text-neutral-400'}`}>
+                          English: {pair.english}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-1.5 ml-2">
+                    {isMatched ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayAudio(pair.english);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          isSelected ? 'hover:bg-indigo-500 text-white' : 'hover:bg-neutral-100 text-neutral-400 hover:text-indigo-600'
+                        }`}
+                        title="Listen to English word pronunciation"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -421,20 +660,22 @@ export const FunWordMatchGame: React.FC<FunWordMatchGameProps> = ({
 
       </div>
 
-      {/* Floating Refresh Bar on Mobile / Bottom Helper */}
-      <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-neutral-200 text-xs text-neutral-500">
+      {/* Floating Refresh Bar / Bottom Helper */}
+      <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white rounded-2xl border border-neutral-200 text-xs text-neutral-500 gap-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>Want a fresh set of words? Tap <strong>New Words</strong> anytime!</span>
+          <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+          <span>Need fresh practice? Tap <strong>New Words</strong> anytime to shuffle 6 new vocabulary items!</span>
         </div>
-        <button
-          type="button"
-          onClick={handleNextRound}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-xl font-bold transition-colors cursor-pointer"
-        >
-          <Shuffle className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Refresh Words</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleNextRound}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-xl font-bold transition-colors cursor-pointer"
+          >
+            <Shuffle className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Refresh Words</span>
+          </button>
+        </div>
       </div>
 
     </div>
