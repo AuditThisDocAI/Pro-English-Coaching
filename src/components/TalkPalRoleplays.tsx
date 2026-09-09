@@ -856,7 +856,7 @@ export const TalkPalRoleplays: React.FC<TalkPalRoleplaysProps> = ({
                         {isExpanded && obj.samplePhrases && (
                           <div className="p-3 bg-neutral-50/90 border-t border-neutral-100 space-y-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block">
-                              Alternative Professional Phrasings (Click to choose & turn Yellow / Green):
+                              Alternative Basic Phrasings (Click to choose & turn Yellow / Green):
                             </span>
                             {obj.samplePhrases.map((phrase, pIdx) => (
                               <div 

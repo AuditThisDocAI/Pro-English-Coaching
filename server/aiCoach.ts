@@ -10,11 +10,11 @@ let openAIQuotaExceededUntil = 0;
 // Up-to-date Gemini models per Google AI Studio guidance with broad resilience against temporary spikes
 export const GEMINI_CANDIDATE_MODELS = [
   'gemini-2.5-flash',
-  'gemini-3.1-flash-lite',
-  'gemini-flash-latest',
-  'gemini-3.8-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite-preview-02-05',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-pro',
 ];
 
 export interface LanguageMeta {
@@ -42,7 +42,7 @@ export function resolveLanguageMeta(rawLanguage?: string): LanguageMeta {
       code: 'xh-ZA',
       standardName: 'Xhosa',
       regionalVariantName: 'isiXhosa (Xhosa, South Africa)',
-      promptGuidance: 'Translate strictly into authentic isiXhosa (Xhosa, South Africa). Do NOT translate into Spanish, Zulu, or any other language.'
+      promptGuidance: "Translate strictly into authentic isiXhosa (Xhosa, South Africa). CRITICAL: DO NOT use English for the translation. DO NOT translate into Spanish, Zulu, or any other language."
     };
   }
   if (clean.includes('isizulu') || clean.includes('zulu') || clean === 'zu' || clean.startsWith('zu-')) {
@@ -1026,16 +1026,16 @@ CRITICAL ANTI-REPETITION & CONVERSATIONAL DIRECTIVES:
 5. If correcting or formalizing their sentence:
    - Provide an authentic, polite English alternative tailored specifically to what the learner intended to say.
    - Explain the nuance simply in 1 sentence.
-6. Translate your conversational reply strictly into authentic, natural ${meta.regionalVariantName} (${meta.standardName}). DO NOT translate into Spanish or any other language unless ${meta.standardName} is explicitly Spanish.
+6. Translate your conversational reply strictly into authentic, natural ${meta.regionalVariantName} (${meta.standardName}). CRITICAL TRANSLATION INSTRUCTION: YOU MUST TRANSLATE YOUR REPLY STRICTLY INTO ${meta.regionalVariantName} (${meta.standardName}). DO NOT USE ENGLISH FOR THE TRANSLATION FIELD. DO NOT USE SPANISH UNLESS THE REQUESTED LANGUAGE IS SPANISH.
 7. Give 3 diverse, contextually relevant follow-up suggestions for what the learner can say next.
 
 Respond strictly in valid JSON matching this schema:
 {
   "reply": "Your conversational response in English",
-  "translation": "Your reply translated strictly into ${meta.regionalVariantName}",
+  "translation": "Your reply translated strictly into ${meta.regionalVariantName} (${meta.standardName}). It MUST NOT be in English. It MUST be in ${meta.standardName}.",
   "formalCorrection": {
     "original": "user's text",
-    "formalAlternative": "better formal/polite English version",
+    "formalAlternative": "better basic/natural English version",
     "why": "why this is better in formal/workplace English",
     "grammarTag": "category tag"
   },
@@ -1363,8 +1363,8 @@ export async function getRoleplayPartnerResponse(params: RoleplayChatParams): Pr
   const { scenarioTitle, partnerRole, objectives, messages, userInput, nativeLanguage = 'English' } = params;
   const meta = resolveLanguageMeta(nativeLanguage);
 
-  const systemInstruction = `You are playing the role of "${partnerRole}" in a professional English roleplay scenario titled "${scenarioTitle}" on Pro English Coach.
-The user is a non-native English learner practicing basic and formal business English.
+  const systemInstruction = `You are playing the role of "${partnerRole}" in a basic everyday English conversation scenario titled "${scenarioTitle}" on Pro English Coach.
+The user is a non-native English learner practicing basic everyday English.
 
 Scenario Objectives for the user:
 ${objectives.map(o => `- [ID: ${o.id}] ${o.text} (Completed: ${o.completed})`).join('\n')}
@@ -1375,12 +1375,12 @@ CRITICAL ROLEPLAY & ANTI-REPETITION MANDATES:
 3. React specifically to the latest ideas, foods, requests, questions, or proposals mentioned by the user. Progress the scenario storyline forward realistically.
 4. Check if the user's latest input fulfilled any of the unfinished objectives. If so, return their IDs in completedObjectiveIds.
 5. Provide a brief feedback tip in English on how the user's formal phrasing can be polished.
-6. Translate your in-character reply strictly into authentic ${meta.regionalVariantName} (${meta.standardName}). CRITICAL: DO NOT translate into Spanish or any other language unless the requested language is Spanish.
+6. CRITICAL TRANSLATION INSTRUCTION: YOU MUST TRANSLATE YOUR REPLY STRICTLY INTO ${meta.regionalVariantName} (${meta.standardName}). DO NOT USE ENGLISH FOR THE TRANSLATION FIELD. DO NOT USE SPANISH UNLESS THE REQUESTED LANGUAGE IS SPANISH.
 
 Respond strictly in valid JSON matching:
 {
   "partnerReply": "Your response in character",
-  "translation": "Your response translated strictly into ${meta.regionalVariantName}",
+  "translation": "Your response translated strictly into ${meta.regionalVariantName} (${meta.standardName}). It MUST NOT be in English. It MUST be in ${meta.standardName}.",
   "completedObjectiveIds": ["id1", "id2"],
   "feedbackTip": "Brief tip on formal etiquette or vocabulary",
   "isScenarioComplete": false,
@@ -1521,7 +1521,7 @@ For each card:
 2. "frontContext": The situation context (e.g. "At the Grocery Store", "Ordering Food").
 3. "backProfessional": The recommended polite, natural Basic English phrase (short, friendly, clear).
 4. "backWhy": A simple 1-sentence reason why this phrase is polite and easy to use.
-5. "backTranslation": Accurate, natural translation of the back phrase strictly into ${meta.regionalVariantName} (${meta.standardName}). DO NOT translate into Spanish or English unless that is the target language.
+5. "backTranslation": CRITICAL: YOU MUST TRANSLATE THE PHRASE STRICTLY INTO ${meta.regionalVariantName} (${meta.standardName}). DO NOT USE ENGLISH FOR THE TRANSLATION FIELD. DO NOT USE SPANISH UNLESS THE REQUESTED LANGUAGE IS SPANISH.
 6. "grammarNote": A short, simple 1-sentence grammar or usage tip.
 7. "options": Exactly 3 multiple-choice options for the quiz:
    - 1 correct option (matches backProfessional).
@@ -1820,7 +1820,7 @@ Example:
 sentenceBefore: "Stop shouting"
 sentenceAfter: "me!"
 completeSentence: "Stop shouting at me!"
-bracketTranslation: Translation of completeSentence strictly into ${meta.regionalVariantName} (${meta.standardName}) in square brackets.
+bracketTranslation: CRITICAL: YOU MUST TRANSLATE THE COMPLETE SENTENCE STRICTLY INTO ${meta.regionalVariantName} (${meta.standardName}) IN SQUARE BRACKETS. DO NOT USE ENGLISH. DO NOT USE SPANISH UNLESS REQUESTED.
 options: 3 or 4 choices with letters A, B, C, D. Colors assigned: A=yellow, B=cyan, C=green, D=purple. Exactly one isCorrect=true.
 explanation: Clear 1-2 sentence explanation of why the correct option fits and why common errors are wrong.
 difficulty: "Beginner", "Intermediate", or "Advanced".

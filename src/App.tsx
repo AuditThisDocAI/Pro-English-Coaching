@@ -15,7 +15,7 @@ import { TalkPalDashboard } from './components/TalkPalDashboard';
 import { TalkPalChatTutor } from './components/TalkPalChatTutor';
 import { TalkPalRoleplays } from './components/TalkPalRoleplays';
 import { TalkPalCallMode } from './components/TalkPalCallMode';
-import { FlashcardsPracticeHub } from './components/FlashcardsPracticeHub';
+import { BasicGrammarQuiz } from './components/BasicGrammarQuiz';
 import { SavedPhrasesModal } from './components/SavedPhrasesModal';
 import { GoogleChatModal } from './components/GoogleChatModal';
 import { AuthModal } from './components/AuthModal';
@@ -100,7 +100,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
 
   // Active navigation tab (Landing page is primary welcoming view)
-  const [activeTab, setActiveTab] = useState<'landing' | 'lessons' | 'chat' | 'game' | 'flashcards' | 'roleplays' | 'call' | 'dashboard' | 'analytics'>('landing');
+  const [activeTab, setActiveTab] = useState<'landing' | 'lessons' | 'chat' | 'game' | 'quiz' | 'roleplays' | 'call' | 'dashboard' | 'analytics'>('landing');
   const [selectedHubTopic, setSelectedHubTopic] = useState<string>('all');
 
   // Quota & Pro Subscription State
@@ -202,9 +202,19 @@ export default function App() {
             localStorage.setItem(getUserStorageKey(user, 'is_pro'), pro.toString());
             localStorage.setItem(getUserStorageKey(user, 'trial_start_date'), trialStart);
           } else {
-            const initialCount = loadUserChatCount(user);
-            const initialPro = loadUserIsPro(user);
-            const initialTrialStart = getUserTrialStartDate(user);
+            // New user registered: Grant a fresh 3-day trial and reset local counts
+            const now = new Date().toISOString();
+            const initialCount = 0;
+            const initialPro = false;
+            const initialTrialStart = now;
+
+            // Overwrite any guest fallbacks on this device
+            localStorage.setItem(getUserStorageKey(user, 'trial_start_date'), now);
+            localStorage.setItem('proenglish_device_trial_start', now);
+            localStorage.setItem('proenglish_guest_trial_start_date', now);
+            localStorage.setItem(getUserStorageKey(user, 'chat_count'), '0');
+            localStorage.setItem('proenglish_guest_chat_count', '0');
+
             setChatCount(initialCount);
             setIsPro(initialPro);
             setTrialStartDate(initialTrialStart);
@@ -342,7 +352,7 @@ export default function App() {
 
   const handleOpenFlashcards = (deckId?: string) => {
     if (deckId) setFlashcardDeckId(deckId);
-    setActiveTab('flashcards');
+    setActiveTab('quiz');
   };
 
   const handleCancelSubscription = async () => {
@@ -422,7 +432,7 @@ export default function App() {
             { id: 'lessons', label: 'Fun Lessons', icon: <BookOpen className="w-3.5 h-3.5 text-teal-600" /> },
             { id: 'chat', label: 'AI Chat Buddy', icon: <MessageSquare className="w-3.5 h-3.5 text-sky-600" /> },
             { id: 'game', label: 'Word Match', icon: <Gamepad2 className="w-3.5 h-3.5 text-amber-600" /> },
-            { id: 'flashcards', label: 'Everyday Cards', icon: <Layers className="w-3.5 h-3.5 text-purple-600" /> },
+            { id: 'quiz', label: 'Everyday Cards', icon: <Layers className="w-3.5 h-3.5 text-purple-600" /> },
             { id: 'roleplays', label: 'Daily Situations', icon: <Coffee className="w-3.5 h-3.5 text-rose-600" /> }
           ].map((tab) => {
             const isActive = activeTab === tab.id;
@@ -596,7 +606,7 @@ export default function App() {
                 setChatInitialText(text);
                 setActiveTab('chat');
               }}
-              onSavePhrase={handleSavePhrase}
+              
               onAddXP={handleAddXP}
               initialTopic={selectedHubTopic}
               isExpired={trialInfo.isTrialExpired && !isPro}
@@ -638,7 +648,7 @@ export default function App() {
             <TalkPalChatTutor
               nativeLanguage={nativeLanguage}
               englishLevel={englishLevel}
-              onSavePhrase={handleSavePhrase}
+              
               isPro={isPro}
               onOpenPricing={() => navigate('/pricing')}
               onAddXP={handleAddXP}
@@ -692,27 +702,28 @@ export default function App() {
           )
         )}
 
-        {/* 7. Sentence Cards Hub */}
-        {activeTab === 'flashcards' && (
+        {/* 7. Grammar Quiz */}
+        {activeTab === 'quiz' && (
           trialInfo.canAccess ? (
             <div className="bg-neutral-900 rounded-3xl p-4 sm:p-6 shadow-xl overflow-hidden">
-              <FlashcardsPracticeHub
-                savedPhrases={savedPhrases}
+              <BasicGrammarQuiz
+                onAddXP={handleAddXP}
+                
                 nativeLanguage={nativeLanguage}
                 onLanguageChange={setNativeLanguage}
-                onSavePhrase={handleSavePhrase}
-                onSendToChat={handleOpenSendToChat}
-                onOpenSavedModal={() => setIsSavedModalOpen(true)}
+                
+                
+                
                 onOpenPricing={() => navigate('/pricing')}
-                selectedDeckId={flashcardDeckId}
-                onSelectDeckId={(id) => setFlashcardDeckId(id)}
+                
+                
                 isPro={isPro}
                 isExpired={trialInfo.isTrialExpired && !isPro}
               />
             </div>
           ) : (
             <PaywallOverlay
-              featureName="Sentence Cards & Spaced Repetition"
+              featureName="Grammar Quiz"
               onUpgrade={() => navigate('/pricing')}
               onOpenSignIn={() => setIsAuthModalOpen(true)}
             />
@@ -721,12 +732,20 @@ export default function App() {
 
         {/* 8. Dashboard Overview */}
         {activeTab === 'dashboard' && (
-          <TalkPalDashboard
-            profile={userProfileObj}
-            trialInfo={trialInfo}
-            onNavigate={(tab) => setActiveTab(tab as any)}
-            onOpenPricing={() => navigate('/pricing')}
-          />
+          trialInfo.canAccess ? (
+            <TalkPalDashboard
+              profile={userProfileObj}
+              trialInfo={trialInfo}
+              onNavigate={(tab) => setActiveTab(tab as any)}
+              onOpenPricing={() => navigate('/pricing')}
+            />
+          ) : (
+            <PaywallOverlay
+              featureName="Dashboard & Progress Tracking"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
         )}
 
         {/* 9. Analytics */}
@@ -747,7 +766,7 @@ export default function App() {
               </div>
 
               <GrammarAnalyticsDashboard
-                savedPhrases={savedPhrases}
+                
                 selectedCategory={selectedAnalyticsCategory}
                 onSelectCategory={setSelectedAnalyticsCategory}
               />
@@ -841,7 +860,7 @@ export default function App() {
           { id: 'lessons', label: 'Lessons', icon: <BookOpen className="w-5 h-5" /> },
           { id: 'chat', label: 'AI Chat', icon: <MessageSquare className="w-5 h-5" /> },
           { id: 'game', label: 'Game', icon: <Gamepad2 className="w-5 h-5" /> },
-          { id: 'flashcards', label: 'Cards', icon: <Layers className="w-5 h-5" /> }
+          { id: 'quiz', label: 'Cards', icon: <Layers className="w-5 h-5" /> }
         ].map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -868,7 +887,6 @@ export default function App() {
         onClose={() => setIsFlashcardsModalOpen(false)}
         savedPhrases={savedPhrases}
         nativeLanguage={nativeLanguage}
-        onSendToChat={handleOpenSendToChat}
         initialDeckId={flashcardDeckId}
         isExpired={trialInfo.isTrialExpired && !isPro}
         onOpenPricing={() => navigate('/pricing')}
@@ -878,9 +896,9 @@ export default function App() {
       <SavedPhrasesModal
         isOpen={isSavedModalOpen}
         onClose={() => setIsSavedModalOpen(false)}
-        savedPhrases={savedPhrases}
+        
         onDeletePhrase={handleDeletePhrase}
-        onSendToChat={handleOpenSendToChat}
+        
         onOpenFlashcards={handleOpenFlashcards}
       />
 
