@@ -20,7 +20,7 @@ export const TrialBanner: React.FC<TrialBannerProps> = ({ trialInfo, onUpgrade, 
           <div className="flex items-center gap-2 text-center sm:text-left">
             <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
             <span className="font-semibold text-white">
-              Your 3-Day Free Trial has expired.
+              Your 1-Day Free Trial has expired.
             </span>
             <span className="text-amber-200 hidden md:inline">
               Upgrade to Pro ($19.99/month) to continue unlimited AI English practice, voice calls, and sentence cards.
@@ -58,7 +58,7 @@ export const TrialBanner: React.FC<TrialBannerProps> = ({ trialInfo, onUpgrade, 
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-700/80 text-white text-[10px] font-extrabold uppercase tracking-wide">
             <Sparkles className="w-3 h-3 text-emerald-300" />
-            3-Day Free Trial
+            1-Day Free Trial
           </span>
           <span className="font-medium text-emerald-50 text-[11px] sm:text-xs">
             Full access unlocked • <strong className="text-white font-bold">{trialInfo.formattedTimeRemaining}</strong>
@@ -68,7 +68,7 @@ export const TrialBanner: React.FC<TrialBannerProps> = ({ trialInfo, onUpgrade, 
         <div className="flex items-center gap-3">
           <div className="hidden lg:flex items-center gap-1.5 text-[11px] text-emerald-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Zero charge for 3 days</span>
+            <span>Zero charge for 1 day (24 hours)</span>
           </div>
           {onOpenSignIn && (
             <button

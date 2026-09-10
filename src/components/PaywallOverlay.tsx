@@ -36,7 +36,7 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
         {/* Badge */}
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300/80 text-xs font-black uppercase tracking-wider">
           <Lock className="w-3.5 h-3.5 text-amber-700" />
-          <span>3-Day Free Trial Concluded</span>
+          <span>1-Day Free Trial Concluded</span>
         </div>
 
         {/* Heading */}
@@ -45,7 +45,7 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
             Unlock Full Access to {featureName}
           </h2>
           <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
-            Your 3-day complimentary trial has ended. Activate your subscription to continue practicing conversational and everyday English with instant AI feedback.
+            Your 1-day complimentary trial has ended. Activate your subscription to continue practicing conversational and everyday English with instant AI feedback.
           </p>
         </div>
 

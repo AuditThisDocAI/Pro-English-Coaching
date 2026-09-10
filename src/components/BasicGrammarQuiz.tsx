@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, CheckCircle2, XCircle, RefreshCw, Loader2, BookOpen, AlertCircle, ArrowRight } from 'lucide-react';
+import { Sparkles, CheckCircle2, XCircle, RefreshCw, Loader2, BookOpen, AlertCircle, ArrowRight, Languages } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { triggerCelebrationConfetti } from '../lib/confetti';
+import { lookupDictionaryTranslation } from '../lib/translationsDict';
+import { translateText } from '../lib/translationService';
 
 interface QuizOption {
   letter: 'A' | 'B' | 'C' | 'D';
@@ -54,6 +56,7 @@ export function BasicGrammarQuiz({
   const [isAnswered, setIsAnswered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dynamicTranslations, setDynamicTranslations] = useState<Record<string, string>>({});
   
   const [score, setScore] = useState(0);
 
@@ -101,6 +104,33 @@ export function BasicGrammarQuiz({
       fetchQuestions(selectedCategory);
     }
   }, [selectedCategory, nativeLanguage, isExpired]);
+
+  useEffect(() => {
+    if (!questions.length || !questions[currentIdx]) return;
+    const q = questions[currentIdx];
+    const key = `${q.id || currentIdx}_${nativeLanguage}`;
+    if (dynamicTranslations[key]) return;
+
+    // 1. Check offline dictionary first
+    const dict = lookupDictionaryTranslation(q.completeSentence, nativeLanguage);
+    if (dict) {
+      setDynamicTranslations(prev => ({ ...prev, [key]: dict }));
+      return;
+    }
+
+    // 2. Check if bracket translation already exists and is not English
+    const existing = (q.bracketTranslation || '').replace(/^[\[\("']+|[\]\)"']+$/g, '').trim();
+    const cleanComplete = (q.completeSentence || '').replace(/[.,?!;:¡¿"']/g, '').trim().toLowerCase();
+    const cleanTrans = existing.replace(/[.,?!;:¡¿"']/g, '').trim().toLowerCase();
+
+    if (!existing || cleanTrans === cleanComplete) {
+      translateText(q.completeSentence, nativeLanguage).then(res => {
+        if (res && res !== q.completeSentence) {
+          setDynamicTranslations(prev => ({ ...prev, [key]: res }));
+        }
+      }).catch(console.warn);
+    }
+  }, [currentIdx, questions, nativeLanguage, dynamicTranslations]);
 
   const handleSelectAnswer = (idx: number, isCorrect: boolean) => {
     if (isAnswered) return;
@@ -205,11 +235,33 @@ export function BasicGrammarQuiz({
                 </span>
                 {questions[currentIdx].sentenceAfter}
               </h3>
-              {questions[currentIdx].bracketTranslation && (
-                <p className="text-neutral-500 font-medium mt-3 italic text-sm sm:text-base">
-                  "{questions[currentIdx].bracketTranslation}"
-                </p>
-              )}
+              {(() => {
+                const q = questions[currentIdx];
+                const key = `${q.id || currentIdx}_${nativeLanguage}`;
+                let translationText = dynamicTranslations[key] || (q.bracketTranslation || '').replace(/^[\[\("']+|[\]\)"']+$/g, '').trim();
+                
+                // If translation matches the English complete sentence or is missing, look up from dictionary
+                const cleanComplete = (q.completeSentence || '').replace(/[.,?!;:¡¿"']/g, '').trim().toLowerCase();
+                const cleanTrans = translationText.replace(/[.,?!;:¡¿"']/g, '').trim().toLowerCase();
+                if ((!translationText || cleanTrans === cleanComplete) && nativeLanguage !== 'English') {
+                  const fallback = lookupDictionaryTranslation(q.completeSentence, nativeLanguage);
+                  if (fallback) translationText = fallback;
+                }
+
+                if (!translationText) return null;
+
+                return (
+                  <div className="mt-3.5 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-100/90 border border-neutral-200 text-sm">
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-800 text-[11px] uppercase tracking-wider bg-emerald-100 px-2 py-0.5 rounded-md">
+                      <Languages className="w-3 h-3 text-emerald-700" />
+                      <span>{nativeLanguage}</span>
+                    </span>
+                    <span className="text-neutral-700 font-medium italic text-sm sm:text-base">
+                      "{translationText}"
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Options */}

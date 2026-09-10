@@ -1,5 +1,5 @@
 import { Flashcard, NativeLanguage, SUPPORTED_LANGUAGES } from '../types';
-import { cleanTranslationOutput, lookupDictionaryTranslation } from './translationsDict';
+import { cleanTranslationOutput, lookupDictionaryTranslation, lookupReverseDictionaryTranslation } from './translationsDict';
 
 // In-memory cache for dynamic translations
 const translationCache: Record<string, string> = {};
@@ -726,16 +726,33 @@ export function getFlashcardTranslation(
  */
 export async function translateText(
   text: string,
-  targetLanguage: NativeLanguage | string
+  targetLanguage: NativeLanguage | string,
+  sourceLanguage?: string
 ): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) return '';
 
   const normalizedLang = normalizeLanguageName(targetLanguage);
-  const cacheKey = `${trimmed}___${normalizedLang}`;
+  const cacheKey = `${trimmed}___${normalizedLang}${sourceLanguage ? `___${sourceLanguage}` : ''}`;
 
   if (translationCache[cacheKey]) {
     return translationCache[cacheKey];
+  }
+
+  // If translating to English, check reverse dictionary immediately
+  if (normalizedLang.toLowerCase() === 'english') {
+    const reverseHit = lookupReverseDictionaryTranslation(trimmed, sourceLanguage);
+    if (reverseHit) {
+      translationCache[cacheKey] = reverseHit;
+      return reverseHit;
+    }
+  } else {
+    // If translating from English to target language, check dictionary immediately
+    const dictHit = lookupDictionaryTranslation(trimmed, normalizedLang);
+    if (dictHit) {
+      translationCache[cacheKey] = dictHit;
+      return dictHit;
+    }
   }
 
   try {
@@ -747,6 +764,7 @@ export async function translateText(
       body: JSON.stringify({
         text: trimmed,
         targetLanguage: normalizedLang,
+        sourceLanguage,
       }),
     });
 
@@ -763,7 +781,7 @@ export async function translateText(
   }
 
   // Fallback to local rule engine
-  const fallback = generateSmartRuleBasedTranslation(trimmed, normalizedLang);
+  const fallback = generateSmartRuleBasedTranslation(trimmed, normalizedLang, sourceLanguage);
   translationCache[cacheKey] = fallback;
   return fallback;
 }
@@ -772,17 +790,22 @@ export async function translateText(
  * Client-side rule and glossary translation fallback.
  * Authentically translates common phrases into the target language without labels or prefixes.
  */
-export function generateSmartRuleBasedTranslation(text: string, targetLanguage: string): string {
+export function generateSmartRuleBasedTranslation(
+  text: string, 
+  targetLanguage: string,
+  sourceLanguage?: string
+): string {
   const cleanInput = cleanTranslationOutput(text);
   const normalizedLang = normalizeLanguageName(targetLanguage);
 
-  // 1. Direct dictionary lookup
-  const matched = lookupDictionaryTranslation(cleanInput, normalizedLang);
-  if (matched) {
-    return matched;
+  if (normalizedLang.toLowerCase() === 'english') {
+    const rev = lookupReverseDictionaryTranslation(cleanInput, sourceLanguage);
+    if (rev) return rev;
+  } else {
+    const matched = lookupDictionaryTranslation(cleanInput, normalizedLang);
+    if (matched) return matched;
   }
 
-  // 2. Return clean input without redundant prefix labels
   return cleanInput;
 }
 

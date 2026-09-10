@@ -38,6 +38,7 @@ interface AuthModalProps {
   trialInfo?: TrialInfo;
   onCancelSubscription?: () => void;
   onOpenPaymentModal?: () => void;
+  onResetTrial?: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -50,6 +51,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   trialInfo,
   onCancelSubscription,
   onOpenPaymentModal,
+  onResetTrial,
 }) => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [email, setEmail] = useState('');
@@ -208,7 +210,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <p className="text-indigo-100 text-xs leading-relaxed">
               {currentUser 
                 ? 'Manage your cloud saved phrases, trial status, and active subscription.' 
-                : 'Sign in to access your 3-day free trial, sync saved phrases, and manage your account.'}
+                : 'Sign in to access your 1-day free trial, sync saved phrases, and manage your account.'}
             </p>
           </div>
 
@@ -370,7 +372,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       ) : trialInfo && !trialInfo.isTrialExpired ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded-full">
                           <Sparkles className="w-3 h-3 text-indigo-600" />
-                          3-Day Trial Active
+                          1-Day Trial Active
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full">
@@ -399,7 +401,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
                 </div>
 
-                {/* 3-Day Trial Card if active */}
+                {/* 1-Day Trial Card if active */}
                 {!isPro && trialInfo && (
                   <div className={`p-4 rounded-2xl border text-xs space-y-2 ${
                     trialInfo.isTrialExpired 
@@ -409,31 +411,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <div className="flex items-center justify-between font-bold">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-emerald-600" />
-                        <span>3-Day Free Trial Status</span>
+                        <span>1-Day Free Trial Status</span>
                       </span>
                       <span className={`text-[10px] px-2.5 py-0.5 rounded-md font-extrabold ${
                         trialInfo.isTrialExpired ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
                       }`}>
-                        {trialInfo.isTrialExpired ? 'Expired' : `${trialInfo.daysLeft} days left`}
+                        {trialInfo.isTrialExpired ? 'Expired' : `${trialInfo.hoursLeft}h left`}
                       </span>
                     </div>
                     <p className="text-[11px] leading-relaxed text-neutral-600">
                       {trialInfo.isTrialExpired 
-                        ? 'Your 3-day free trial has expired. To continue using all AI coaching features, voice calls, and sentence cards, please subscribe to Pro.'
+                        ? 'Your 1-day free trial has expired. To continue using all AI coaching features, voice calls, and sentence cards, please subscribe to Pro.'
                         : `You have full unrestricted access to all features. Time remaining: ${trialInfo.formattedTimeRemaining}.`}
                     </p>
-                    {trialInfo.isTrialExpired && onOpenPaymentModal && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                          onOpenPaymentModal();
-                        }}
-                        className="w-full mt-2 py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-amber-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                      >
-                        <Zap className="w-3.5 h-3.5 fill-current" />
-                        <span>Upgrade to Pro ($19.99/mo)</span>
-                      </button>
+                    {trialInfo.isTrialExpired && (
+                      <div className="flex flex-col gap-2 mt-2">
+                        {onOpenPaymentModal && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onOpenPaymentModal();
+                            }}
+                            className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-amber-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                          >
+                            <Zap className="w-3.5 h-3.5 fill-current" />
+                            <span>Upgrade to Pro ($19.99/mo)</span>
+                          </button>
+                        )}
+                        {onResetTrial && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onResetTrial();
+                              setSuccessMessage('Fresh 1-Day Free Trial activated!');
+                            }}
+                            className="w-full py-2 px-3 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Activate / Restart 1-Day Free Trial</span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -514,14 +533,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )}
                 </div>
 
-                {/* Sign Out Button */}
+                {/* Sign Out / Log Out Button */}
                 <button
                   type="button"
+                  id="modal-logout-button"
                   onClick={handleSignOut}
-                  className="w-full py-3 px-4 rounded-xl border border-neutral-200 hover:bg-neutral-100 text-neutral-700 text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 px-4 rounded-xl border border-red-200 bg-red-50/80 hover:bg-red-100 text-red-700 text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
                 >
-                  <LogOut className="w-4 h-4 text-neutral-500" />
-                  <span>Sign Out</span>
+                  <LogOut className="w-4 h-4 text-red-600" />
+                  <span>Log Out of Account</span>
                 </button>
               </div>
             ) : (
@@ -678,7 +698,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <>
                         <span>
                           {authMode === 'signin' && 'Sign In with Email'}
-                          {authMode === 'signup' && 'Create Account & Start 3-Day Trial'}
+                          {authMode === 'signup' && 'Create Account & Start 1-Day Trial'}
                           {authMode === 'reset' && 'Send Password Reset Link'}
                         </span>
                         <ArrowRight className="w-4 h-4" />
@@ -700,7 +720,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="space-y-2 text-xs text-neutral-600 pt-2 border-t border-neutral-100">
                   <div className="flex items-center gap-2 text-neutral-500">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>3 days of free unlimited AI practice</span>
+                    <span>1 day (24 hours) of free unlimited AI practice</span>
                   </div>
                   <div className="flex items-center gap-2 text-neutral-500">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />

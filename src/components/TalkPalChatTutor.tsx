@@ -20,6 +20,7 @@ import {
   HelpCircle, 
   AlertCircle, 
   ArrowRight, 
+  ArrowLeftRight,
   Flame, 
   Zap, 
   User, 
@@ -42,6 +43,7 @@ import { useCoachAudioReplay } from '../lib/useCoachAudioReplay';
 import { SpeakerSpeedControl } from './SpeakerSpeedControl';
 import { motion, AnimatePresence } from 'motion/react';
 import { translateText, generateSmartRuleBasedTranslation } from '../lib/translationService';
+import { lookupDictionaryTranslation, lookupReverseDictionaryTranslation } from '../lib/translationsDict';
 
 export interface TalkPalChatTutorProps {
   nativeLanguage: NativeLanguage;
@@ -300,6 +302,9 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
   const [quickLookupQuery, setQuickLookupQuery] = useState('');
   const [quickLookupResult, setQuickLookupResult] = useState<string | null>(null);
   const [isQuickLookingUp, setIsQuickLookingUp] = useState(false);
+  const [lookupDirection, setLookupDirection] = useState<'auto' | 'nativeToEng' | 'engToNative'>('auto');
+  const [lastLookupTargetLang, setLastLookupTargetLang] = useState<string>('English');
+  const [isCopiedLookupResult, setIsCopiedLookupResult] = useState(false);
 
   // Saved / Copied State
   const [savedMessageIds, setSavedMessageIds] = useState<Set<string>>(new Set());
@@ -474,7 +479,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
     setDraftResult(null);
 
     try {
-      const english = await translateText(query, 'English');
+      const english = await translateText(query, 'English', nativeLanguage);
       setDraftResult({ original: query, english: english || query });
     } catch (err) {
       console.warn('Draft translation error:', err);
@@ -491,7 +496,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
 
     setIsLoading(true);
     try {
-      const english = await translateText(text, 'English');
+      const english = await translateText(text, 'English', nativeLanguage);
       if (english && english.trim() !== text) {
         setInput(english.trim());
       }
@@ -509,11 +514,60 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
 
     setIsQuickLookingUp(true);
     setQuickLookupResult(null);
+    setIsCopiedLookupResult(false);
+
+    let targetLang = 'English';
+    let sourceLang: string | undefined = nativeLanguage;
+
+    if (lookupDirection === 'nativeToEng') {
+      targetLang = 'English';
+      sourceLang = nativeLanguage;
+    } else if (lookupDirection === 'engToNative') {
+      targetLang = nativeLanguage;
+      sourceLang = 'English';
+    } else {
+      // Auto-detect direction
+      // 1. Direct dictionary check: does query match native words?
+      const reverseHit = lookupReverseDictionaryTranslation(query, nativeLanguage);
+      
+      // 2. Non-latin character check (Arabic, Cyrillic, Chinese, Japanese, Korean, Devanagari, Amharic, etc.)
+      const nonLatinRegex = /[^\u0000-\u007F]/;
+      const hasSpecialChars = nonLatinRegex.test(query);
+
+      // 3. Common English basic vocabulary words check
+      const commonEnglishWords = new Set([
+        'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with', 
+        'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 
+        'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up', 
+        'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 
+        'no', 'just', 'him', 'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 
+        'them', 'see', 'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 
+        'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 
+        'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us', 'hello', 'hi', 'please', 
+        'thank', 'thanks', 'welcome', 'morning', 'night', 'coffee', 'water', 'food', 'help', 'where', 'why'
+      ]);
+
+      const firstWord = query.toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g, '');
+      const isClearlyEnglish = commonEnglishWords.has(firstWord) && !reverseHit;
+
+      if (reverseHit || hasSpecialChars || !isClearlyEnglish) {
+        // User typed in their native language -> translate to English
+        targetLang = 'English';
+        sourceLang = nativeLanguage;
+      } else {
+        // User typed in English -> translate to their native language
+        targetLang = nativeLanguage;
+        sourceLang = 'English';
+      }
+    }
+
+    setLastLookupTargetLang(targetLang);
+
     try {
-      const res = await translateText(query, nativeLanguage);
+      const res = await translateText(query, targetLang, sourceLang);
       setQuickLookupResult(res || 'Translation complete');
     } catch (err) {
-      setQuickLookupResult(generateSmartRuleBasedTranslation(query, nativeLanguage));
+      setQuickLookupResult(generateSmartRuleBasedTranslation(query, targetLang, sourceLang));
     } finally {
       setIsQuickLookingUp(false);
     }
@@ -863,6 +917,46 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                   In-Chat Word & Phrase Translator
                 </span>
               </div>
+              
+              {/* Direction selector pills */}
+              <div className="flex items-center gap-1 bg-purple-100/80 p-0.5 rounded-lg border border-purple-200 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setLookupDirection('auto')}
+                  className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                    lookupDirection === 'auto'
+                      ? 'bg-purple-700 text-white shadow-xs'
+                      : 'text-purple-900 hover:bg-purple-200/60'
+                  }`}
+                >
+                  Auto
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLookupDirection('nativeToEng')}
+                  className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                    lookupDirection === 'nativeToEng'
+                      ? 'bg-purple-700 text-white shadow-xs'
+                      : 'text-purple-900 hover:bg-purple-200/60'
+                  }`}
+                  title={`${currentLangObj.name} to English`}
+                >
+                  {currentLangObj.name} → EN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLookupDirection('engToNative')}
+                  className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                    lookupDirection === 'engToNative'
+                      ? 'bg-purple-700 text-white shadow-xs'
+                      : 'text-purple-900 hover:bg-purple-200/60'
+                  }`}
+                  title={`English to ${currentLangObj.name}`}
+                >
+                  EN → {currentLangObj.name}
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setShowQuickLookup(false)}
@@ -879,7 +973,13 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                 value={quickLookupQuery}
                 onChange={(e) => setQuickLookupQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleQuickLookup()}
-                placeholder={`Type any English word or ${currentLangObj.name} phrase to translate...`}
+                placeholder={
+                  lookupDirection === 'nativeToEng'
+                    ? `Type in ${currentLangObj.name} to translate into English...`
+                    : lookupDirection === 'engToNative'
+                    ? `Type in English to translate into ${currentLangObj.name}...`
+                    : `Type in ${currentLangObj.name} or English to translate...`
+                }
                 className="flex-1 px-3 py-2 text-xs rounded-xl bg-white border border-purple-200 focus:outline-hidden focus:border-purple-500 font-medium text-neutral-900"
               />
               <button
@@ -903,11 +1003,23 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
               >
                 <div>
                   <span className="text-[10px] font-bold text-purple-700 block uppercase">
-                    Translation ({currentLangObj.name}):
+                    Translation ({lastLookupTargetLang}):
                   </span>
                   <p className="font-bold text-neutral-900 text-sm">{quickLookupResult}</p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(quickLookupResult);
+                      setIsCopiedLookupResult(true);
+                      setTimeout(() => setIsCopiedLookupResult(false), 2000);
+                    }}
+                    className="p-1.5 rounded-lg bg-neutral-100 text-neutral-700 hover:bg-neutral-200 font-bold flex items-center gap-1 cursor-pointer"
+                    title="Copy Translation"
+                  >
+                    {isCopiedLookupResult ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
                   <button
                     type="button"
                     onClick={() => speak(quickLookupResult, { rate: speed })}

@@ -1,7 +1,7 @@
 import { User } from 'firebase/auth';
 
-export const TRIAL_DURATION_DAYS = 3;
-export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000; // 3 days (72 hours)
+export const TRIAL_DURATION_DAYS = 1;
+export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000; // 1 day (24 hours)
 
 export interface TrialInfo {
   isPro: boolean;
@@ -26,43 +26,66 @@ function getStorageKey(user: User | null, key: string): string {
 
 /**
  * Retrieves the stored trial start timestamp or initializes one if none exists.
- * Persists across user sessions, device storage, and Firestore accounts.
+ * Prevents device fallbacks from backdating newly registered user accounts.
  */
 export function getUserTrialStartDate(user: User | null, remoteStartDate?: string | null): string {
-  if (remoteStartDate) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(getStorageKey(user, 'trial_start_date'), remoteStartDate);
-      localStorage.setItem('proenglish_device_trial_start', remoteStartDate);
+  const now = new Date().toISOString();
+
+  // For Authenticated Users
+  if (user && user.uid) {
+    const userKey = `proenglish_user_${user.uid}_trial_start_date`;
+    const creationTime = user.metadata?.creationTime 
+      ? new Date(user.metadata.creationTime).toISOString() 
+      : null;
+
+    // 1. Remote Firestore Profile Start Date
+    if (remoteStartDate) {
+      // If remote date was accidentally backdated prior to account registration, honor creationTime
+      if (creationTime && new Date(remoteStartDate).getTime() < new Date(creationTime).getTime()) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(userKey, creationTime);
+        }
+        return creationTime;
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(userKey, remoteStartDate);
+      }
+      return remoteStartDate;
     }
-    return remoteStartDate;
+
+    if (typeof window !== 'undefined') {
+      const existing = localStorage.getItem(userKey);
+      if (existing) {
+        // Guard against any corrupted/backdated timestamp older than account creation
+        if (creationTime && new Date(existing).getTime() < new Date(creationTime).getTime()) {
+          localStorage.setItem(userKey, creationTime);
+          return creationTime;
+        }
+        return existing;
+      }
+
+      // Brand new user registration: Trial starts at account creation time or right now!
+      const initialTrial = creationTime || now;
+      localStorage.setItem(userKey, initialTrial);
+      return initialTrial;
+    }
+
+    return creationTime || now;
   }
 
+  // For Guest / Anonymous Visitors
   if (typeof window !== 'undefined') {
-    const key = getStorageKey(user, 'trial_start_date');
-    const existing = localStorage.getItem(key);
-    if (existing) {
-      return existing;
-    }
-    // Check device fallback if user just signed in or switched auth state
-    const deviceFallback = localStorage.getItem('proenglish_device_trial_start');
-    if (deviceFallback) {
-      localStorage.setItem(key, deviceFallback);
-      return deviceFallback;
-    }
-    const guestFallback = localStorage.getItem('proenglish_guest_trial_start_date');
-    if (guestFallback) {
-      localStorage.setItem(key, guestFallback);
-      return guestFallback;
+    const guestKey = 'proenglish_guest_trial_start_date';
+    const existingGuest = localStorage.getItem(guestKey);
+    if (existingGuest) {
+      return existingGuest;
     }
 
-    const now = new Date().toISOString();
-    localStorage.setItem(key, now);
-    localStorage.setItem('proenglish_device_trial_start', now);
-    localStorage.setItem('proenglish_guest_trial_start_date', now);
+    localStorage.setItem(guestKey, now);
     return now;
   }
 
-  return new Date().toISOString();
+  return now;
 }
 
 /**
@@ -96,17 +119,17 @@ export function calculateTrialInfo(
   const hoursLeft = Math.floor((totalSecondsLeft % (24 * 3600)) / 3600);
   const minutesLeft = Math.floor((totalSecondsLeft % 3600) / 60);
 
-  let formattedTimeRemaining = '3-Day Free Trial';
+  let formattedTimeRemaining = '1-Day Free Trial';
   if (isPro) {
     formattedTimeRemaining = 'Pro Member (Unlimited)';
   } else if (isTrialExpired) {
-    formattedTimeRemaining = '3-Day Free Trial Expired';
-  } else if (daysLeft > 1) {
-    formattedTimeRemaining = `${daysLeft} days left in free trial`;
-  } else if (daysLeft === 1 && hoursLeft > 0) {
+    formattedTimeRemaining = '1-Day Free Trial Expired';
+  } else if (hoursLeft > 0) {
     formattedTimeRemaining = `${hoursLeft}h ${minutesLeft}m left in free trial`;
-  } else if (totalSecondsLeft > 0) {
+  } else if (minutesLeft > 0) {
     formattedTimeRemaining = `${minutesLeft}m left in free trial`;
+  } else if (totalSecondsLeft > 0) {
+    formattedTimeRemaining = `${totalSecondsLeft}s left in free trial`;
   }
 
   const elapsedMs = Math.max(0, nowMs - startMs);
@@ -130,7 +153,22 @@ export function calculateTrialInfo(
 }
 
 /**
- * Resets the 3-day trial for testing/demonstration purposes.
+ * Grants a fresh 1-day trial period, clearing any stale expired flags.
+ */
+export function grantFreshTrial(user: User | null): string {
+  const now = new Date().toISOString();
+  if (typeof window !== 'undefined') {
+    if (user && user.uid) {
+      localStorage.setItem(`proenglish_user_${user.uid}_trial_start_date`, now);
+    }
+    localStorage.setItem('proenglish_guest_trial_start_date', now);
+    localStorage.removeItem('proenglish_device_trial_start');
+  }
+  return now;
+}
+
+/**
+ * Resets the 1-day trial for testing/demonstration purposes.
  */
 export function resetTrialForTesting(user: User | null): string {
   const now = new Date().toISOString();

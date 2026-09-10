@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import OpenAI from 'openai';
-import { lookupDictionaryTranslation, lookupReverseDictionaryTranslation } from '../src/lib/translationsDict';
+import { lookupDictionaryTranslation, lookupReverseDictionaryTranslation } from '../src/lib/translationsDict.ts';
 
 // Lazy-initialized AI clients
 let geminiClient: GoogleGenAI | null = null;
@@ -9,12 +9,11 @@ let openAIQuotaExceededUntil = 0;
 
 // Up-to-date Gemini models per Google AI Studio guidance with broad resilience against temporary spikes
 export const GEMINI_CANDIDATE_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-flash-latest',
+  'gemini-3.1-flash-lite',
+  'gemini-3.6-flash',
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite-preview-02-05',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
-  'gemini-1.5-pro',
 ];
 
 export interface LanguageMeta {
@@ -180,13 +179,16 @@ export function resolveLanguageMeta(rawLanguage?: string): LanguageMeta {
   };
 }
 
-// Track models that are temporarily unavailable (503 high demand or 429 quota)
+// Track models that are temporarily unavailable (503 high demand, 429 quota, or 403 project access denied)
 const modelCooldowns: Record<string, number> = {};
+let geminiAccessDeniedUntil = 0;
 
 function getActiveCandidateModels(): string[] {
   const now = Date.now();
+  if (now < geminiAccessDeniedUntil) {
+    return [];
+  }
   const available = GEMINI_CANDIDATE_MODELS.filter((m) => (modelCooldowns[m] || 0) <= now);
-  // If all models are cooled down, return all so we at least try rather than skipping completely
   return available.length > 0 ? available : GEMINI_CANDIDATE_MODELS;
 }
 
@@ -194,18 +196,24 @@ function markModelTemporaryCooldown(model: string, durationMs: number = 30000): 
   modelCooldowns[model] = Date.now() + durationMs;
 }
 
-function handleGeminiModelError(model: string, err: any): void {
+function handleGeminiModelError(model: string, err: any): boolean {
   const msg = String(err?.message || err);
-  if (msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-    // Put model on temporary 60-second cooldown so subsequent requests don't waste time on it
-    markModelTemporaryCooldown(model, 60000);
-    console.warn(`⏳ Gemini model ${model} experienced temporary high demand/rate-limit. Put on cooldown.`);
-  } else {
-    console.warn(`Gemini model ${model} error:`, msg);
+  if (msg.includes('403') || msg.includes('PERMISSION_DENIED') || msg.includes('denied access')) {
+    // Current project credentials have access denied. Put Gemini on cooldown for 30 minutes to prevent spamming failed requests
+    geminiAccessDeniedUntil = Date.now() + 30 * 60 * 1000;
+    return true; // Stop iterating through remaining models immediately
   }
+  if (msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+    markModelTemporaryCooldown(model, 60000);
+    return false;
+  }
+  return false;
 }
 
 function getGeminiClient(): GoogleGenAI | null {
+  if (Date.now() < geminiAccessDeniedUntil) {
+    return null;
+  }
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return null;
@@ -241,10 +249,7 @@ function getOpenAIClient(): OpenAI | null {
 function handleOpenAIError(err: any): void {
   const msg = String(err?.message || err);
   if (msg.includes('429') || msg.includes('credits') || msg.includes('quota') || msg.includes('billing')) {
-    openAIQuotaExceededUntil = Date.now() + 15 * 60 * 1000; // Pause OpenAI attempts for 15 mins
-    console.warn('ℹ️ OpenAI credits exhausted or rate limit hit. Switching seamlessly to Google Gemini models.');
-  } else {
-    console.warn('OpenAI request failed:', msg);
+    openAIQuotaExceededUntil = Date.now() + 30 * 60 * 1000; // Pause OpenAI attempts for 30 mins
   }
 }
 
@@ -416,9 +421,12 @@ export function generateSmartRuleBasedCoach(
   };
 }
 
-export async function getProfessionalCoaching(params: CoachParams): Promise<CoachResult> {
-  const { input, mode = 'general', jobType = 'Tech', nativeLanguage = 'English' } = params;
-  const trimmedInput = input.trim();
+export async function getProfessionalCoaching(params: CoachParams | string): Promise<CoachResult> {
+  const normalizedParams: CoachParams = typeof params === 'string'
+    ? { input: params, mode: 'general', jobType: 'Tech', nativeLanguage: 'English' }
+    : (params || { input: '', mode: 'general', jobType: 'Tech', nativeLanguage: 'English' });
+  const { input = '', mode = 'general', jobType = 'Tech', nativeLanguage = 'English' } = normalizedParams;
+  const trimmedInput = (input || '').trim();
   const meta = resolveLanguageMeta(nativeLanguage);
 
   let modeDescription = '';
@@ -496,7 +504,8 @@ Respond strictly in valid JSON matching this schema:
           }
         }
       } catch (err: any) {
-        handleGeminiModelError(model, err);
+        const isAccessDenied = handleGeminiModelError(model, err);
+        if (isAccessDenied) break;
         if (i < candidateModels.length - 1) {
           await delay(150);
         }
@@ -635,10 +644,10 @@ export async function translatePhrase(
   const isTargetEnglish = targetMeta.standardName.toLowerCase() === 'english';
 
   // 0. Check offline dictionary first
-  if (isTargetEnglish && sourceMeta) {
-    const reverseHit = lookupReverseDictionaryTranslation(trimmed, sourceMeta.standardName);
+  if (isTargetEnglish) {
+    const reverseHit = lookupReverseDictionaryTranslation(trimmed, sourceMeta?.standardName);
     if (reverseHit) return reverseHit;
-  } else if (!isTargetEnglish) {
+  } else {
     const forwardHit = lookupDictionaryTranslation(trimmed, targetMeta.standardName);
     if (forwardHit) return forwardHit;
   }
@@ -650,10 +659,10 @@ export async function translatePhrase(
     for (let i = 0; i < candidateModels.length; i++) {
       const model = candidateModels[i];
       try {
-        const contents = isTargetEnglish && sourceMeta
+        const contents = isTargetEnglish
           ? `You are an authentic polyglot translator.
-Translate the text directly from ${sourceMeta.regionalVariantName} (${sourceMeta.standardName}) into natural, modern everyday English.
-CRITICAL INSTRUCTION: Output ONLY the direct English translation itself. No explanations, no notes, no markdown, no quotes.
+Translate the text directly from ${sourceMeta ? `${sourceMeta.regionalVariantName} (${sourceMeta.standardName})` : 'its native language'} into natural, modern everyday English.
+CRITICAL INSTRUCTION: Output ONLY the direct English translation itself. No explanations, no notes, no markdown, no quotes, no conversational filler.
 
 Text:
 "${trimmed}"`
@@ -676,7 +685,8 @@ Text:
           return cleaned;
         }
       } catch (err: any) {
-        handleGeminiModelError(model, err);
+        const isAccessDenied = handleGeminiModelError(model, err);
+        if (isAccessDenied) break;
         if (i < candidateModels.length - 1) {
           await delay(150);
         }
@@ -688,8 +698,8 @@ Text:
   const openai = getOpenAIClient();
   if (openai) {
     try {
-      const systemContent = isTargetEnglish && sourceMeta
-        ? `You are an expert language translator. Translate the text directly from ${sourceMeta.regionalVariantName} into natural everyday English. Return ONLY the translation without notes or markdown.`
+      const systemContent = isTargetEnglish
+        ? `You are an expert language translator. Translate the text directly from ${sourceMeta ? sourceMeta.regionalVariantName : 'its original language'} into natural everyday English. Return ONLY the direct translation without notes, quotes, or markdown.`
         : `You are an expert polyglot translator. Translate the text strictly into authentic ${targetMeta.regionalVariantName} (${targetMeta.standardName}). ${targetMeta.promptGuidance} Return ONLY the direct translation in ${targetMeta.standardName} without notes, quotes, or markdown.`;
 
       const response = await openai.chat.completions.create({
@@ -712,12 +722,13 @@ Text:
   }
 
   // 3. Fallback to dictionary hit or language-specific rule
-  if (isTargetEnglish && sourceMeta) {
-    const rev = lookupReverseDictionaryTranslation(trimmed, sourceMeta.standardName);
+  if (isTargetEnglish) {
+    const rev = lookupReverseDictionaryTranslation(trimmed, sourceMeta?.standardName);
     if (rev) return rev;
+  } else {
+    const dictHit = lookupDictionaryTranslation(trimmed, targetMeta.standardName);
+    if (dictHit) return dictHit;
   }
-  const dictHit = lookupDictionaryTranslation(trimmed, targetMeta.standardName);
-  if (dictHit) return dictHit;
 
   if (!isTargetEnglish && targetMeta.standardName.toLowerCase() === 'zulu') {
     return generateSmartZuluFallback(trimmed);
@@ -749,13 +760,14 @@ export interface ChatTutorResult {
 // Generate dynamic, context-aware non-repeating fallback responses when keys are offline
 function generateDynamicFallbackChatResponse(
   userInput: string, 
-  messages: { sender: string; text: string }[],
-  nativeLanguage: string,
-  englishLevel: string,
-  coachPersona: string
+  messages: { sender: string; text: string }[] = [],
+  nativeLanguage: string = 'English',
+  englishLevel: string = 'Intermediate',
+  coachPersona: string = 'friendly'
 ): ChatTutorResult {
-  const turn = messages.length + 1;
-  const trimmed = userInput.trim();
+  const msgList = Array.isArray(messages) ? messages : [];
+  const turn = msgList.length + 1;
+  const trimmed = (userInput || '').trim();
   const inputLower = trimmed.toLowerCase();
 
   let reply = '';
@@ -1103,7 +1115,8 @@ Respond strictly in valid JSON matching this schema:
           }
         }
       } catch (err: any) {
-        handleGeminiModelError(model, err);
+        const isAccessDenied = handleGeminiModelError(model, err);
+        if (isAccessDenied) break;
         if (i < candidateModels.length - 1) {
           await delay(150);
         }
@@ -1421,7 +1434,8 @@ Respond strictly in valid JSON matching:
           }
         }
       } catch (err: any) {
-        handleGeminiModelError(model, err);
+        const isAccessDenied = handleGeminiModelError(model, err);
+        if (isAccessDenied) break;
         if (i < candidateModels.length - 1) {
           await delay(150);
         }
@@ -1604,7 +1618,8 @@ Return valid JSON with an array named "cards".`;
           }
         }
       } catch (err: any) {
-        handleGeminiModelError(model, err);
+        const isAccessDenied = handleGeminiModelError(model, err);
+        if (isAccessDenied) break;
       }
     }
   }
@@ -1879,8 +1894,18 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
           const parsed = JSON.parse(response.text);
           if (Array.isArray(parsed.questions) && parsed.questions.length > 0) {
             return parsed.questions.map((q: any, idx: number) => {
-              let bracket = q.bracketTranslation || '';
-              if (!bracket.startsWith('[')) bracket = `[${bracket}]`;
+              let bracket = (q.bracketTranslation || '').trim();
+              const cleanBracket = bracket.replace(/^[\[\("']+|[\]\)"']+$/g, '').trim().toLowerCase();
+              const cleanSentence = (q.completeSentence || '').replace(/[.,?!;:¡¿"']/g, '').trim().toLowerCase();
+              if ((!bracket || cleanBracket === cleanSentence) && meta.standardName !== 'English') {
+                const dictLookup = lookupDictionaryTranslation(q.completeSentence || '', meta.standardName);
+                if (dictLookup) {
+                  bracket = `[${dictLookup}]`;
+                }
+              } else if (bracket && !bracket.startsWith('[')) {
+                bracket = `[${bracket}]`;
+              }
+
               return {
                 id: `quiz_ai_${Date.now()}_${idx}`,
                 topic,
@@ -1901,7 +1926,8 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
           }
         }
       } catch (err: any) {
-        handleGeminiModelError(model, err);
+        const isAccessDenied = handleGeminiModelError(model, err);
+        if (isAccessDenied) break;
         if (i < candidateModels.length - 1) await delay(150);
       }
     }
@@ -1931,12 +1957,25 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
         French: 'Arrête de me crier dessus !',
         German: 'Hör auf, mich anzuschreien!',
         Portuguese: 'Pare de gritar comigo!',
+        Hindi: 'मुझ पर चिल्लाना बंद करो!',
+        Mandarin: '别对我大喊大叫！',
+        Japanese: '私に向かって叫ぶのをやめて！',
+        Korean: '나한테 소리 지르지 마!',
+        Arabic: 'توقف عن الصراخ في وجهي!',
+        Vietnamese: 'Đừng hét vào mặt tôi nữa!',
+        Tagalog: 'Huwag mo akong sigawan!',
+        Italian: 'Smettila di urlarmi contro!',
+        Russian: 'Хватит кричать на меня!',
+        Turkish: 'Bana bağırmayı kes!',
+        Polish: 'Przestań na mnie krzyczeć!',
+        Indonesian: 'Berhenti berteriak padaku!',
         Swahili: 'Acha kunipigia kelele!',
         Yoruba: 'Dẹkun kígbe mọ́ mi!',
         Igbo: 'Kwụsị iti m mkpu!',
         Hausa: 'Daina yi min tsawa!',
         Amharic: 'በእኔ ላይ መጮህ አቁም!',
-        Somali: 'Jooji inaad igu qayliso!'
+        Somali: 'Jooji inaad igu qayliso!',
+        Oromo: 'Natti iyyuu dhiisi!'
       },
       options: [
         { letter: 'A', text: 'in', color: 'yellow', isCorrect: false },
@@ -1959,12 +1998,25 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
         French: 'J\'ai hâte de vous voir !',
         German: 'Ich freue mich darauf, dich zu sehen!',
         Portuguese: 'Estou ansioso para ver você!',
+        Hindi: 'मैं आपसे मिलने के लिए उत्सुक हूँ!',
+        Mandarin: '我很期待见到你！' ,
+        Japanese: 'お会いできるのを楽しみにしています！',
+        Korean: '당신을 만나기를 고대하고 있습니다!',
+        Arabic: 'إنني أتطلع إلى رؤيتك!',
+        Vietnamese: 'Tôi rất mong được gặp bạn!',
+        Tagalog: 'Inaasahan kong makita ka!',
+        Italian: 'Non vedo l\'ora di vederti!',
+        Russian: 'С нетерпением жду встречи с вами!',
+        Turkish: 'Seni görmeyi sabırsızlıkla bekliyorum!',
+        Polish: 'Nie mogę się doczekać spotkania z Tobą!',
+        Indonesian: 'Saya sangat menantikan untuk bertemu dengan Anda!',
         Swahili: 'Natarajia kukuona!',
         Yoruba: 'Mo n nireti lati ri ọ!',
         Igbo: 'A na m atụ anya ịhụ gị!',
         Hausa: 'Ina fatan ganin ku!',
         Amharic: 'እርስዎን ለማየት በጉጉት እጠብቃለሁ!',
-        Somali: 'Waxaan rajeynayaa inaan ku arko!'
+        Somali: 'Waxaan rajeynayaa inaan ku arko!',
+        Oromo: 'Si arguuf hawwii guddaan qaba!'
       },
       options: [
         { letter: 'A', text: 'for', color: 'yellow', isCorrect: false },
@@ -1987,12 +2039,25 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
         French: 'Elle est très douée pour apprendre de nouvelles langues.',
         German: 'Sie ist sehr gut darin, neue Sprachen zu lernen.',
         Portuguese: 'Ela é muito boa em aprender novos idiomas.',
+        Hindi: 'वह नई भाषाएं सीखने में बहुत अच्छी है।',
+        Mandarin: '她非常擅长学习新语言。',
+        Japanese: '彼女は新しい言語を学ぶのがとても得意です。',
+        Korean: '그녀는 새로운 언어를 배우는 데 매우 뛰어납니다.',
+        Arabic: 'هي جيدة جداً في تعلم لغات جديدة.',
+        Vietnamese: 'Cô ấy rất giỏi học các ngôn ngữ mới.',
+        Tagalog: 'Napakagaling niyang matuto ng mga bagong wika.',
+        Italian: 'È molto brava a imparare nuove lingue.',
+        Russian: 'Она очень способна к изучению новых языков.',
+        Turkish: 'Yeni diller öğrenmede çok başarılıdır.',
+        Polish: 'Ona jest bardzo dobra w nauce nowych języków.',
+        Indonesian: 'Dia sangat pandai belajar bahasa baru.',
         Swahili: 'Yeye ni mzuri sana katika kujifunza lugha mpya.',
         Yoruba: 'Ó dára púpọ̀ ní kíkọ́ àwọn èdè tuntun.',
         Igbo: 'Ọ na-ama ezigbo aka n\'ịmụ asụsụ ọhụrụ.',
         Hausa: 'Tana da ƙwarewa sosai wajen koyon sabbin harsuna.',
         Amharic: 'አዳዲስ ቋንቋዎችን በመማር በጣም ጎበዝ ነች።',
-        Somali: 'Aad bay ugu fiican tahay barashada luqadaha cusub.'
+        Somali: 'Aad bay ugu fiican tahay barashada luqadaha cusub.',
+        Oromo: 'Isheen afaanota haaraa baruu irratti baay\'ee ciccooftuudha.'
       },
       options: [
         { letter: 'A', text: 'in', color: 'yellow', isCorrect: false },
@@ -2015,12 +2080,25 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
         French: 'Pourriez-vous allumer les lumières ? Il commence à faire nuit.',
         German: 'Könntest du bitte das Licht anmachen? Es wird dunkel.',
         Portuguese: 'Você poderia acender as luzes? Está escurecendo.',
+        Hindi: 'क्या आप कृपया बत्तियाँ जला सकते हैं? अंधेरा हो रहा है।',
+        Mandarin: '你能把灯打开吗？天渐渐黑了。',
+        Japanese: '明かりをつけていただけますか？暗くなってきました。',
+        Korean: '불 좀 켜주시겠어요? 어두워지고 있어요.',
+        Arabic: 'هل يمكنك تشغيل الأضواء من فضلك؟ لقد بدأ الظلام يحل.',
+        Vietnamese: 'Bạn có thể bật đèn giúp tôi được không? Trời đang tối dần rồi.',
+        Tagalog: 'Maaari mo bang buksan ang ilaw? Padilim na.',
+        Italian: 'Potresti accendere le luci, per favore? Si sta facendo buio.',
+        Russian: 'Не могли бы вы включить свет, пожалуйста? Темнеет.',
+        Turkish: 'Lütfen ışıkları açabilir misiniz? Hava kararıyor.',
+        Polish: 'Czy mógłbyś włączyć światła? Robi się ciemno.',
+        Indonesian: 'Bisakah Anda menyalakan lampu? Hari mulai gelap.',
         Swahili: 'Je, unaweza kuwasha taa tafadhali? Giza linaingia.',
         Yoruba: 'Ṣe o le tan imọlẹ jọ̀wọ́? Ilẹ ti n ṣokunkun.',
         Igbo: 'Biko ị nwere ike ịgbanye ọkụ? Ọchịchịrị na-agba.',
         Hausa: 'Za ka iya kunna fitilu don Allah? Yana yin duhu.',
         Amharic: 'እባክዎን መብራቶቹን ማብራት ይችላሉ? እየጨለመ ነው።',
-        Somali: 'Fadlan ma shidi kartaa laydhadhka? Waa mugdi.'
+        Somali: 'Fadlan ma shidi kartaa laydhadhka? Waa mugdi.',
+        Oromo: 'Mee ibsaa qabsiisuu dandeessaa? Dukkanaa\'aa jira.'
       },
       options: [
         { letter: 'A', text: 'on', color: 'yellow', isCorrect: true },
@@ -2043,12 +2121,25 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
         French: 'Je suis entièrement d\'accord avec votre idée.',
         German: 'Ich stimme deiner Idee vollkommen zu.',
         Portuguese: 'Concordo totalmente com a sua ideia.',
+        Hindi: 'मैं आपके विचार से पूरी तरह सहमत हूँ।',
+        Mandarin: '我完全同意你的想法。',
+        Japanese: '私はあなたの考えに完全に同意します。',
+        Korean: '당신의 생각에 전적으로 동의합니다.',
+        Arabic: 'أنا أتفق تماماً مع فكرتك.',
+        Vietnamese: 'Tôi hoàn toàn đồng ý với ý kiến của bạn.',
+        Tagalog: 'Lubos akong sumasang-ayon sa iyong ideya.',
+        Italian: 'Sono completamente d\'accordo con la tua idea.',
+        Russian: 'Я полностью согласен с вашей идеей.',
+        Turkish: 'Fikrinize tamamen katılıyorum.',
+        Polish: 'Całkowicie zgadzam się z twoim pomysłem.',
+        Indonesian: 'Saya sepenuhnya setuju dengan ide Anda.',
         Swahili: 'Ninakubaliana kabisa na wazo lako.',
         Yoruba: 'Mo gba pẹlu ero rẹ patapata.',
         Igbo: 'Ekwenyere m kpamkpam na echiche gị.',
         Hausa: 'Na yarda gaba daya da ra\'ayinka.',
         Amharic: 'ከሃሳብዎ ጋር ሙሉ በሙሉ እስማማለሁ።',
-        Somali: 'Gabi ahaanba waan ku raacsanahay fikradaada.'
+        Somali: 'Gabi ahaanba waan ku raacsanahay fikradaada.',
+        Oromo: 'Yaada kee wajjin guutummaatti walii gala.'
       },
       options: [
         { letter: 'A', text: 'to', color: 'yellow', isCorrect: false },
@@ -2071,12 +2162,25 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
         French: 'Elle étudie l\'anglais depuis trois mois.',
         German: 'Sie lernt seit drei Monaten Englisch.',
         Portuguese: 'Ela está estudando inglês há três meses.',
+        Hindi: 'वह तीन महीने से अंग्रेजी पढ़ रही है।',
+        Mandarin: '她学英语已经有三个月了。',
+        Japanese: '彼女は3ヶ月間英語を勉強しています。',
+        Korean: '그녀는 3개월 동안 영어를 공부해 왔습니다.',
+        Arabic: 'هي تدرس اللغة الإنجليزية منذ ثلاثة أشهر.',
+        Vietnamese: 'Cô ấy đã học tiếng Anh được ba tháng.',
+        Tagalog: 'Tatlong buwan na siyang nag-aaral ng Ingles.',
+        Italian: 'Studia l\'inglese da tre mesi.',
+        Russian: 'Она изучает английский язык уже три месяца.',
+        Turkish: 'Üç aydır İngilizce çalışıyor.',
+        Polish: 'Ona uczy się angielskiego od trzech miesięcy.',
+        Indonesian: 'Dia telah belajar bahasa Inggris selama tiga bulan.',
         Swahili: 'Amekuwa akijifunza Kiingereza kwa miezi mitatu.',
         Yoruba: 'O ti n kọ ẹkọ Gẹẹsi fun oṣu mẹta.',
         Igbo: 'Ọ na-amụ Bekee ọnwa atọ.',
         Hausa: 'Tana koyon Turanci tsawon watanni uku.',
         Amharic: 'እንግሊዝኛን ለሦስት ወራት ስትማር ቆይታለች።',
-        Somali: 'Waxay baraneysay Ingiriisiga seddex bilood.'
+        Somali: 'Waxay baraneysay Ingiriisiga seddex bilood.',
+        Oromo: 'Isheen ji\'oota sadiif Afaan Ingiliffaa barachaa turte.'
       },
       options: [
         { letter: 'A', text: 'since', color: 'yellow', isCorrect: false },
@@ -2085,15 +2189,151 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
       ],
       explanation: "Use 'for' with a period of duration (for three months, for two hours). Use 'since' with a specific starting point in time (since January, since 2022).",
       difficulty: 'Intermediate'
+    },
+    {
+      topic: 'Travel & Navigation',
+      sentenceBefore: 'Excuse me, where',
+      sentenceAfter: 'the nearest restroom?',
+      completeSentence: 'Excuse me, where is the nearest restroom?',
+      translations: {
+        Zulu: 'Uxolo, iphi indlu yangasese eseduze?',
+        Xhosa: 'Uxolo, iphi indlu yangasese ekufutshane?',
+        Afrikaans: 'Verskoon my, waar is die naaste toilet?',
+        Spanish: 'Disculpe, ¿dónde está el baño más cercano?',
+        French: 'Excusez-moi, où sont les toilettes les plus proches ?',
+        German: 'Entschuldigung, wo ist die nächste Toilette?',
+        Portuguese: 'Com licença, onde fica o banheiro mais próximo?',
+        Hindi: 'क्षमा करें, निकटतम शौचालय कहाँ है?',
+        Mandarin: '打扰一下，最近的洗手间在哪里？',
+        Japanese: 'すみません、一番近いお手洗いはどこですか？',
+        Korean: '실례합니다, 가장 가까운 화장실이 어디에 있나요?',
+        Arabic: 'عذراً، أين أقرب دورة مياه؟',
+        Vietnamese: 'Xin lỗi, nhà vệ sinh gần nhất ở đâu?',
+        Tagalog: 'Mawalang-galang na, nasaan ang pinakamalapit na banyo?',
+        Italian: 'Scusi, dov\'è il bagno più vicino?',
+        Russian: 'Извините, где находится ближайший туалет?',
+        Turkish: 'Afedersiniz, en yakın tuvalet nerede?',
+        Polish: 'Przepraszam, gdzie jest najbliższa toaleta?',
+        Indonesian: 'Permisi, di mana toilet terdekat?',
+        Swahili: 'Samahani, choo cha karibu kiko wapi?',
+        Yoruba: 'Ẹ gba mi láàyè, nibo ni ile igbọnsẹ to sunmọ julọ wa?',
+        Igbo: 'Biko, kedu ebe ụlọ mposi kacha nso dị?',
+        Hausa: 'Gafara dai, ina mafi kusa ban daki yake?',
+        Amharic: 'ይቅርታ፣ በአቅራቢያው ያለው ሽንት ቤት የት ነው?',
+        Somali: 'I raali gali, xagee ku taal musqusha ugu dhow?',
+        Oromo: 'Dhiifama, manni fincaanii inni dhiyoo eessa jira?'
+      },
+      options: [
+        { letter: 'A', text: 'is', color: 'yellow', isCorrect: true },
+        { letter: 'B', text: 'are', color: 'cyan', isCorrect: false },
+        { letter: 'C', text: 'do', color: 'green', isCorrect: false }
+      ],
+      explanation: "Singular subjects ('the nearest restroom') require the singular verb 'is': 'Where is the nearest restroom?'.",
+      difficulty: 'Beginner'
+    },
+    {
+      topic: 'Business & Meetings',
+      sentenceBefore: 'I look forward to discussing this',
+      sentenceAfter: 'our upcoming meeting.',
+      completeSentence: 'I look forward to discussing this in our upcoming meeting.',
+      translations: {
+        Zulu: 'Ngilangazelele ukudingida lokhu emhlanganweni wethu ozayo.',
+        Xhosa: 'Ndijonge phambili ekuxoxeni ngale nto kwintlanganiso yethu ezayo.',
+        Afrikaans: 'Ek sien daarna uit om dit in ons komende vergadering te bespreek.',
+        Spanish: 'Espero discutir esto en nuestra próxima reunión.',
+        French: 'J\'ai hâte d\'en discuter lors de notre prochaine réunion.',
+        German: 'Ich freue mich darauf, dies in unserer nächsten Besprechung zu besprechen.',
+        Portuguese: 'Estou ansioso para discutir isso em nossa próxima reunião.',
+        Hindi: 'मैं हमारी आगामी बैठक में इस पर चर्चा करने के लिए उत्सुक हूँ।',
+        Mandarin: '我期待着在即将召开的会议上讨论此事。',
+        Japanese: '次回の会議でこれについて話し合うのを楽しみにしています。',
+        Korean: '다가오는 회의에서 이에 대해 논의하기를 기대합니다.',
+        Arabic: 'إنني أتطلع إلى مناقشة هذا في اجتماعنا القادم.',
+        Vietnamese: 'Tôi rất mong được thảo luận về điều này trong cuộc họp sắp tới.',
+        Tagalog: 'Inaasahan kong talakayin ito sa ating nalalapit na pagpupulong.',
+        Italian: 'Non vedo l\'ora di discuterne nella nostra prossima riunione.',
+        Russian: 'С нетерпением жду возможности обсудить это на нашей предстоящей встрече.',
+        Turkish: 'Yaklaşan toplantımızda bunu tartışmayı sabırsızlıkla bekliyorum.',
+        Polish: 'Nie mogę się doczekać omówienia tego na naszym nadchodzącym spotkaniu.',
+        Indonesian: 'Saya menantikan untuk mendiskusikan hal ini dalam pertemuan kita mendatang.',
+        Swahili: 'Natarajia kujadili hili katika mkutano wetu ujao.',
+        Yoruba: 'Mo n nireti lati sọrọ lori eyi ni ipade wa ti n bọ.',
+        Igbo: 'A na m atụ anya ikwurịta nke a na nzukọ anyị na-abịa.',
+        Hausa: 'Ina fatan tattauna wannan a taronmu mai zuwa.',
+        Amharic: 'በሚቀጥለው ስብሰባችን ላይ በዚህ ጉዳይ ላይ ለመወያየት በጉጉት እጠብቃለሁ።',
+        Somali: 'Waxaan rajeynayaa inaan tan kaga wada hadalno kulankeena soo socda.',
+        Oromo: 'Walgahii keenya kan dhufu irratti waa\'ee kana mari\'achuuf hawwii qaba.'
+      },
+      options: [
+        { letter: 'A', text: 'in', color: 'yellow', isCorrect: true },
+        { letter: 'B', text: 'on', color: 'cyan', isCorrect: false },
+        { letter: 'C', text: 'at', color: 'green', isCorrect: false }
+      ],
+      explanation: "In standard business English, discussions take place 'in a meeting'.",
+      difficulty: 'Intermediate'
+    },
+    {
+      topic: 'Academic & Analysis',
+      sentenceBefore: 'According',
+      sentenceAfter: 'the study, regular practice leads to fluency.',
+      completeSentence: 'According to the study, regular practice leads to fluency.',
+      translations: {
+        Zulu: 'Ngokocwaningo, ukuzilolonga njalo kuholela ekukhulumeni kahle.',
+        Xhosa: 'Ngokutsho kophando, ukuziqhelanisa rhoqo kukhokelela ekuthetheni kakuhle.',
+        Afrikaans: 'Volgens die studie lei gereelde oefening tot vlot spraak.',
+        Spanish: 'Según el estudio, la práctica regular conduce a la fluidez.',
+        French: 'Selon l\'étude, une pratique régulière mène à la fluidité.',
+        German: 'Laut der Studie führt regelmäßige Übung zu Sprachkompetenz.',
+        Portuguese: 'De acordo com o estudo, a prática regular leva à fluência.',
+        Hindi: 'अध्ययन के अनुसार, नियमित अभ्यास से प्रवाह प्राप्त होता है।',
+        Mandarin: '根据这项研究，经常练习能让人说得流利。',
+        Japanese: '研究によると、定期的な練習が流暢さにつながります。',
+        Korean: '연구에 따르면 규칙적인 연습이 유창함으로 이어집니다.',
+        Arabic: 'وفقاً للدراسة، تؤدي الممارسة المنتظمة إلى الطلاقة.',
+        Vietnamese: 'Theo nghiên cứu, luyện tập thường xuyên sẽ dẫn đến sự lưu loát.',
+        Tagalog: 'Ayon sa pag-aaral, ang regular na pagsasanay ay nagdudulot ng katatasan.',
+        Italian: 'Secondo lo studio, la pratica regolare porta alla scioltezza.',
+        Russian: 'Согласно исследованию, регулярная практика приводит к беглости речи.',
+        Turkish: 'Araştırmaya göre düzenli pratik yapmak akıcılığı sağlar.',
+        Polish: 'Według badań regularna praktyka prowadzi do płynności językowej.',
+        Indonesian: 'Menurut penelitian, latihan rutin membawa kefasihan.',
+        Swahili: 'Kulingana na utafiti, mazoezi ya mara kwa mara husababisha ufasaha.',
+        Yoruba: 'Gẹgẹbi iwadi naa, iṣe deede nyorisi si irọrun.',
+        Igbo: 'Dị ka nnyocha ahụ si kwuo, ime ya mgbe niile na-eme ka mmadụ na-asụ nke ọma.',
+        Hausa: 'A cewar binciken, yawan motsa jiki yana haifar da kwarewa.',
+        Amharic: 'በጥናቱ መሰረት፣ የማያቋርጥ ልምምድ ቅልጥፍናን ያመጣል።',
+        Somali: 'Marka loo eego daraasadda, ku celcelinta joogtada ah waxay keenaysaa faseexnimo.',
+        Oromo: 'Qorannoo kanaan akka ibsametti, shaakala yeroo hunda gochuun dandeettii dubbachuu fooyyessa.'
+      },
+      options: [
+        { letter: 'A', text: 'to', color: 'yellow', isCorrect: true },
+        { letter: 'B', text: 'with', color: 'cyan', isCorrect: false },
+        { letter: 'C', text: 'for', color: 'green', isCorrect: false }
+      ],
+      explanation: "The prepositional collocation is 'according to' when citing research, facts, or an authority.",
+      difficulty: 'Intermediate'
     }
   ];
 
   const targetLang = meta.standardName;
-  const filtered = CURATED_QUIZ_BANK.slice(0, safeCount);
+  const topicLower = (topic || '').toLowerCase();
+  
+  // Prefer questions matching topic keywords, else return all
+  const matchedTopic = CURATED_QUIZ_BANK.filter(item => {
+    const itemTopicLower = item.topic.toLowerCase();
+    if (topicLower.includes('travel') && itemTopicLower.includes('travel')) return true;
+    if (topicLower.includes('business') && itemTopicLower.includes('business')) return true;
+    if (topicLower.includes('academic') && itemTopicLower.includes('academic')) return true;
+    if (topicLower.includes('preposition') && itemTopicLower.includes('preposition')) return true;
+    return itemTopicLower.includes(topicLower) || topicLower.includes(itemTopicLower);
+  });
+
+  const pool = matchedTopic.length > 0 ? [...matchedTopic, ...CURATED_QUIZ_BANK.filter(i => !matchedTopic.includes(i))] : CURATED_QUIZ_BANK;
+  const filtered = pool.slice(0, safeCount);
 
   return filtered.map((item, idx) => {
-    const rawTrans = item.translations[targetLang] || lookupDictionaryTranslation(item.completeSentence, targetLang) || item.completeSentence;
-    const bracket = rawTrans.startsWith('[') ? rawTrans : `[${rawTrans}]`;
+    const rawTrans = item.translations[targetLang] || lookupDictionaryTranslation(item.completeSentence, targetLang) || (targetLang !== 'English' ? '' : item.completeSentence);
+    const bracket = rawTrans ? (rawTrans.startsWith('[') ? rawTrans : `[${rawTrans}]`) : '';
 
     return {
       id: `quiz_curated_${Date.now()}_${idx}`,

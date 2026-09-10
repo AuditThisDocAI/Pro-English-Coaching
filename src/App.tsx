@@ -70,7 +70,7 @@ import {
   subscribeToSavedPhrases 
 } from './lib/firestoreService';
 import { triggerProUpgradeConfetti } from './lib/confetti';
-import { calculateTrialInfo, getUserTrialStartDate } from './lib/trialService';
+import { calculateTrialInfo, getUserTrialStartDate, grantFreshTrial } from './lib/trialService';
 
 const MAX_FREE_CHATS = 20;
 
@@ -364,6 +364,14 @@ export default function App() {
     }
   };
 
+  const handleResetTrial = async () => {
+    const newStart = grantFreshTrial(currentUser);
+    setTrialStartDate(newStart);
+    if (currentUser) {
+      await syncUserProfile(currentUser.uid, { trialStartDate: newStart }).catch(console.warn);
+    }
+  };
+
   const userProfileObj: UserProfile = {
     userId: currentUser?.uid || 'guest',
     email: currentUser?.email || 'guest@proenglish.ai',
@@ -500,7 +508,7 @@ export default function App() {
             )}
           </button>
 
-          {/* Pro / 3-Day Free Trial Button */}
+          {/* Pro / 1-Day Free Trial Button */}
           {isPro ? (
             <button
               type="button"
@@ -516,7 +524,7 @@ export default function App() {
               type="button"
               onClick={() => navigate('/pricing')}
               className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-[10px] sm:text-xs font-black shadow-sm transition-all cursor-pointer animate-pulse shrink-0"
-              title="3-Day complimentary trial concluded. Upgrade to Pro."
+              title="1-Day complimentary trial concluded. Upgrade to Pro."
             >
               <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span className="hidden sm:inline">Trial Expired • Upgrade</span>
@@ -527,11 +535,11 @@ export default function App() {
               type="button"
               onClick={() => navigate('/pricing')}
               className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-90 text-white text-[10px] sm:text-xs font-extrabold shadow-sm transition-all cursor-pointer shrink-0"
-              title="3-Day Free Trial Active. Click to view Pro plans."
+              title="1-Day Free Trial Active. Click to view Pro plans."
             >
               <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
-              <span className="hidden sm:inline">3-Day Trial ({trialInfo.daysLeft}d left) • Go Pro</span>
-              <span className="sm:hidden">{trialInfo.daysLeft}d left</span>
+              <span className="hidden sm:inline">1-Day Trial ({trialInfo.hoursLeft}h left) • Go Pro</span>
+              <span className="sm:hidden">{trialInfo.hoursLeft}h left</span>
             </button>
           )}
 
@@ -557,20 +565,22 @@ export default function App() {
                 )}
               </button>
               <button
+                id="header-logout-button"
                 onClick={() => logout()}
-                className="p-1 text-neutral-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                title="Sign out"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-bold rounded-xl border border-red-200 bg-red-50/90 hover:bg-red-100 text-red-700 transition-all cursor-pointer shadow-2xs shrink-0"
+                title="Log out of account"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-3.5 h-3.5 text-red-600" />
+                <span>Log Out</span>
               </button>
             </div>
           ) : (
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer shrink-0"
             >
               <UserIcon className="w-3.5 h-3.5 text-indigo-600" />
-              <span className="hidden sm:inline">Sign In</span>
+              <span>Sign In</span>
             </button>
           )}
 
@@ -606,7 +616,7 @@ export default function App() {
                 setChatInitialText(text);
                 setActiveTab('chat');
               }}
-              
+              onSavePhrase={handleSavePhrase}
               onAddXP={handleAddXP}
               initialTopic={selectedHubTopic}
               isExpired={trialInfo.isTrialExpired && !isPro}
@@ -708,15 +718,9 @@ export default function App() {
             <div className="bg-neutral-900 rounded-3xl p-4 sm:p-6 shadow-xl overflow-hidden">
               <BasicGrammarQuiz
                 onAddXP={handleAddXP}
-                
                 nativeLanguage={nativeLanguage}
-                onLanguageChange={setNativeLanguage}
-                
-                
-                
+                onLanguageChange={(lang) => setNativeLanguage(lang as NativeLanguage)}
                 onOpenPricing={() => navigate('/pricing')}
-                
-                
                 isPro={isPro}
                 isExpired={trialInfo.isTrialExpired && !isPro}
               />
@@ -766,7 +770,7 @@ export default function App() {
               </div>
 
               <GrammarAnalyticsDashboard
-                
+                savedPhrases={savedPhrases}
                 selectedCategory={selectedAnalyticsCategory}
                 onSelectCategory={setSelectedAnalyticsCategory}
               />
@@ -896,9 +900,8 @@ export default function App() {
       <SavedPhrasesModal
         isOpen={isSavedModalOpen}
         onClose={() => setIsSavedModalOpen(false)}
-        
+        savedPhrases={savedPhrases}
         onDeletePhrase={handleDeletePhrase}
-        
         onOpenFlashcards={handleOpenFlashcards}
       />
 
@@ -924,6 +927,7 @@ export default function App() {
         trialInfo={trialInfo}
         onCancelSubscription={handleCancelSubscription}
         onOpenPaymentModal={() => navigate('/pricing')}
+        onResetTrial={handleResetTrial}
       />
 
       {/* GDPR / CCPA Cookie Consent Banner */}

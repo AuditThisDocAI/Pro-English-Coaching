@@ -28,7 +28,7 @@ export const TIERS: Tier[] = [
       'All everyday English AI practice modes',
       'Speakerphone pronunciation with custom speed controls',
       'Unlimited saved phrase vault',
-      '3-day free trial included',
+      '1-day free trial included',
     ],
     highlight: true,
     price: '$20',
@@ -163,14 +163,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
             <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex items-center justify-center gap-3 shadow-xs animate-in fade-in duration-300">
               <Lock className="w-5 h-5 text-amber-600 shrink-0" />
               <div className="text-xs sm:text-sm font-semibold">
-                <span className="font-extrabold text-amber-900">Your 3-day free trial has expired.</span> Activate your subscription below to continue using English Coach.
+                <span className="font-extrabold text-amber-900">Your 1-day free trial has expired.</span> Activate your subscription below to continue using English Coach.
               </div>
             </div>
           )}
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold mb-4 border border-emerald-200/60">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Risk-Free 3-Day Trial on Subscription Plan</span>
+            <span>Risk-Free 1-Day Trial on Subscription Plan</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
             Basic English Coaching
@@ -240,12 +240,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
                   </div>
 
                   <div className="mt-1 text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> 3 days free, then {tier.price}/month
+                    <Check className="w-3.5 h-3.5" /> 1 day free, then {tier.price}/month
                   </div>
 
                   {/* Checkout Action Button */}
                   <button
-                    id="freemius-3day-trial-btn"
+                    id="freemius-1day-trial-btn"
                     type="button"
                     disabled={isOpeningCheckout}
                     onClick={() => handleSubscribe(tier)}
@@ -259,7 +259,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
                     ) : (
                       <>
                         <Zap className="w-3.5 h-3.5 fill-white" />
-                        <span>Start Your 3-Day Free Trial</span>
+                        <span>Start Your 1-Day Free Trial</span>
                         <span>→</span>
                       </>
                     )}
@@ -294,9 +294,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
             <div className="w-10 h-10 mx-auto rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
               <Shield className="w-5 h-5" />
             </div>
-            <h4 className="text-sm font-bold text-neutral-900">3-Day Free Trial</h4>
+            <h4 className="text-sm font-bold text-neutral-900">1-Day Free Trial</h4>
             <p className="mt-1 text-xs text-neutral-500">
-              Practice full features with zero risk. You won't be charged if you cancel within 3 days.
+              Practice full features with zero risk. You won't be charged if you cancel within 1 day (24 hours).
             </p>
           </div>
 

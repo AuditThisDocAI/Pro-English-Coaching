@@ -289,7 +289,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             Simple, Transparent Pricing
           </h2>
           <p className="text-3xl font-extrabold text-neutral-900 tracking-tight">
-            Start Your 3-Day Free Trial, Then Just $20/Month
+            Start Your 1-Day Free Trial, Then Just $20/Month
           </p>
         </div>
 
@@ -348,10 +348,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             </div>
           </div>
 
-          {/* Pro Tier ($20/month with 3-Day Free Trial) */}
+          {/* Pro Tier ($20/month with 1-Day Free Trial) */}
           <div className="bg-gradient-to-b from-neutral-900 to-neutral-950 text-white rounded-3xl p-8 border border-neutral-800 shadow-xl relative flex flex-col">
             <div className="absolute -top-3.5 right-6 px-3 py-1 bg-emerald-500 text-neutral-950 font-bold text-xs uppercase tracking-wider rounded-full shadow-sm">
-              3-Day Free Trial
+              1-Day Free Trial
             </div>
 
             <div className="mb-4">
@@ -360,17 +360,17 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               </span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-4xl font-extrabold text-white">$20</span>
-                <span className="text-xs text-neutral-400">/ month after 3-day trial</span>
+                <span className="text-xs text-neutral-400">/ month after 1-day trial</span>
               </div>
               <p className="text-xs text-neutral-400 mt-2">
-                3 days 100% free trial. Cancel anytime before day 3 with zero charge.
+                1 day (24 hours) 100% free trial. Cancel anytime before day 1 with zero charge.
               </p>
             </div>
 
             <div className="space-y-3 text-xs text-neutral-300 mb-8 flex-1 pt-4">
               <div className="flex items-center gap-2.5">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold text-white">3-Day Full-Access Free Trial</span>
+                <span className="font-semibold text-white">1-Day Full-Access Free Trial</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -399,7 +399,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               className="w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-xl text-sm shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
             >
               <Zap className="w-4 h-4 fill-current" />
-              {isPro ? 'Manage Active Pro Subscription' : 'Start 3-Day Free Trial ($20/mo)'}
+              {isPro ? 'Manage Active Pro Subscription' : 'Start 1-Day Free Trial ($20/mo)'}
             </button>
           </div>
         </div>
@@ -411,8 +411,8 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
 export const FAQSection: React.FC = () => {
   const faqs = [
     {
-      q: 'How does the 3-day free trial work?',
-      a: 'When you start your trial, you get 3 full days of unrestricted access to all 1000 monthly sessions, 3D workplace flashcard decks, multi-speed audio, and saved vaults. You will not be charged if you cancel before the 3-day period ends.'
+      q: 'How does the 1-day free trial work?',
+      a: 'When you start your trial, you get 1 full day (24 hours) of unrestricted access to all 1000 monthly sessions, 3D workplace flashcard decks, multi-speed audio, and saved vaults. You will not be charged if you cancel before the 1-day period ends.'
     },
     {
       q: 'How do I cancel my subscription during or after the trial?',

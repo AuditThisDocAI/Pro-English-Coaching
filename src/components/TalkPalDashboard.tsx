@@ -61,7 +61,7 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       
-      {/* 3-Day Free Trial Status Card (When Not Pro) */}
+      {/* 1-Day Free Trial Status Card (When Not Pro) */}
       {!trialInfo?.isPro && trialInfo && (
         <div className={`p-5 rounded-3xl border transition-all ${
           isExpired
@@ -80,7 +80,7 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     isExpired ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
                   }`}>
-                    {isExpired ? '3-Day Trial Concluded' : '3-Day Free Trial Active'}
+                    {isExpired ? '1-Day Trial Concluded' : '1-Day Free Trial Active'}
                   </span>
                   <span className="text-xs font-bold text-neutral-600">
                     {trialInfo.formattedTimeRemaining}
@@ -88,13 +88,13 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
                 </div>
                 <h3 className="font-extrabold text-sm sm:text-base text-neutral-900">
                   {isExpired 
-                    ? 'Your 3-day complimentary access has ended'
+                    ? 'Your 1-day complimentary access has ended'
                     : 'Full access to all AI coaching tools is unlocked'}
                 </h3>
                 <p className="text-xs text-neutral-600">
                   {isExpired
                     ? 'Upgrade to Pro ($19.99/mo) to unlock unlimited AI Chat, Voice Calls, Roleplays, and Flashcards.'
-                    : 'Practice freely with 1-on-1 AI tutors, voice scenarios, and sentence drills. Zero charge during the 3-day trial.'}
+                    : 'Practice freely with 1-on-1 AI tutors, voice scenarios, and sentence drills. Zero charge during the 1-day trial.'}
                 </p>
               </div>
             </div>

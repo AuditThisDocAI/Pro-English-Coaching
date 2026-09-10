@@ -704,7 +704,7 @@ export function FlashcardsPracticeHub({
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-400/20 border border-emerald-300/30 text-emerald-200 text-[10px] font-bold">
-                <Clock className="w-3 h-3" /> Free Trial: 20 Cards (3-Day Access)
+                <Clock className="w-3 h-3" /> Free Trial: 20 Cards (1-Day Access)
               </span>
             )}
           </div>
