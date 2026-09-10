@@ -712,13 +712,82 @@ export function getFlashcardTranslation(
   for (const [englishPrefix, translations] of Object.entries(COMMON_WORKPLACE_GLOSSARY)) {
     if (card.backProfessional.toLowerCase().includes(englishPrefix.toLowerCase())) {
       if (translations[normalizedLang]) {
-        return `${translations[normalizedLang]} • ${card.backProfessional}`;
+        return translations[normalizedLang];
       }
     }
   }
 
   // 6. Fallback gracefully with an accurate language-specific label in the actual target language
   return generateSmartRuleBasedTranslation(card.backProfessional, normalizedLang);
+}
+
+const CLIENT_ISO_LANG_CODES: Record<string, string> = {
+  Spanish: 'es',
+  Portuguese: 'pt',
+  French: 'fr',
+  German: 'de',
+  Hindi: 'hi',
+  Mandarin: 'zh-CN',
+  Japanese: 'ja',
+  Korean: 'ko',
+  Arabic: 'ar',
+  Vietnamese: 'vi',
+  Tagalog: 'tl',
+  Italian: 'it',
+  Russian: 'ru',
+  Turkish: 'tr',
+  Polish: 'pl',
+  Indonesian: 'id',
+  Swahili: 'sw',
+  Yoruba: 'yo',
+  Igbo: 'ig',
+  Hausa: 'ha',
+  Amharic: 'am',
+  Zulu: 'zu',
+  Xhosa: 'xh',
+  Afrikaans: 'af',
+  Somali: 'so',
+  Oromo: 'om',
+  English: 'en'
+};
+
+async function fetchClientResilientWebTranslation(
+  text: string,
+  targetLangName: string,
+  sourceLangName = 'English'
+): Promise<string | null> {
+  const tCode = CLIENT_ISO_LANG_CODES[targetLangName] || 'en';
+  const sCode = CLIENT_ISO_LANG_CODES[sourceLangName] || 'en';
+  if (tCode === sCode) return text;
+
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sCode}|${tCode}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.responseData?.translatedText && typeof data.responseData.translatedText === 'string') {
+      const candidate = data.responseData.translatedText.trim();
+      if (!/https?:\/\/|\.com\/|\.net|\.org|MYMEMORY|WARNING/i.test(candidate)) {
+        return candidate;
+      }
+    }
+    if (Array.isArray(data?.matches)) {
+      for (const m of data.matches) {
+        if (m?.translation && typeof m.translation === 'string') {
+          const t = m.translation.trim();
+          if (!/https?:\/\/|\.com\/|\.net|\.org|MYMEMORY|WARNING/i.test(t)) {
+            return t;
+          }
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -755,6 +824,7 @@ export async function translateText(
     }
   }
 
+  // 1. Call Backend API
   try {
     const response = await fetch('/api/translate', {
       method: 'POST',
@@ -777,10 +847,22 @@ export async function translateText(
       }
     }
   } catch (err) {
-    console.warn('Backend translation route error, using local translation engine:', err);
+    console.warn('Backend translation route error, checking client fallback:', err);
   }
 
-  // Fallback to local rule engine
+  // 2. Direct client-side resilient web translation fallback
+  try {
+    const directWeb = await fetchClientResilientWebTranslation(trimmed, normalizedLang, sourceLanguage || 'English');
+    if (directWeb && directWeb.trim()) {
+      const cleaned = cleanTranslationOutput(directWeb);
+      translationCache[cacheKey] = cleaned;
+      return cleaned;
+    }
+  } catch {
+    // continue to local rule engine
+  }
+
+  // 3. Fallback to local linguistic rule engine
   const fallback = generateSmartRuleBasedTranslation(trimmed, normalizedLang, sourceLanguage);
   translationCache[cacheKey] = fallback;
   return fallback;
@@ -804,6 +886,15 @@ export function generateSmartRuleBasedTranslation(
   } else {
     const matched = lookupDictionaryTranslation(cleanInput, normalizedLang);
     if (matched) return matched;
+  }
+
+  // Check glossary matches
+  for (const [englishPrefix, translations] of Object.entries(COMMON_WORKPLACE_GLOSSARY)) {
+    if (cleanInput.toLowerCase().includes(englishPrefix.toLowerCase())) {
+      if (translations[normalizedLang]) {
+        return translations[normalizedLang];
+      }
+    }
   }
 
   return cleanInput;

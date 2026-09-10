@@ -288,7 +288,7 @@ export function FlashcardsModal({
           setTranslatedOptions(map);
         }
 
-        const textToTranslate = currentCard.backWhy || currentCard.backProfessional || '';
+        const textToTranslate = currentCard.backProfessional || currentCard.backWhy || '';
         const correctionTr = await translateText(textToTranslate, nativeLanguage);
         if (isMounted && correctionTr) setTranslatedCorrection(correctionTr);
       } catch (err) {
@@ -875,7 +875,7 @@ export function FlashcardsModal({
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      const text = getFlashcardTranslation(currentCard, nativeLanguage);
+                                      const text = getFlashcardTranslation(currentCard, nativeLanguage) || translatedCorrection;
                                       if (text) navigator.clipboard.writeText(text);
                                     }}
                                     className="text-neutral-400 hover:text-neutral-700 p-0.5 rounded transition-colors cursor-pointer"
@@ -885,7 +885,7 @@ export function FlashcardsModal({
                                   </button>
                                 </div>
                                 <p className="font-semibold text-neutral-800 text-xs leading-relaxed">
-                                  {getFlashcardTranslation(currentCard, nativeLanguage) || 'Translation available in interactive session.'}
+                                  {getFlashcardTranslation(currentCard, nativeLanguage) || translatedCorrection || 'Translation ready.'}
                                 </p>
                               </div>
                             )}

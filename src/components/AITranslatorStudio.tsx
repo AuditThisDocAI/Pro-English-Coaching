@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { NativeLanguage, SUPPORTED_LANGUAGES, SavedPhrase } from '../types';
 import { useTTS } from '../lib/useTTS';
-import { generateSmartRuleBasedTranslation } from '../lib/translationService';
+import { generateSmartRuleBasedTranslation, translateText } from '../lib/translationService';
 
 interface AITranslatorStudioProps {
   nativeLanguage: NativeLanguage;
@@ -103,11 +103,21 @@ export const AITranslatorStudio: React.FC<AITranslatorStudioProps> = ({
       }
     } catch (err) {
       console.error('Translation & Coaching Error:', err);
-      // Fallback
+      // Fallback with resilient translation
+      let translated = generateSmartRuleBasedTranslation(trimmed, nativeLanguage);
+      try {
+        const transAttempt = await translateText(trimmed, nativeLanguage);
+        if (transAttempt && transAttempt.trim()) {
+          translated = transAttempt;
+        }
+      } catch {
+        // use smart fallback
+      }
+
       setResult({
         original: trimmed,
         professional: `I would like to ensure this is communicated with high executive clarity. ${trimmed}`,
-        translation: generateSmartRuleBasedTranslation(trimmed, nativeLanguage),
+        translation: translated,
         why: 'Framing thoughts clearly and concisely fosters trust and alignment in workplace environments.',
         practice: 'How would you follow up on this point in your next meeting?',
       });

@@ -1026,6 +1026,14 @@ export function cleanTranslationOutput(raw: string): string {
     .trim();
 }
 
+function isCloseMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) <= 3) {
+    return a.startsWith(b) || b.startsWith(a);
+  }
+  return false;
+}
+
 /**
  * Returns authentic localized translation from dictionary if matched, or cleanly stripped fallback.
  */
@@ -1041,9 +1049,9 @@ export function lookupDictionaryTranslation(text: string, targetLanguage: string
     return entry[targetLanguage] || null;
   }
 
-  // Check partial key matches
+  // Check close matches (within punctuation / minor inflections)
   for (const [key, translations] of Object.entries(COMMON_PHRASES_MAP)) {
-    if (clean === key || clean.startsWith(key) || key.startsWith(clean)) {
+    if (isCloseMatch(clean, key)) {
       if (translations[targetLanguage]) {
         return translations[targetLanguage];
       }
@@ -1069,8 +1077,7 @@ export function lookupReverseDictionaryTranslation(nativeText: string, nativeLan
   for (const [englishKey, translations] of Object.entries(COMMON_PHRASES_MAP)) {
     if (nativeLanguage && translations[nativeLanguage]) {
       const val = translations[nativeLanguage].toLowerCase().replace(/[.,?!;:¡¿"']/g, '').trim();
-      if (val === cleanInput || cleanInput.includes(val) || val.includes(cleanInput)) {
-        // Capitalize first letter of English key
+      if (isCloseMatch(cleanInput, val)) {
         return englishKey.charAt(0).toUpperCase() + englishKey.slice(1);
       }
     }
@@ -1079,15 +1086,16 @@ export function lookupReverseDictionaryTranslation(nativeText: string, nativeLan
     for (const [lang, valRaw] of Object.entries(translations)) {
       if (lang === 'English') continue;
       const val = valRaw.toLowerCase().replace(/[.,?!;:¡¿"']/g, '').trim();
-      if (val === cleanInput || (cleanInput.length > 4 && val.includes(cleanInput))) {
+      if (isCloseMatch(cleanInput, val)) {
         return englishKey.charAt(0).toUpperCase() + englishKey.slice(1);
       }
     }
   }
 
-  // Common Zulu specific words and greetings mapping
-  const ZULU_QUICK_MAP: Record<string, string> = {
-    'sawubona': 'Hello / Greetings',
+  // Quick greetings & high-frequency expressions map
+  const QUICK_EXPRESSIONS: Record<string, string> = {
+    // Zulu
+    'sawubona': 'Hello',
     'sanibonani': 'Hello everyone',
     'unjani': 'How are you?',
     'ninjani': 'How are you all?',
@@ -1098,41 +1106,78 @@ export function lookupReverseDictionaryTranslation(nativeText: string, nativeLan
     'yebo': 'Yes',
     'cha': 'No',
     'uxolo': 'Excuse me / Sorry',
-    'ngiyaxolisa': 'I apologize / I am sorry',
-    'ngicela': 'Please / I request',
-    'ngicela usizo': 'Please help / I need help',
+    'ngiyaxolisa': 'I am sorry',
+    'ngicela': 'Please',
+    'ngicela usizo': 'Please help',
     'ngicela ungisize': 'Please help me',
     'ngidinga usizo': 'I need assistance',
-    'yeka': 'Stop',
-    'yeka ukungimemeza': 'Stop shouting at me!',
-    'yeka ukumemeza': 'Stop shouting!',
-    'ungamemezi': 'Do not shout',
-    'hamba kahle': 'Go well / Goodbye',
-    'sala kahle': 'Stay well / Goodbye',
+    'hamba kahle': 'Goodbye',
+    'sala kahle': 'Goodbye',
     'sizobonana': 'See you soon',
-    'ngijabulile': 'I am happy / Nice to meet you',
-    'kuhle': 'Good / Great',
+    'kuhle': 'Good',
     'angazi': 'I do not know',
-    'angizwa': 'I do not hear / I do not understand',
-    'ngiyezwa': 'I understand / I hear you',
-    'angisiye': 'I am not',
-    'ubani': 'Who / What',
-    'igama lami': 'My name is',
-    'imalini': 'How much is it?',
-    'kuphi': 'Where',
-    'kanjani': 'How',
-    'nini': 'When',
-    'kungani': 'Why'
+    'ngiyezwa': 'I understand',
+
+    // Xhosa
+    'molo': 'Hello',
+    'molweni': 'Hello everyone',
+    'enkosi': 'Thank you',
+    'enkosi kakhulu': 'Thank you very much',
+    'ndiyaphila': 'I am fine',
+    'ndicela uxolo': 'Excuse me / I am sorry',
+    'ndicela uncedo': 'Please help',
+
+    // Afrikaans
+    'hallo': 'Hello',
+    'goeiemôre': 'Good morning',
+    'goeiemiddag': 'Good afternoon',
+    'baie dankie': 'Thank you very much',
+    'dankie': 'Thank you',
+    'asseblief': 'Please',
+    'hoe gaan dit': 'How are you?',
+    'dit gaan goed': 'I am doing well',
+    'totsiens': 'Goodbye',
+
+    // Swahili
+    'habari': 'Hello / How are you',
+    'jambo': 'Hello',
+    'asante': 'Thank you',
+    'asante sana': 'Thank you very much',
+    'tafadhali': 'Please',
+    'kwaheri': 'Goodbye',
+    'samahani': 'Excuse me / Sorry',
+
+    // Spanish
+    'hola': 'Hello',
+    'buenos días': 'Good morning',
+    'buenas tardes': 'Good afternoon',
+    'buenas noches': 'Good evening',
+    'gracias': 'Thank you',
+    'muchas gracias': 'Thank you very much',
+    'por favor': 'Please',
+    'adiós': 'Goodbye',
+    'hasta luego': 'See you later',
+    'lo siento': 'I am sorry',
+    'disculpe': 'Excuse me',
+
+    // French
+    'bonjour': 'Hello / Good morning',
+    'bonsoir': 'Good evening',
+    'merci': 'Thank you',
+    'merci beaucoup': 'Thank you very much',
+    's\'il vous plaît': 'Please',
+    'au revoir': 'Goodbye',
+    'à bientôt': 'See you soon',
+    'pardon': 'Excuse me'
   };
 
-  if (!nativeLanguage || nativeLanguage.toLowerCase().includes('zulu')) {
-    if (ZULU_QUICK_MAP[cleanInput]) {
-      return ZULU_QUICK_MAP[cleanInput];
-    }
-    for (const [zuluWord, eng] of Object.entries(ZULU_QUICK_MAP)) {
-      if (cleanInput.includes(zuluWord) || zuluWord.includes(cleanInput)) {
-        return eng;
-      }
+  if (QUICK_EXPRESSIONS[cleanInput]) {
+    return QUICK_EXPRESSIONS[cleanInput];
+  }
+
+  for (const [expr, eng] of Object.entries(QUICK_EXPRESSIONS)) {
+    if (isCloseMatch(cleanInput, expr)) {
+      return eng;
     }
   }
 

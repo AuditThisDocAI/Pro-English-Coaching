@@ -622,6 +622,18 @@ export function FlashcardsPracticeHub({
 
     let isMounted = true;
 
+    // Ensure back professional translation is always available
+    const staticBackTrans = getFlashcardTranslation(currentCard, nativeLanguage);
+    if (staticBackTrans && !staticBackTrans.startsWith('Translation in')) {
+      setTranslatedCorrection(staticBackTrans);
+    } else {
+      translateText(currentCard.backProfessional, nativeLanguage).then((res) => {
+        if (isMounted && res) {
+          setTranslatedCorrection(res);
+        }
+      }).catch(() => {});
+    }
+
     // 1. Translate Front Prompt if translation is requested
     if (showTranslation || showFrontTranslation) {
       getFlashcardPromptTranslation(currentCard, nativeLanguage).then((res) => {
@@ -647,7 +659,7 @@ export function FlashcardsPracticeHub({
         });
       }
 
-      const textToTranslate = currentCard.backWhy || currentCard.backProfessional;
+      const textToTranslate = currentCard.backProfessional || currentCard.backWhy;
       translateText(textToTranslate, nativeLanguage).then((res) => {
         if (isMounted) {
           if (res) setTranslatedCorrection(res);
@@ -1256,7 +1268,7 @@ export function FlashcardsPracticeHub({
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const text = getFlashcardTranslation(currentCard, nativeLanguage);
+                                    const text = getFlashcardTranslation(currentCard, nativeLanguage) || translatedCorrection;
                                     if (text) navigator.clipboard.writeText(text);
                                   }}
                                   className="text-neutral-400 hover:text-neutral-700 p-1 rounded-md transition-colors cursor-pointer"
@@ -1266,7 +1278,7 @@ export function FlashcardsPracticeHub({
                                 </button>
                               </div>
                               <p className="font-semibold text-neutral-800 leading-relaxed text-xs sm:text-sm">
-                                {getFlashcardTranslation(currentCard, nativeLanguage) || 'Translation available in interactive practice.'}
+                                {getFlashcardTranslation(currentCard, nativeLanguage) || translatedCorrection || 'Translation ready.'}
                               </p>
                             </div>
                           )}

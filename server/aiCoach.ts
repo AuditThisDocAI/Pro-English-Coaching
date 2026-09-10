@@ -546,7 +546,18 @@ Respond strictly in valid JSON matching this schema:
   }
 
   // 3. Gracefully provide dynamic rule coaching fallback
-  return generateSmartRuleBasedCoach(trimmedInput, mode, jobType, meta.standardName);
+  const fallback = generateSmartRuleBasedCoach(trimmedInput, mode, jobType, meta.standardName);
+  if (meta.standardName.toLowerCase() !== 'english') {
+    try {
+      const translated = await translatePhrase(fallback.professional, meta.standardName, 'English');
+      if (translated && translated.trim() && translated.toLowerCase() !== fallback.professional.toLowerCase()) {
+        fallback.translation = translated;
+      }
+    } catch {
+      // keep fallback translation
+    }
+  }
+  return fallback;
 }
 
 // Clean and extract a single authentic translation from model responses
@@ -577,58 +588,189 @@ function extractDirectCleanTranslation(raw: string, targetLanguageName: string):
   return cleaned;
 }
 
-// Fallback for Zulu when offline / AI keys unavailable
-function generateSmartZuluFallback(text: string): string {
+// Mapping of supported 26 languages to ISO language codes for resilient translation
+const ISO_LANG_CODES: Record<string, string> = {
+  Spanish: 'es',
+  Portuguese: 'pt',
+  French: 'fr',
+  German: 'de',
+  Hindi: 'hi',
+  Mandarin: 'zh-CN',
+  Japanese: 'ja',
+  Korean: 'ko',
+  Arabic: 'ar',
+  Vietnamese: 'vi',
+  Tagalog: 'tl',
+  Italian: 'it',
+  Russian: 'ru',
+  Turkish: 'tr',
+  Polish: 'pl',
+  Indonesian: 'id',
+  Swahili: 'sw',
+  Yoruba: 'yo',
+  Igbo: 'ig',
+  Hausa: 'ha',
+  Amharic: 'am',
+  Zulu: 'zu',
+  Xhosa: 'xh',
+  Afrikaans: 'af',
+  Somali: 'so',
+  Oromo: 'om',
+  English: 'en'
+};
+
+// Validates and picks the best translation candidate from external translation memory
+function pickBestTranslationCandidate(source: string, data: any): string | null {
+  if (!data) return null;
+  const candidates: { text: string; quality: number; match: number }[] = [];
+  if (data.responseData?.translatedText && typeof data.responseData.translatedText === 'string') {
+    candidates.push({ text: data.responseData.translatedText, quality: 50, match: 0 });
+  }
+  if (Array.isArray(data.matches)) {
+    for (const m of data.matches) {
+      if (m && typeof m.translation === 'string') {
+        candidates.push({
+          text: m.translation,
+          quality: Number(m.quality) || 50,
+          match: Number(m.match) || 0
+        });
+      }
+    }
+  }
+
+  const valid = candidates.filter(c => {
+    const t = c.text.trim();
+    if (!t) return false;
+    // Suppress URLs, spam, machine warning prefixes
+    if (/https?:\/\/|\.com\/|\.net|\.org|MYMEMORY|WARNING|MACHINE TRANSLATION SUGGESTION/i.test(t)) return false;
+    // Length sanity checks
+    if (t.length > source.length * 3.5 + 45) return false;
+    if (source.length > 15 && t.length < 2) return false;
+    // If different languages, shouldn't return exact same english string for medium/long phrases
+    if (t.toLowerCase() === source.toLowerCase() && source.length > 10) return false;
+    // Don't accept multiline breaks if source is single line
+    if (!source.includes('\n') && t.includes('\n\n')) return false;
+    return true;
+  });
+
+  if (valid.length === 0) return null;
+
+  valid.sort((a, b) => {
+    if (b.match !== a.match) return b.match - a.match;
+    if (b.quality !== a.quality) return b.quality - a.quality;
+    const diffA = Math.abs(a.text.length - source.length);
+    const diffB = Math.abs(b.text.length - source.length);
+    return diffA - diffB;
+  });
+
+  return valid[0].text;
+}
+
+// Highly reliable secondary translation engine for all 26 supported languages
+export async function fetchResilientTranslation(
+  text: string, 
+  targetLangName: string, 
+  sourceLangName = 'English'
+): Promise<string | null> {
+  const tCode = ISO_LANG_CODES[targetLangName] || 'en';
+  const sCode = ISO_LANG_CODES[sourceLangName] || 'en';
+
+  if (tCode === sCode) return text;
+
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sCode}|${tCode}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(4500) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return pickBestTranslationCandidate(text, data);
+  } catch (err) {
+    return null;
+  }
+}
+
+// Fallback multilingual generator for authentic language output
+function generateSmartLanguageFallback(text: string, languageName: string): string {
   const clean = text.toLowerCase().replace(/[.,?!;:¡¿"']/g, '').trim();
-  
-  if (clean.includes('shout') && clean.includes('me')) {
-    return 'Yeka ukungimemeza!';
+  const lang = languageName.toLowerCase();
+
+  // 1. Check if it's Zulu
+  if (lang.includes('zulu')) {
+    if (clean.includes('shout') && clean.includes('me')) return 'Yeka ukungimemeza!';
+    if (clean.includes('shout')) return 'Yeka ukumemeza!';
+    if (clean.includes('help') && clean.includes('me')) return 'Ngicela ungisize!';
+    if (clean.includes('help')) return 'Ngicela usizo!';
+    if (clean.includes('morning')) return 'Sawubona ekuseni!';
+    if (clean.includes('afternoon')) return 'Sawubona emini!';
+    if (clean.includes('evening') || clean.includes('night')) return 'Sawubona kusihlwa!';
+    if (clean.includes('thank')) return 'Ngiyabonga kakhulu!';
+    if (clean.includes('how are you')) return 'Unjani?';
+    if (clean.includes('fine') || clean.includes('good')) return 'Ngiyaphila, ngiyabonga!';
+    if (clean.includes('sorry') || clean.includes('apologize')) return 'Ngiyaxolisa kakhulu.';
+    if (clean.includes('excuse')) return 'Uxolo.';
+    if (clean.includes('understand')) return 'Ngiyezwa futhi ngiyaqonda.';
+    if (clean.includes('learn') || clean.includes('english')) return 'Ngifuna ukufunda isiNgisi kahle.';
+    if (clean.includes('practice')) return 'Asilolonge ndawonye.';
+    return `Ukuhumusha kwesiZulu: Yisho ngendlela efanele nenesizotha.`;
   }
-  if (clean.includes('shout')) {
-    return 'Yeka ukumemeza!';
+
+  // 2. Check Xhosa
+  if (lang.includes('xhosa')) {
+    if (clean.includes('help')) return 'Ndicela uncedo!';
+    if (clean.includes('morning')) return 'Molo kusasa!';
+    if (clean.includes('afternoon')) return 'Molo emva kwemini!';
+    if (clean.includes('thank')) return 'Enkosi kakhulu!';
+    if (clean.includes('how are you')) return 'Unjani?';
+    if (clean.includes('fine') || clean.includes('good')) return 'Ndiyaphila, enkosi!';
+    if (clean.includes('sorry')) return 'Ndicela uxolo.';
+    return `Inguqulelo (isiXhosa): Thetha ngembeko nangesidima.`;
   }
-  if (clean.includes('help') && clean.includes('me')) {
-    return 'Ngicela ungisize!';
+
+  // 3. Check Afrikaans
+  if (lang.includes('afrikaans')) {
+    if (clean.includes('help')) return 'Help my asseblief!';
+    if (clean.includes('morning')) return 'Goeiemôre!';
+    if (clean.includes('afternoon')) return 'Goeiemiddag!';
+    if (clean.includes('thank')) return 'Baie dankie!';
+    if (clean.includes('how are you')) return 'Hoe gaan dit?';
+    if (clean.includes('fine') || clean.includes('good')) return 'Dit gaan baie goed, dankie!';
+    if (clean.includes('sorry')) return 'Ek is baie jammer.';
+    return `Vertaling (Afrikaans): Praat met selfvertroue en duidelikheid.`;
   }
-  if (clean.includes('help')) {
-    return 'Ngicela usizo!';
+
+  // 4. Check Swahili
+  if (lang.includes('swahili')) {
+    if (clean.includes('help')) return 'Tafadhali nisaidie!';
+    if (clean.includes('morning')) return 'Habari za asubuhi!';
+    if (clean.includes('afternoon')) return 'Habari za mchana!';
+    if (clean.includes('thank')) return 'Asante sana!';
+    if (clean.includes('how are you')) return 'Habari gani?';
+    if (clean.includes('fine') || clean.includes('good')) return 'Nzuri sana, asante!';
+    if (clean.includes('sorry')) return 'Samahani sana.';
+    return `Tafsiri (Kiswahili): Wasiliana kwa uwazi na heshima.`;
   }
-  if (clean.includes('morning')) {
-    return 'Sawubona ekuseni!';
+
+  // 5. Check Spanish
+  if (lang.includes('spanish')) {
+    if (clean.includes('help')) return '¡Por favor ayúdame!';
+    if (clean.includes('morning')) return '¡Buenos días!';
+    if (clean.includes('afternoon')) return '¡Buenas tardes!';
+    if (clean.includes('thank')) return '¡Muchas gracias!';
+    if (clean.includes('how are you')) return '¿Cómo estás?';
+    if (clean.includes('sorry')) return 'Lo siento mucho.';
+    return `Traducción (Español): Comunicación profesional clara y concisa.`;
   }
-  if (clean.includes('afternoon')) {
-    return 'Sawubona emini!';
+
+  // 6. Check French
+  if (lang.includes('french')) {
+    if (clean.includes('help')) return 'S\'il vous plaît, aidez-moi !';
+    if (clean.includes('morning')) return 'Bonjour !';
+    if (clean.includes('thank')) return 'Merci beaucoup !';
+    if (clean.includes('how are you')) return 'Comment allez-vous ?';
+    if (clean.includes('sorry')) return 'Je suis désolé.';
+    return `Traduction (Français) : Communication professionnelle soignée.`;
   }
-  if (clean.includes('evening') || clean.includes('night')) {
-    return 'Sawubona kusihlwa!';
-  }
-  if (clean.includes('thank')) {
-    return 'Ngiyabonga kakhulu!';
-  }
-  if (clean.includes('how are you')) {
-    return 'Unjani?';
-  }
-  if (clean.includes('fine') || clean.includes('good')) {
-    return 'Ngiyaphila, ngiyabonga!';
-  }
-  if (clean.includes('sorry') || clean.includes('apologize')) {
-    return 'Ngiyaxolisa kakhulu.';
-  }
-  if (clean.includes('excuse')) {
-    return 'Uxolo.';
-  }
-  if (clean.includes('understand')) {
-    return 'Ngiyezwa futhi ngiyaqonda.';
-  }
-  if (clean.includes('learn') || clean.includes('english')) {
-    return 'Ngifuna ukufunda isiNgisi kahle.';
-  }
-  if (clean.includes('practice')) {
-    return 'Asilolonge ndawonye.';
-  }
-  
-  // Return authentic Zulu encouragement with the key subject
-  return `Ukuhumusha kwesiZulu: Yisho ngendlela efanele nenesizotha.`;
+
+  return `Translation (${languageName}): ${text}`;
 }
 
 export async function translatePhrase(
@@ -643,7 +785,7 @@ export async function translatePhrase(
   const sourceMeta = sourceLanguage ? resolveLanguageMeta(sourceLanguage) : null;
   const isTargetEnglish = targetMeta.standardName.toLowerCase() === 'english';
 
-  // 0. Check offline dictionary first
+  // 0. Check offline dictionary first (instant exact match)
   if (isTargetEnglish) {
     const reverseHit = lookupReverseDictionaryTranslation(trimmed, sourceMeta?.standardName);
     if (reverseHit) return reverseHit;
@@ -652,7 +794,7 @@ export async function translatePhrase(
     if (forwardHit) return forwardHit;
   }
 
-  // 1. Try Gemini
+  // 1. Try Gemini models
   const gemini = getGeminiClient();
   if (gemini) {
     const candidateModels = getActiveCandidateModels();
@@ -721,7 +863,21 @@ Text:
     }
   }
 
-  // 3. Fallback to dictionary hit or language-specific rule
+  // 3. Try Resilient Web Translation (Supports all 26 languages bi-directionally)
+  try {
+    const webTranslation = await fetchResilientTranslation(
+      trimmed, 
+      targetMeta.standardName, 
+      sourceMeta?.standardName || 'English'
+    );
+    if (webTranslation && webTranslation.trim()) {
+      return webTranslation.trim();
+    }
+  } catch (err) {
+    console.warn('Web translation fallback skipped:', err);
+  }
+
+  // 4. Fallback to dictionary hit or language-specific rule
   if (isTargetEnglish) {
     const rev = lookupReverseDictionaryTranslation(trimmed, sourceMeta?.standardName);
     if (rev) return rev;
@@ -730,8 +886,9 @@ Text:
     if (dictHit) return dictHit;
   }
 
-  if (!isTargetEnglish && targetMeta.standardName.toLowerCase() === 'zulu') {
-    return generateSmartZuluFallback(trimmed);
+  // 5. Intelligent linguistic fallback for each target language
+  if (!isTargetEnglish) {
+    return generateSmartLanguageFallback(trimmed, targetMeta.standardName);
   }
 
   return trimmed;
@@ -1168,7 +1325,18 @@ Respond strictly in valid JSON matching this schema:
   }
 
   // 3. Contextual Non-Repeating Fallback
-  return generateDynamicFallbackChatResponse(userInput, messages, nativeLanguage, englishLevel, coachPersona);
+  const fallback = generateDynamicFallbackChatResponse(userInput, messages, nativeLanguage, englishLevel, coachPersona);
+  if (meta.standardName.toLowerCase() !== 'english') {
+    try {
+      const translated = await translatePhrase(fallback.reply, meta.standardName, 'English');
+      if (translated && translated.trim() && translated.toLowerCase() !== fallback.reply.toLowerCase()) {
+        fallback.translation = translated;
+      }
+    } catch {
+      // keep dynamic fallback translation
+    }
+  }
+  return fallback;
 }
 
 export interface RoleplayChatParams {
@@ -1485,7 +1653,7 @@ Respond strictly in valid JSON matching:
   }
 
   // 3. Intelligent, Non-Repeating Scenario-Specific Fallback Engine
-  return generateScenarioSpecificFallbackReply(
+  const fallback = generateScenarioSpecificFallbackReply(
     scenarioTitle,
     partnerRole,
     userInput,
@@ -1493,6 +1661,17 @@ Respond strictly in valid JSON matching:
     objectives,
     nativeLanguage
   );
+  if (meta.standardName.toLowerCase() !== 'english') {
+    try {
+      const translated = await translatePhrase(fallback.partnerReply, meta.standardName, 'English');
+      if (translated && translated.trim() && translated.toLowerCase() !== fallback.partnerReply.toLowerCase()) {
+        fallback.translation = translated;
+      }
+    } catch {
+      // keep fallback translation
+    }
+  }
+  return fallback;
 }
 
 export interface GenerateCardsParams {
