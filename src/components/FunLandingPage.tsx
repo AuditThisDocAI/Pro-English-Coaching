@@ -122,23 +122,6 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
         </div>
       </section>
 
-      {/* TRUSTED BY LOGOS */}
-      <section className="py-16 border-y border-white/5 bg-white/[0.01]">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-xs font-bold text-neutral-500 uppercase tracking-[0.2em] mb-8">
-            Trusted by professionals at top companies
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8 opacity-40 grayscale">
-            {/* Minimal CSS Logos */}
-            <div className="text-2xl font-black font-serif tracking-tighter">Acme Corp</div>
-            <div className="text-2xl font-extrabold tracking-widest flex items-center gap-1"><div className="w-6 h-6 rounded bg-white" /> NEXUS</div>
-            <div className="text-2xl font-bold italic">GlobalTech</div>
-            <div className="text-xl font-bold tracking-[0.3em]">INNOVATE</div>
-            <div className="text-2xl font-black lowercase flex items-center gap-1"><Globe className="w-6 h-6" /> horizon</div>
-          </div>
-        </div>
-      </section>
-
       {/* FEATURES SECTION */}
       <section id="features" className="py-32 px-6 max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-20">
