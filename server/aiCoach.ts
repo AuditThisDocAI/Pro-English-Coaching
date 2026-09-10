@@ -1,11 +1,27 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import OpenAI from 'openai';
+import Groq from 'groq-sdk';
 import { lookupDictionaryTranslation, lookupReverseDictionaryTranslation } from '../src/lib/translationsDict.ts';
+import { QUIZ_BANK_100, getQuizByNumber, getNextQuizNumber } from '../src/data/quizBank100.ts';
 
 // Lazy-initialized AI clients
 let geminiClient: GoogleGenAI | null = null;
+let groqClient: Groq | null = null;
+let groqQuotaExceededUntil = 0;
 let openaiClient: OpenAI | null = null;
 let openAIQuotaExceededUntil = 0;
+
+// High-performance Groq models compatible with modern and standard Groq keys
+export const GROQ_CANDIDATE_MODELS = [
+  'groq/compound-mini',
+  'qwen/qwen3.8-27b',
+  'groq/compound',
+  'qwen/qwen3.6-27b',
+  'openai/gpt-oss-120b',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768',
+];
 
 // Up-to-date Gemini models per Google AI Studio guidance with broad resilience against temporary spikes
 export const GEMINI_CANDIDATE_MODELS = [
@@ -229,6 +245,61 @@ function getGeminiClient(): GoogleGenAI | null {
     });
   }
   return geminiClient;
+}
+
+function getGroqClient(): Groq | null {
+  if (Date.now() < groqQuotaExceededUntil) {
+    return null;
+  }
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey });
+  }
+  return groqClient;
+}
+
+function handleGroqError(err: any): void {
+  const msg = String(err?.message || err);
+  if (msg.includes('429') || msg.includes('rate_limit') || msg.includes('quota') || msg.includes('tokens per minute')) {
+    groqQuotaExceededUntil = Date.now() + 2 * 60 * 1000; // Pause Groq attempts for 2 mins
+  }
+}
+
+export async function callGroqChat(options: {
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  responseFormatJson?: boolean;
+  temperature?: number;
+  maxTokens?: number;
+}): Promise<string | null> {
+  const groq = getGroqClient();
+  if (!groq) return null;
+
+  for (const model of GROQ_CANDIDATE_MODELS) {
+    try {
+      const response = await groq.chat.completions.create({
+        model,
+        messages: options.messages,
+        response_format: options.responseFormatJson ? { type: 'json_object' } : undefined,
+        temperature: options.temperature ?? 0.6,
+        max_tokens: options.maxTokens,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (content && content.trim()) {
+        return content.trim();
+      }
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      // If model not found, try next candidate model without penalty
+      if (!msg.includes('model_not_found') && !msg.includes('does not exist') && !msg.includes('do not have access')) {
+        handleGroqError(err);
+      }
+    }
+  }
+  return null;
 }
 
 function getOpenAIClient(): OpenAI | null {
@@ -513,7 +584,41 @@ Respond strictly in valid JSON matching this schema:
     }
   }
 
-  // 2. Try OpenAI as fallback if available and not quota-exhausted
+  // 2. Try Groq high-speed inference if available
+  const groq = getGroqClient();
+  if (groq) {
+    for (const model of GROQ_CANDIDATE_MODELS) {
+      try {
+        const response = await groq.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: trimmedInput }
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.5,
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(cleanJsonOutput(content));
+          if (parsed && parsed.professional) {
+            return {
+              original: parsed.original || trimmedInput,
+              professional: parsed.professional,
+              translation: parsed.translation || `Translation into ${meta.standardName}`,
+              why: parsed.why || 'Clear, concise phrasing improves workplace clarity and builds credibility.',
+              practice: parsed.practice || 'How would you follow up on this with your colleagues?',
+            };
+          }
+        }
+      } catch (err: any) {
+        handleGroqError(err);
+      }
+    }
+  }
+
+  // 3. Try OpenAI as fallback if available and not quota-exhausted
   const openai = getOpenAIClient();
   if (openai) {
     try {
@@ -836,7 +941,39 @@ Text:
     }
   }
 
-  // 2. Try OpenAI as fallback
+  // 2. Try Groq as fast polyglot translator if available
+  const groq = getGroqClient();
+  if (groq) {
+    const systemContent = isTargetEnglish
+      ? `You are an expert language translator. Translate the text directly from ${sourceMeta ? sourceMeta.regionalVariantName : 'its original language'} into natural everyday English. Return ONLY the direct translation without notes, quotes, or markdown.`
+      : `You are an expert polyglot translator. Translate the text strictly into authentic ${targetMeta.regionalVariantName} (${targetMeta.standardName}). ${targetMeta.promptGuidance} Return ONLY the direct translation in ${targetMeta.standardName} without notes, quotes, or markdown.`;
+
+    for (const model of GROQ_CANDIDATE_MODELS) {
+      try {
+        const response = await groq.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: systemContent },
+            { role: 'user', content: trimmed }
+          ],
+          temperature: 0.1,
+        });
+
+        const rawText = (response.choices[0]?.message?.content || '').trim();
+        const cleaned = extractDirectCleanTranslation(rawText, targetMeta.standardName);
+        if (cleaned) {
+          return cleaned;
+        }
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        if (!msg.includes('model_not_found') && !msg.includes('does not exist')) {
+          handleGroqError(err);
+        }
+      }
+    }
+  }
+
+  // 3. Try OpenAI as fallback
   const openai = getOpenAIClient();
   if (openai) {
     try {
@@ -1281,7 +1418,53 @@ Respond strictly in valid JSON matching this schema:
     }
   }
 
-  // 2. Try OpenAI as fallback if available and not quota-exhausted
+  // 2. Try Groq high-speed conversational tutor if available
+  const groq = getGroqClient();
+  if (groq) {
+    const groqMessages = [
+      { role: 'system' as const, content: systemInstruction },
+      ...messages.slice(-8).map(m => ({
+        role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+        content: m.text
+      })),
+      { role: 'user' as const, content: userInput }
+    ];
+
+    for (const model of GROQ_CANDIDATE_MODELS) {
+      try {
+        const response = await groq.chat.completions.create({
+          model,
+          messages: groqMessages,
+          response_format: { type: 'json_object' },
+          temperature: 0.7,
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(cleanJsonOutput(content));
+          if (parsed && parsed.reply) {
+            return {
+              reply: parsed.reply,
+              translation: parsed.translation || `Translation in ${nativeLanguage}`,
+              formalCorrection: parsed.formalCorrection && parsed.formalCorrection.formalAlternative ? parsed.formalCorrection : undefined,
+              suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0 ? parsed.suggestions.slice(0, 3) : [
+                'Could you clarify that in more detail?',
+                'I understand completely. What are our next steps?',
+                'Thank you for the guidance. I will keep that in mind.'
+              ],
+            };
+          }
+        }
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        if (!msg.includes('model_not_found') && !msg.includes('does not exist')) {
+          handleGroqError(err);
+        }
+      }
+    }
+  }
+
+  // 3. Try OpenAI as fallback if available and not quota-exhausted
   const openai = getOpenAIClient();
   if (openai) {
     try {
@@ -1611,7 +1794,51 @@ Respond strictly in valid JSON matching:
     }
   }
 
-  // 2. Try OpenAI as fallback if available and not quota-exhausted
+  // 2. Try Groq low-latency partner model if available
+  const groq = getGroqClient();
+  if (groq) {
+    const groqMessages = [
+      { role: 'system' as const, content: systemInstruction },
+      ...messages.slice(-8).map(m => ({
+        role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+        content: m.text
+      })),
+      { role: 'user' as const, content: userInput }
+    ];
+
+    for (const model of GROQ_CANDIDATE_MODELS) {
+      try {
+        const response = await groq.chat.completions.create({
+          model,
+          messages: groqMessages,
+          response_format: { type: 'json_object' },
+          temperature: 0.7,
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(cleanJsonOutput(content));
+          if (parsed && parsed.partnerReply) {
+            return {
+              partnerReply: parsed.partnerReply,
+              translation: parsed.translation || '',
+              completedObjectiveIds: Array.isArray(parsed.completedObjectiveIds) ? parsed.completedObjectiveIds : [],
+              feedbackTip: parsed.feedbackTip || 'Great formal phrasing. Keep your sentences concise and courteous.',
+              isScenarioComplete: Boolean(parsed.isScenarioComplete),
+              score: typeof parsed.score === 'number' ? parsed.score : 88,
+            };
+          }
+        }
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        if (!msg.includes('model_not_found') && !msg.includes('does not exist')) {
+          handleGroqError(err);
+        }
+      }
+    }
+  }
+
+  // 3. Try OpenAI as fallback if available and not quota-exhausted
   const openai = getOpenAIClient();
   if (openai) {
     try {
@@ -1997,18 +2224,37 @@ export interface GenerateQuizParams {
   count?: number;
   difficulty?: string;
   nativeLanguage?: string;
+  quizNumber?: number;
+  excludeQuizNumbers?: number[];
 }
 
 export async function generateQuizQuestions(params: GenerateQuizParams): Promise<QuizQuestionItem[]> {
-  const { topic = 'Prepositions & Collocations', count = 4, difficulty = 'Beginner', nativeLanguage = 'Zulu' } = params;
+  const { topic = 'Prepositions & Collocations', count = 4, difficulty = 'Beginner', nativeLanguage = 'Zulu', quizNumber, excludeQuizNumbers } = params;
   const safeCount = Math.min(Math.max(count, 1), 10);
   const meta = resolveLanguageMeta(nativeLanguage);
 
-  // 1. Try Gemini candidate models first
+  // Resolve target quiz from 100 Quizzes Bank
+  let targetQuizNum = quizNumber;
+  if (!targetQuizNum || targetQuizNum < 1 || targetQuizNum > 100) {
+    if (excludeQuizNumbers && excludeQuizNumbers.length > 0) {
+      targetQuizNum = getNextQuizNumber(excludeQuizNumbers[excludeQuizNumbers.length - 1] || 1, excludeQuizNumbers);
+    } else if (topic) {
+      const matching = QUIZ_BANK_100.filter(q => q.category.toLowerCase().includes(topic.toLowerCase()) || topic.toLowerCase().includes(q.category.toLowerCase()));
+      targetQuizNum = matching.length > 0 ? matching[Math.floor(Math.random() * matching.length)].quizNumber : 1;
+    } else {
+      targetQuizNum = 1;
+    }
+  }
+
+  const curatedQuizSet = getQuizByNumber(targetQuizNum) || QUIZ_BANK_100[0];
+  const effectiveTopic = curatedQuizSet?.title || topic;
+
+  // 1. Try Gemini candidate models first with specific quiz context & novelty seed
   const gemini = getGeminiClient();
   if (gemini) {
     const candidateModels = getActiveCandidateModels();
     const systemInstruction = `You are a world-class English grammar and fluency tutor creating fill-in-the-blank quiz cards.
+This is Quiz #${targetQuizNum} out of 100 quizzes.
 The quiz card design shows a broken sentence with a missing word:
 Example:
 sentenceBefore: "Stop shouting"
@@ -2019,9 +2265,10 @@ options: 3 or 4 choices with letters A, B, C, D. Colors assigned: A=yellow, B=cy
 explanation: Clear 1-2 sentence explanation of why the correct option fits and why common errors are wrong.
 difficulty: "Beginner", "Intermediate", or "Advanced".
 
-CRITICAL: Return valid JSON with an array named "questions". Each bracketTranslation MUST be in ${meta.regionalVariantName} (${meta.standardName}).`;
+CRITICAL: Return valid JSON with an array named "questions". Each bracketTranslation MUST be in ${meta.regionalVariantName} (${meta.standardName}).
+Generate distinct questions that do not repeat previous quizzes.`;
 
-    const prompt = `Topic: "${topic}"\nDifficulty: "${difficulty}"\nTarget Language for translation: ${meta.regionalVariantName} (${meta.standardName})\nGenerate ${safeCount} fill-in-the-blank questions.`;
+    const prompt = `Quiz #${targetQuizNum} of 100: "${effectiveTopic}"\nCategory: "${curatedQuizSet.category}"\nDifficulty: "${difficulty}"\nTarget Language for translation: ${meta.regionalVariantName} (${meta.standardName})\nGenerate ${safeCount} fill-in-the-blank questions unique to this topic.`;
 
     for (let i = 0; i < candidateModels.length; i++) {
       const model = candidateModels[i];
@@ -2112,7 +2359,79 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
     }
   }
 
-  // 2. High-Yield Curated Fallback Question Bank (includes exact card from user screenshot)
+  // 2. Try Groq for novel quiz question generation if available
+  const groq = getGroqClient();
+  if (groq) {
+    const groqSystemPrompt = `You are a world-class English grammar tutor creating fill-in-the-blank quiz cards.
+This is Quiz #${targetQuizNum} out of 100 quizzes.
+Format: Return valid JSON with a "questions" array.
+Each question must contain:
+- sentenceBefore: string
+- sentenceAfter: string
+- completeSentence: string
+- bracketTranslation: strict translation of completeSentence into ${meta.regionalVariantName} (${meta.standardName}) in square brackets [like this]
+- options: array of 4 objects { letter: "A"|"B"|"C"|"D", text: string, color: "yellow"|"cyan"|"green"|"purple", isCorrect: boolean }, exactly one isCorrect=true
+- explanation: clear explanation of the correct grammar rule
+- difficulty: "${difficulty}"`;
+
+    for (const model of GROQ_CANDIDATE_MODELS) {
+      try {
+        const response = await groq.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: groqSystemPrompt },
+            { role: 'user', content: `Generate ${safeCount} unique quiz questions for Quiz #${targetQuizNum} on topic "${effectiveTopic}".` }
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.6,
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(cleanJsonOutput(content));
+          if (Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+            return parsed.questions.map((q: any, idx: number) => {
+              let bracket = (q.bracketTranslation || '').trim();
+              const cleanBracket = bracket.replace(/^[\[\("']+|[\]\)"']+$/g, '').trim().toLowerCase();
+              const cleanSentence = (q.completeSentence || '').replace(/[.,?!;:¡¿"']/g, '').trim().toLowerCase();
+              if ((!bracket || cleanBracket === cleanSentence) && meta.standardName !== 'English') {
+                const dictLookup = lookupDictionaryTranslation(q.completeSentence || '', meta.standardName);
+                if (dictLookup) {
+                  bracket = `[${dictLookup}]`;
+                }
+              } else if (bracket && !bracket.startsWith('[')) {
+                bracket = `[${bracket}]`;
+              }
+
+              return {
+                id: `quiz_groq_${Date.now()}_${idx}`,
+                topic: effectiveTopic,
+                sentenceBefore: q.sentenceBefore || '',
+                sentenceAfter: q.sentenceAfter || '',
+                completeSentence: q.completeSentence || `${q.sentenceBefore} _____ ${q.sentenceAfter}`,
+                bracketTranslation: bracket,
+                options: (q.options || []).map((opt: any, optIdx: number) => ({
+                  letter: (opt.letter || ['A', 'B', 'C', 'D'][optIdx]) as 'A' | 'B' | 'C' | 'D',
+                  text: opt.text || '',
+                  color: (opt.color || ['yellow', 'cyan', 'green', 'purple'][optIdx % 4]) as any,
+                  isCorrect: Boolean(opt.isCorrect)
+                })),
+                explanation: q.explanation || 'Select the grammatically correct word for this sentence.',
+                difficulty: (q.difficulty || difficulty) as any
+              };
+            });
+          }
+        }
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        if (!msg.includes('model_not_found') && !msg.includes('does not exist')) {
+          handleGroqError(err);
+        }
+      }
+    }
+  }
+
+  // 3. High-Yield Curated Fallback Question Bank (includes exact card from user screenshot)
   const CURATED_QUIZ_BANK: Array<{
     topic: string;
     sentenceBefore: string;
@@ -2495,19 +2814,35 @@ CRITICAL: Return valid JSON with an array named "questions". Each bracketTransla
   ];
 
   const targetLang = meta.standardName;
-  const topicLower = (topic || '').toLowerCase();
-  
-  // Prefer questions matching topic keywords, else return all
-  const matchedTopic = CURATED_QUIZ_BANK.filter(item => {
-    const itemTopicLower = item.topic.toLowerCase();
-    if (topicLower.includes('travel') && itemTopicLower.includes('travel')) return true;
-    if (topicLower.includes('business') && itemTopicLower.includes('business')) return true;
-    if (topicLower.includes('academic') && itemTopicLower.includes('academic')) return true;
-    if (topicLower.includes('preposition') && itemTopicLower.includes('preposition')) return true;
-    return itemTopicLower.includes(topicLower) || topicLower.includes(itemTopicLower);
-  });
 
-  const pool = matchedTopic.length > 0 ? [...matchedTopic, ...CURATED_QUIZ_BANK.filter(i => !matchedTopic.includes(i))] : CURATED_QUIZ_BANK;
+  // Use the curated 100 Quizzes Bank for the target quiz
+  if (curatedQuizSet && curatedQuizSet.questions && curatedQuizSet.questions.length > 0) {
+    return curatedQuizSet.questions.map((item, idx) => {
+      const dictTrans = lookupDictionaryTranslation(item.completeSentence, targetLang);
+      const rawTrans = dictTrans || (targetLang !== 'English' ? '' : item.completeSentence);
+      const bracket = rawTrans ? (rawTrans.startsWith('[') ? rawTrans : `[${rawTrans}]`) : '';
+
+      return {
+        id: item.id || `quiz_${curatedQuizSet.quizNumber}_q${idx + 1}`,
+        topic: curatedQuizSet.title || item.topic,
+        sentenceBefore: item.sentenceBefore,
+        sentenceAfter: item.sentenceAfter,
+        completeSentence: item.completeSentence,
+        bracketTranslation: bracket,
+        options: item.options.map(opt => ({
+          letter: opt.letter,
+          text: opt.text,
+          color: opt.color || 'cyan',
+          isCorrect: opt.isCorrect
+        })),
+        explanation: item.explanation,
+        difficulty: item.difficulty || curatedQuizSet.difficulty
+      };
+    });
+  }
+
+  // Fallback to pool if somehow quiz set not found
+  const pool = CURATED_QUIZ_BANK;
   const filtered = pool.slice(0, safeCount);
 
   return filtered.map((item, idx) => {

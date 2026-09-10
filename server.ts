@@ -184,15 +184,17 @@ async function startServer() {
   app.post('/api/generate-quiz', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const { topic = 'Prepositions & Collocations', count = 4, difficulty = 'Beginner', nativeLanguage = 'Zulu' } = req.body || {};
+      const { topic = 'Prepositions & Collocations', count = 4, difficulty = 'Beginner', nativeLanguage = 'Zulu', quizNumber, excludeQuizNumbers } = req.body || {};
       const questions = await generateQuizQuestions({
         topic: typeof topic === 'string' ? topic : 'Prepositions & Collocations',
         count: typeof count === 'number' ? count : 4,
         difficulty: typeof difficulty === 'string' ? difficulty : 'Beginner',
         nativeLanguage: typeof nativeLanguage === 'string' ? nativeLanguage : 'Zulu',
+        quizNumber: typeof quizNumber === 'number' ? quizNumber : undefined,
+        excludeQuizNumbers: Array.isArray(excludeQuizNumbers) ? excludeQuizNumbers : undefined,
       });
 
-      return res.json({ status: 'ok', questions });
+      return res.json({ status: 'ok', quizNumber: quizNumber || 1, totalQuizzes: 100, questions });
     } catch (error: any) {
       console.error('Error generating quiz cards:', error);
       return res.status(500).json({
