@@ -1237,9 +1237,9 @@ function generateDynamicFallbackChatResponse(
     }
 
     const dynamicReflections = [
-      `Thank you for sharing that. You expressed your thought clearly! In formal English, using modal verbs like *"would"*, *"could"*, and *"might"* helps maintain a constructive and diplomatic tone. How would you apply this in a high-stakes meeting?`,
-      `That is a very relevant point. When communicating this to senior executives or global clients, adding a concise next-step summary ensures complete clarity. Would you like to practice drafting a follow-up on this?`,
-      `Understood! Refining your everyday phrasing into executive-level English builds natural confidence over time. Would you like to practice another workplace scenario, or try an interview question next?`
+      `[Offline Mode] I am currently operating in offline fallback mode because the AI API keys (like Groq) are missing or invalid in this environment. To receive real dynamic answers, please ensure your API key is added to Secrets and the app is re-deployed/shared.`,
+      `[Offline Mode] That is a very relevant point, but I cannot process it fully without an active AI connection. If you recently added a Groq API key to your secrets, you may need to click 'Share' again to update the public link!`,
+      `[Offline Mode] Understood! I am currently using static offline responses. To get real AI tutoring for your questions, please check your API key configuration.`
     ];
     reply = dynamicReflections[turn % dynamicReflections.length];
     suggestions = [
@@ -1409,6 +1409,7 @@ Respond strictly in valid JSON matching this schema:
           }
         }
       } catch (err: any) {
+        console.error('Gemini error in getChatTutorResponse for model', model, ':', err?.message || err);
         const isAccessDenied = handleGeminiModelError(model, err);
         if (isAccessDenied) break;
         if (i < candidateModels.length - 1) {
@@ -1664,13 +1665,13 @@ function generateScenarioSpecificFallbackReply(
     }
 
     const dynamicPartnerReplies = [
-      `I appreciate you bringing that perspective to the table. In regards to "${userInput.slice(0, 32)}...", how do you envision us executing the next operational milestone?`,
-      `That is a very constructive proposal. Let us ensure the relevant stakeholders are aligned on this approach before our next review.`,
-      `Thank you for that thorough explanation. It addresses the core requirements and positions us well to finalize the next phase.`,
-      `Understood. Proceeding with these agreed parameters will give our team the clarity needed to deliver on time.`
+      `[Offline Mode] I appreciate you bringing that perspective. I am currently running in offline fallback mode because AI keys are missing. How do you envision us executing the next operational milestone?`,
+      `[Offline Mode] That is a very constructive proposal, but I cannot process it fully without an active AI connection. If you recently added a Groq API key, you may need to click 'Share' again!`,
+      `[Offline Mode] Thank you for that explanation. To get dynamic roleplay responses, please check your API key configuration.`,
+      `[Offline Mode] Understood. Proceeding with these static parameters until the API keys are correctly configured in this environment.`
     ];
     partnerReply = dynamicPartnerReplies[turnIndex % dynamicPartnerReplies.length];
-    feedbackTip = `Articulating your thoughts clearly and structuring responses with proactive next steps demonstrates executive presence.`;
+    feedbackTip = `Articulating your thoughts clearly and structuring responses with proactive next steps demonstrates executive presence. (Note: Offline Mode active)`;
   }
 
   // Generate culturally authentic translation

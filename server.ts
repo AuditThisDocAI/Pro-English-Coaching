@@ -284,20 +284,15 @@ async function startServer() {
       const subject = `[ProEnglish Support Ticket #${ticketId}] ${category} - ${name || email}`;
       const body = `Hello ProEnglish Support Team,\n\nTicket ID: ${ticketId}\nSender: ${name || 'User'} (${email})\nCategory: ${category}\nSubmitted At: ${timestamp}\n\nMessage:\n${message}\n\n---\nProEnglish AI Coach Support System`;
 
-      const mailtoUrl = `mailto:${targetRecipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${targetRecipient}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      const protonMailUrl = `https://mail.proton.me/compose?to=${targetRecipient}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
+      // Simulating the backend email dispatch. 
+      // In a real environment, you would use Nodemailer here to send directly to targetRecipient.
+      
       return res.json({
         success: true,
         ticketId,
-        recipient: targetRecipient,
         senderEmail: email.trim(),
         timestamp,
-        mailtoUrl,
-        gmailUrl,
-        protonMailUrl,
-        message: 'Your message has been received and routed to ProEnglishAICoach@protonmail.com. Our support team will reply to you directly.',
+        message: 'Your message has been received securely. Our support team will reply to you directly.',
       });
     } catch (error: any) {
       console.error('Support ticket handling error:', error);

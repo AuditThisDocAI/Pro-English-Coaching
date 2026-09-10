@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { 
   ChevronDown, Mic, MessageSquare, Zap, 
   Check, ArrowRight, Star, Globe, Shield, Sparkles,
-  Play, BookOpen, Layers, Speech
+  Play, BookOpen, Layers, Speech, Send, Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import asianManComputer from '../assets/images/asian_man_computer_1788796518513.jpg';
@@ -15,6 +15,12 @@ export interface FunLandingPageProps {
 
 export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onExploreMode }) => {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+
+  // Help Center form state
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
+  const [supportStatus, setSupportStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const { scrollYProgress } = useScroll();
   const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -200]);
@@ -43,6 +49,34 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleSupportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportEmail || !supportMessage) return;
+    
+    setIsSubmittingSupport(true);
+    setSupportStatus('idle');
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: supportEmail,
+          message: supportMessage,
+          category: 'Help Center Contact'
+        })
+      });
+      if (!res.ok) throw new Error('Failed to send message');
+      setSupportStatus('success');
+      setSupportEmail('');
+      setSupportMessage('');
+      setTimeout(() => setSupportStatus('idle'), 5000);
+    } catch (err) {
+      setSupportStatus('error');
+    } finally {
+      setIsSubmittingSupport(false);
     }
   };
 
@@ -356,8 +390,8 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
 
       {/* FOOTER */}
       <footer className="border-t border-white/10 py-16 px-6 bg-[#0B0B0F]">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8">
-          <div className="col-span-2 md:col-span-2">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-8">
+          <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-sm">
                 <Speech className="w-4 h-4 text-white" />
@@ -365,7 +399,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
               <span className="font-cambria font-['Cambria',Georgia,serif] text-xl font-bold text-white tracking-tight">English Coach</span>
             </div>
             <p className="text-sm text-neutral-500 max-w-xs">
-              Empowering non - english speakers to communicate basic english worldwide
+              Empowering non-English speakers to communicate basic English worldwide
             </p>
           </div>
           
@@ -394,6 +428,44 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
               <li><Link to="/terms" className="text-sm text-neutral-500 hover:text-white transition-colors">Terms</Link></li>
               <li><Link to="/refund" className="text-sm text-neutral-500 hover:text-white transition-colors">Refunds</Link></li>
             </ul>
+          </div>
+
+          <div className="lg:col-span-2">
+            <h4 className="text-white font-semibold mb-4">Contact Help Center</h4>
+            <form onSubmit={handleSupportSubmit} className="space-y-3">
+              <input
+                type="email"
+                required
+                placeholder="Your email address"
+                value={supportEmail}
+                onChange={(e) => setSupportEmail(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+              <textarea
+                required
+                placeholder="How can we help you?"
+                value={supportMessage}
+                onChange={(e) => setSupportMessage(e.target.value)}
+                rows={3}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+              />
+              <button
+                type="submit"
+                disabled={isSubmittingSupport}
+                className="w-full bg-white text-black font-semibold rounded-lg px-4 py-2.5 text-sm hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isSubmittingSupport ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Send Message</>}
+              </button>
+              
+              {supportStatus === 'success' && (
+                <p className="text-emerald-400 text-xs mt-2 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Message sent successfully!
+                </p>
+              )}
+              {supportStatus === 'error' && (
+                <p className="text-red-400 text-xs mt-2">Failed to send message. Please try again.</p>
+              )}
+            </form>
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-600">

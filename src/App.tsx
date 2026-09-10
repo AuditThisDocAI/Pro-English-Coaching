@@ -846,7 +846,7 @@ export default function App() {
               <a href="/terms" className="hover:text-white hover:underline transition-colors">Terms of Service</a>
               <a href="/privacy" className="hover:text-white hover:underline transition-colors">Privacy Policy</a>
               <a href="/refund" className="hover:text-white hover:underline transition-colors">Refund & Cancellation</a>
-              <a href="mailto:ProEnglishAICoach@protonmail.com" className="hover:text-white hover:underline transition-colors">Contact Support</a>
+              <button onClick={() => { setActiveTab('landing'); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100); }} className="hover:text-white hover:underline transition-colors cursor-pointer">Contact Support</button>
             </div>
           </div>
 
