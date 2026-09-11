@@ -1,6 +1,7 @@
 import { Flashcard } from '../types';
 import { translateText } from './translationService';
 import { lookupDictionaryTranslation } from './translationsDict';
+import { LESSONS_BANK_100 } from '../data/lessonsBank100';
 
 export interface StarterCardPack {
   id: string;
@@ -323,56 +324,39 @@ export async function generateBasicEnglishCards(
     console.warn('Backend card generator offline or delayed. Using local generator fallback.', err);
   }
 
-  // Local fallback generator if network or API fails
-  const matchedPreset = PRESET_STARTER_PACKS.find(p => 
-    p.title.toLowerCase().includes(topic.toLowerCase()) || 
-    p.id.toLowerCase().includes(topic.toLowerCase())
+  // Local fallback generator from rich 100 lessons bank if API is offline or exhausted
+  const matchedLessons = LESSONS_BANK_100.filter(l => 
+    l.topicId.toLowerCase().includes(topic.toLowerCase()) || 
+    l.topicName.toLowerCase().includes(topic.toLowerCase()) ||
+    l.scenario.toLowerCase().includes(topic.toLowerCase()) ||
+    topic.toLowerCase() === 'all' ||
+    topic.toLowerCase() === 'everyday life'
   );
 
-  if (matchedPreset) {
-    return matchedPreset.cards.slice(0, count).map(c => {
-      const dictHit = lookupDictionaryTranslation(c.backProfessional, nativeLanguage);
-      return {
-        ...c,
-        id: `gen_preset_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        backTranslation: dictHit || undefined,
-        isCustom: true,
-      };
-    });
-  }
+  const pool = matchedLessons.length >= count ? matchedLessons : LESSONS_BANK_100;
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const selectedLessons = shuffled.slice(0, count);
 
-  // Dynamic synthesized card
-  const promptTranslation = await translateText(topic, nativeLanguage);
-  
-  let genericTranslation = `Translation in ${nativeLanguage}`;
-  if (nativeLanguage.toLowerCase().includes('span')) {
-    genericTranslation = promptTranslation ? `Disculpe, ¿podría ayudarme con ${promptTranslation}?` : 'Disculpe, ¿podría ayudarme?';
-  } else if (nativeLanguage.toLowerCase().includes('zulu')) {
-    genericTranslation = promptTranslation ? `Uxolo, ungangisiza nge ${promptTranslation}?` : 'Uxolo, ungangisiza?';
-  } else if (nativeLanguage.toLowerCase().includes('xhosa')) {
-    genericTranslation = promptTranslation ? `Ndicela uxolo, ungandinceda nge ${promptTranslation}?` : 'Ndicela uxolo, ungandinceda?';
-  } else if (promptTranslation) {
-    genericTranslation = `[${nativeLanguage}]: Excuse me, could you please help me with ${promptTranslation}?`;
-  }
-
-  return [
-    {
-      id: `gen_dyn_${Date.now()}_1`,
-      category: topic,
-      frontContext: topic,
-      front: `How do you speak politely about "${topic}" in everyday English?`,
-      backProfessional: `Excuse me, could you please help me with ${topic.toLowerCase()}?`,
-      backWhy: '"Could you please help me with..." is simple, polite, and universally understood.',
-      backTranslation: genericTranslation,
-      grammarNote: 'Always use "Could you please..." for polite everyday requests.',
-      level: 'Beginner',
+  return selectedLessons.map((l, idx) => {
+    const dictHit = lookupDictionaryTranslation(l.english, nativeLanguage);
+    const trans = dictHit || l.translations[nativeLanguage] || l.english;
+    return {
+      id: `gen_lesson_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+      category: l.topicName,
+      frontContext: l.scenario,
+      front: `In this situation: "${l.scenario}", what is the natural, polite English phrase?`,
+      backProfessional: l.english,
+      backWhy: l.why,
+      backTranslation: trans,
+      grammarNote: `Pronounced: /${l.phonetic}/`,
+      level: (l.level === 'starter' ? 'Beginner' : l.level === 'everyday' ? 'Intermediate' : 'Advanced') as Flashcard['level'],
       tier: 'free',
       isCustom: true,
       options: [
-        { text: `Excuse me, could you please help me with ${topic.toLowerCase()}?`, isCorrect: true, explanation: 'Polite, clear, and natural basic English.' },
-        { text: `Give me ${topic.toLowerCase()} right now.`, isCorrect: false, explanation: 'Too aggressive and demanding.' },
-        { text: `I want talk ${topic.toLowerCase()}.`, isCorrect: false, explanation: 'Incomplete sentence structure.' },
+        { text: l.english, isCorrect: true, explanation: 'Natural, polite, and standard everyday English.' },
+        { text: `Give me that right now quickly.`, isCorrect: false, explanation: 'Too blunt and demanding.' },
+        { text: `I not know what say.`, isCorrect: false, explanation: 'Grammatically incorrect phrasing.' },
       ],
-    },
-  ];
+    };
+  });
 }

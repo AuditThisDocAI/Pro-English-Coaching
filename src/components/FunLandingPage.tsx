@@ -32,15 +32,15 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
     },
     {
       q: "Can I practice for specific scenarios?",
-      a: "Yes. You can select from dozens of professional scenarios like job interviews, client presentations, and salary negotiations."
+      a: "Yes, you can select from dozens of basic sentence quizzes, cards, games and AI tutor chat."
     },
     {
       q: "Is there a free trial available?",
       a: "Absolutely. We offer a generous free tier so you can experience the power of AI-driven language coaching before upgrading."
     },
     {
-      q: "Does it support multiple native languages?",
-      a: "We currently support translation and contextual feedback for over 16 native languages, helping you bridge the gap faster."
+      q: "Does it support multiple languages?",
+      a: "We currently support translation and contextual feedback for over 26 languages, helping you bridge the gap faster."
     }
   ];
 

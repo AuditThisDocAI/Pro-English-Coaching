@@ -17,10 +17,7 @@ import {
   Mail,
   KeyRound,
   ArrowRight,
-  Clock,
-  Globe,
-  Copy,
-  ExternalLink
+  Clock
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, logout } from '../lib/firebase';
@@ -64,21 +61,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [cancelSuccessMessage, setCancelSuccessMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [unauthorizedDomainHost, setUnauthorizedDomainHost] = useState<string | null>(null);
-  const [copiedDomain, setCopiedDomain] = useState<string | null>(null);
-  const [showDomainGuide, setShowDomainGuide] = useState(false);
-
-  const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
-  const firebaseConsoleAuthUrl = `https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`;
-
-  const handleCopyDomain = (domainToCopy: string) => {
-    if (navigator?.clipboard) {
-      navigator.clipboard.writeText(domainToCopy);
-      setCopiedDomain(domainToCopy);
-      setTimeout(() => setCopiedDomain(null), 2500);
-    }
-  };
-
   if (!isOpen) return null;
 
   const handleGoogleSignIn = async () => {
@@ -97,10 +79,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (err?.code === 'auth/popup-blocked') {
         setError('Sign-in popup was blocked by your browser. Please allow popups for this page and try again.');
       } else if (err?.code === 'auth/unauthorized-domain') {
-        const domain = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
-        setUnauthorizedDomainHost(domain);
-        setShowDomainGuide(true);
-        setError(`Domain "${domain}" is not authorized in Firebase Console yet.`);
+        setError('Google Sign-In is not enabled for this domain yet. Please sign in or create an account with your Email & Password below.');
       } else {
         console.error('Sign-in error:', err);
         setError(err?.message || 'Failed to sign in with Google. Please try again.');
@@ -233,91 +212,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-200 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                 <div>{error}</div>
-              </div>
-            )}
-
-            {/* Firebase Domain Authorization Assistance */}
-            {(showDomainGuide || unauthorizedDomainHost) && (
-              <div className="p-3.5 rounded-2xl bg-amber-50/95 border border-amber-200/80 text-neutral-800 text-xs space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                    <Globe className="w-4 h-4 text-amber-600" />
-                    <span>Authorize Domain in Firebase</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowDomainGuide(false)}
-                    className="text-amber-700 hover:text-amber-900 text-[11px] font-medium cursor-pointer"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-amber-950/80 leading-relaxed">
-                  Google Sign-In requires your preview domain to be registered in your Firebase Console under <strong>Authorized domains</strong>.
-                </p>
-
-                {/* Domain Pill with Copy Button */}
-                <div className="p-2 bg-white rounded-xl border border-amber-200 flex items-center justify-between gap-2 shadow-xs">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-semibold text-neutral-400 uppercase tracking-wider">Current Hostname:</div>
-                    <div className="text-xs font-mono font-bold text-neutral-900 truncate select-all">{currentHost || unauthorizedDomainHost}</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyDomain(currentHost || unauthorizedDomainHost || '')}
-                    className="px-2.5 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-bold shrink-0 transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    {copiedDomain ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="space-y-1 text-[11px] text-neutral-700">
-                  <div className="flex items-start gap-1.5">
-                    <span className="font-bold text-amber-800">1.</span>
-                    <span>Click <strong>Open Firebase Console</strong> below.</span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <span className="font-bold text-amber-800">2.</span>
-                    <span>Under the <strong>Authorized domains</strong> section, click <strong>Add domain</strong>.</span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <span className="font-bold text-amber-800">3.</span>
-                    <span>Paste the domain copied above and click <strong>Save</strong>.</span>
-                  </div>
-                </div>
-
-                <div className="pt-1 flex flex-col sm:flex-row gap-2">
-                  <a
-                    href={firebaseConsoleAuthUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-center text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-                  >
-                    <span>Open Firebase Console</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setShowDomainGuide(false);
-                    }}
-                    className="py-2 px-3 bg-white hover:bg-neutral-100 text-neutral-800 font-semibold rounded-xl text-center text-xs border border-neutral-200 transition-colors cursor-pointer"
-                  >
-                    Use Email Sign-in
-                  </button>
-                </div>
               </div>
             )}
 
@@ -582,18 +476,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </>
                   )}
                 </button>
-
-                {/* Domain helper toggle */}
-                <div className="text-center pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setShowDomainGuide(!showDomainGuide)}
-                    className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer inline-flex items-center gap-1.5 transition-colors"
-                  >
-                    <Globe className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>Domain authorization instructions & copy link</span>
-                  </button>
-                </div>
 
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-neutral-200" />

@@ -49,23 +49,6 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
           </p>
         </div>
 
-        {/* Feature Highlights Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-lg mx-auto py-2">
-          {[
-            'Unlimited 1-on-1 AI Chat Tutor & Voice Call',
-            'Real-world Daily Situations & Conversations',
-            'Instant Natural Phrasing & Grammar Feedback',
-            'Sentence Card Hub & Spaced Repetition',
-            '15+ Native Language Translation Support',
-            'Multi-Device Cloud Sync & Progress History',
-          ].map((item, idx) => (
-            <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-neutral-700">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
-
         {/* Price & Primary CTA */}
         <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/80 max-w-md mx-auto space-y-3">
           <div className="flex items-center justify-between">

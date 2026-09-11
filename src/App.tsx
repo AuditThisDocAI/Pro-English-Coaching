@@ -462,15 +462,9 @@ export default function App() {
           })}
         </nav>
 
-        {/* Right Actions: Streak, Native Lang, Saved, Pro, Auth */}
+        {/* Right Actions: Native Lang, Saved, Pro, Auth */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* Daily Streak Flame */}
-          <div className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-[10px] sm:text-xs font-black shrink-0" title="Current Daily Practice Streak">
-            <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500 animate-pulse" />
-            <span>{streakDays}d</span>
-          </div>
-
           {/* Native Language Selector */}
           <div className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 transition-colors shrink-0">
             <Languages className="w-3.5 h-3.5 text-indigo-600 shrink-0 hidden sm:block" />
