@@ -23,7 +23,7 @@ export const TrialBanner: React.FC<TrialBannerProps> = ({ trialInfo, onUpgrade, 
               Your 1-Day Free Trial has expired.
             </span>
             <span className="text-amber-200 hidden md:inline">
-              Upgrade to Pro ($19.99/month) to continue unlimited AI English practice, voice calls, and sentence cards.
+              Upgrade to Pro ($16/month) to continue unlimited AI English practice, voice calls, and sentence cards.
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -43,7 +43,7 @@ export const TrialBanner: React.FC<TrialBannerProps> = ({ trialInfo, onUpgrade, 
               className="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-amber-950 font-extrabold text-xs flex items-center gap-1.5 transition-all shadow-sm shrink-0 cursor-pointer"
             >
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Upgrade Now ($19.99/mo)</span>
+              <span>Upgrade Now ($16/mo)</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

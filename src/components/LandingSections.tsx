@@ -70,7 +70,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
             className="w-full sm:w-auto px-6 py-4 bg-white hover:bg-neutral-50 text-neutral-800 font-semibold rounded-2xl border border-neutral-200 shadow-xs hover:border-neutral-300 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-base"
           >
             <Zap className="w-4 h-4 text-emerald-600" />
-            {isPro ? 'Pro Active ($20/mo)' : 'Upgrade Pro ($20/mo)'}
+            {isPro ? 'Pro Active ($16/mo)' : 'Upgrade Pro ($16/mo)'}
           </button>
         </div>
 
@@ -289,7 +289,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             Simple, Transparent Pricing
           </h2>
           <p className="text-3xl font-extrabold text-neutral-900 tracking-tight">
-            Start Your 1-Day Free Trial, Then Just $20/Month
+            Start Your 1-Day Free Trial, Then Just $16/Month
           </p>
         </div>
 
@@ -348,7 +348,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             </div>
           </div>
 
-          {/* Pro Tier ($20/month with 1-Day Free Trial) */}
+          {/* Pro Tier ($16/month with 1-Day Free Trial) */}
           <div className="bg-gradient-to-b from-neutral-900 to-neutral-950 text-white rounded-3xl p-8 border border-neutral-800 shadow-xl relative flex flex-col">
             <div className="absolute -top-3.5 right-6 px-3 py-1 bg-emerald-500 text-neutral-950 font-bold text-xs uppercase tracking-wider rounded-full shadow-sm">
               1-Day Free Trial
@@ -359,7 +359,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 Pro Unlimited
               </span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-4xl font-extrabold text-white">$20</span>
+                <span className="text-4xl font-extrabold text-white">$16</span>
                 <span className="text-xs text-neutral-400">/ month after 1-day trial</span>
               </div>
               <p className="text-xs text-neutral-400 mt-2">
@@ -399,7 +399,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               className="w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-xl text-sm shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
             >
               <Zap className="w-4 h-4 fill-current" />
-              {isPro ? 'Manage Active Pro Subscription' : 'Start 1-Day Free Trial ($20/mo)'}
+              {isPro ? 'Manage Active Pro Subscription' : 'Start 1-Day Free Trial ($16/mo)'}
             </button>
           </div>
         </div>

@@ -315,7 +315,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
             </div>
             <div className="bg-[#0B0B0F] rounded-[31px] p-8 h-full flex flex-col">
               <h3 className="text-xl font-bold text-white mb-2 text-center">Subscription</h3>
-              <div className="text-5xl font-black text-white mb-1 text-center">$20<span className="text-lg text-neutral-500 font-medium">/mo</span></div>
+              <div className="text-5xl font-black text-white mb-1 text-center">$16<span className="text-lg text-neutral-500 font-medium">/mo</span></div>
               <p className="text-sm text-purple-400 mb-8 font-medium text-center">Cancel anytime</p>
               <ul className="space-y-4 mb-8 flex-1">
                 {['1000 AI coaching sessions per month', 'Live speech-to-text dictation', 'Advanced grammar analytics', 'Premium ultra-realistic voices', 'Custom roleplay scenarios'].map((item, i) => (

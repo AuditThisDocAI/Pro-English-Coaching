@@ -330,7 +330,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-amber-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
                           >
                             <Zap className="w-3.5 h-3.5 fill-current" />
-                            <span>Upgrade to Pro ($19.99/mo)</span>
+                            <span>Upgrade to Pro ($16/mo)</span>
                           </button>
                         )}
                         {onResetTrial && (
@@ -361,7 +361,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
                       isPro ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-200 text-neutral-700'
                     }`}>
-                      {isPro ? '$19.99 / month' : 'Free Trial'}
+                      {isPro ? '$16 / month' : 'Free Trial'}
                     </span>
                   </div>
 
@@ -409,7 +409,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-[11px] text-neutral-500">Pro plan ($19.99/mo):</span>
+                      <span className="text-[11px] text-neutral-500">Pro plan ($16/mo):</span>
                       {onOpenPaymentModal && (
                         <button
                           type="button"

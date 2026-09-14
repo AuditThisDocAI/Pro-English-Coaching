@@ -31,7 +31,7 @@ export const TIERS: Tier[] = [
       '1-day free trial included',
     ],
     highlight: true,
-    price: '$20',
+    price: '$16',
     planId: import.meta.env.VITE_FREEMIUS_PLAN_PRO || '62979',
   },
 ];

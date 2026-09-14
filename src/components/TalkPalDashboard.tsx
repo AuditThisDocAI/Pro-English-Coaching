@@ -93,7 +93,7 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
                 </h3>
                 <p className="text-xs text-neutral-600">
                   {isExpired
-                    ? 'Upgrade to Pro ($19.99/mo) to unlock unlimited AI Chat, Voice Calls, Roleplays, and Flashcards.'
+                    ? 'Upgrade to Pro ($16/mo) to unlock unlimited AI Chat, Voice Calls, Roleplays, and Flashcards.'
                     : 'Practice freely with 1-on-1 AI tutors, voice scenarios, and sentence drills. Zero charge during the 1-day trial.'}
                 </p>
               </div>
@@ -110,7 +110,7 @@ export const TalkPalDashboard: React.FC<TalkPalDashboardProps> = ({
                 }`}
               >
                 <Zap className="w-3.5 h-3.5 fill-current" />
-                <span>{isExpired ? 'Unlock Pro Access ($20/mo)' : 'Upgrade to Pro'}</span>
+                <span>{isExpired ? 'Unlock Pro Access ($16/mo)' : 'Upgrade to Pro'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}

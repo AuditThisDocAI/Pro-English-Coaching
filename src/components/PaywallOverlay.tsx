@@ -54,7 +54,7 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
           <div className="flex items-center justify-between">
             <div className="text-left">
               <div className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Subscription Plan</div>
-              <div className="text-2xl font-black text-neutral-900">$19.99 <span className="text-xs font-semibold text-neutral-500">/ month</span></div>
+              <div className="text-2xl font-black text-neutral-900">$16 <span className="text-xs font-semibold text-neutral-500">/ month</span></div>
             </div>
             <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full">
               Cancel Anytime
@@ -67,7 +67,7 @@ export const PaywallOverlay: React.FC<PaywallOverlayProps> = ({
             className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-teal-600 hover:opacity-95 text-white font-black text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Zap className="w-4 h-4 fill-white" />
-            <span>Get Subscription ($19.99/mo)</span>
+            <span>Get Subscription ($16/mo)</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
