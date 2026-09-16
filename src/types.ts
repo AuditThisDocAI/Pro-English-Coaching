@@ -215,3 +215,13 @@ export interface FlashcardDeck {
   cards: Flashcard[];
 }
 
+
+export interface StudyPlanItem {
+  id: string;
+  dayNumber: number;
+  title: string;
+  description: string;
+  durationMins: number;
+  completed: boolean;
+  topic: string;
+}

@@ -189,7 +189,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <p className="text-indigo-100 text-xs leading-relaxed">
               {currentUser 
                 ? 'Manage your cloud saved phrases, trial status, and active subscription.' 
-                : 'Sign in to access your 1-day free trial, sync saved phrases, and manage your account.'}
+                : 'Sign in to access your 3-day free trial, sync saved phrases, and manage your account.'}
             </p>
           </div>
 
@@ -266,7 +266,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       ) : trialInfo && !trialInfo.isTrialExpired ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded-full">
                           <Sparkles className="w-3 h-3 text-indigo-600" />
-                          1-Day Trial Active
+                          3-Day Trial Active
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full">
@@ -295,7 +295,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
                 </div>
 
-                {/* 1-Day Trial Card if active */}
+                {/* 3-Day Trial Card if active */}
                 {!isPro && trialInfo && (
                   <div className={`p-4 rounded-2xl border text-xs space-y-2 ${
                     trialInfo.isTrialExpired 
@@ -305,7 +305,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <div className="flex items-center justify-between font-bold">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-emerald-600" />
-                        <span>1-Day Free Trial Status</span>
+                        <span>3-Day Free Trial Status</span>
                       </span>
                       <span className={`text-[10px] px-2.5 py-0.5 rounded-md font-extrabold ${
                         trialInfo.isTrialExpired ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
@@ -315,7 +315,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
                     <p className="text-[11px] leading-relaxed text-neutral-600">
                       {trialInfo.isTrialExpired 
-                        ? 'Your 1-day free trial has expired. To continue using all AI coaching features, voice calls, and sentence cards, please subscribe to Pro.'
+                        ? 'Your 3-day free trial has expired. To continue using all AI coaching features, voice calls, and sentence cards, please subscribe to Pro.'
                         : `You have full unrestricted access to all features. Time remaining: ${trialInfo.formattedTimeRemaining}.`}
                     </p>
                     {trialInfo.isTrialExpired && (
@@ -338,12 +338,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             type="button"
                             onClick={() => {
                               onResetTrial();
-                              setSuccessMessage('Fresh 1-Day Free Trial activated!');
+                              setSuccessMessage('Fresh 3-Day Free Trial activated!');
                             }}
                             className="w-full py-2 px-3 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Activate / Restart 1-Day Free Trial</span>
+                            <span>Activate / Restart 3-Day Free Trial</span>
                           </button>
                         )}
                       </div>
@@ -580,7 +580,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <>
                         <span>
                           {authMode === 'signin' && 'Sign In with Email'}
-                          {authMode === 'signup' && 'Create Account & Start 1-Day Trial'}
+                          {authMode === 'signup' && 'Create Account & Start 3-Day Trial'}
                           {authMode === 'reset' && 'Send Password Reset Link'}
                         </span>
                         <ArrowRight className="w-4 h-4" />
@@ -602,7 +602,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="space-y-2 text-xs text-neutral-600 pt-2 border-t border-neutral-100">
                   <div className="flex items-center gap-2 text-neutral-500">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>1 day (24 hours) of free unlimited AI practice</span>
+                    <span>3 days (72 hours) of free unlimited AI practice</span>
                   </div>
                   <div className="flex items-center gap-2 text-neutral-500">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />

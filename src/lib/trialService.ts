@@ -1,7 +1,7 @@
 import { User } from 'firebase/auth';
 
-export const TRIAL_DURATION_DAYS = 1;
-export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000; // 1 day (24 hours)
+export const TRIAL_DURATION_DAYS = 3;
+export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000; // 3 days (72 hours)
 
 export interface TrialInfo {
   isPro: boolean;
@@ -119,11 +119,11 @@ export function calculateTrialInfo(
   const hoursLeft = Math.floor((totalSecondsLeft % (24 * 3600)) / 3600);
   const minutesLeft = Math.floor((totalSecondsLeft % 3600) / 60);
 
-  let formattedTimeRemaining = '1-Day Free Trial';
+  let formattedTimeRemaining = '3-Day Free Trial';
   if (isPro) {
     formattedTimeRemaining = 'Pro Member (Unlimited)';
   } else if (isTrialExpired) {
-    formattedTimeRemaining = '1-Day Free Trial Expired';
+    formattedTimeRemaining = '3-Day Free Trial Expired';
   } else if (hoursLeft > 0) {
     formattedTimeRemaining = `${hoursLeft}h ${minutesLeft}m left in free trial`;
   } else if (minutesLeft > 0) {
@@ -153,7 +153,7 @@ export function calculateTrialInfo(
 }
 
 /**
- * Grants a fresh 1-day trial period, clearing any stale expired flags.
+ * Grants a fresh 3-day trial period, clearing any stale expired flags.
  */
 export function grantFreshTrial(user: User | null): string {
   const now = new Date().toISOString();
@@ -168,7 +168,7 @@ export function grantFreshTrial(user: User | null): string {
 }
 
 /**
- * Resets the 1-day trial for testing/demonstration purposes.
+ * Resets the 3-day trial for testing/demonstration purposes.
  */
 export function resetTrialForTesting(user: User | null): string {
   const now = new Date().toISOString();

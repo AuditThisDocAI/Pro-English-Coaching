@@ -18,6 +18,8 @@ import {
   generateQuizQuestions
 } from './server/aiCoach.ts';
 
+import { generateStudyPlan } from './server/studyPlan';
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -144,6 +146,19 @@ async function startServer() {
   });
 
   // App-Provided Basic English Flashcards Generator API Route
+  app.post('/api/generate-study-plan', async (req, res) => {
+    try {
+      const { count, nativeLanguage, level } = req.body;
+      const plans = await generateStudyPlan({ count, nativeLanguage, level });
+      return res.json({ plans });
+    } catch (error: any) {
+      console.error('Error generating study plan:', error);
+      return res.status(500).json({
+        error: error?.message || 'Failed to generate study plan.',
+      });
+    }
+  });
+
   app.post('/api/generate-cards', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {

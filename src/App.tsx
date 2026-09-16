@@ -27,7 +27,9 @@ import { PaywallOverlay } from './components/PaywallOverlay';
 import { FunLandingPage } from './components/FunLandingPage';
 import { FunLearningHub } from './components/FunLearningHub';
 import { FunWordMatchGame } from './components/FunWordMatchGame';
+import { StudyPlanDashboard } from './components/StudyPlanDashboard';
 import { SpeakerSpeedControl } from './components/SpeakerSpeedControl';
+import { Target } from 'lucide-react';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { CoachAudioReplayBanner } from './components/CoachAudioReplayBanner';
 import { 
@@ -100,7 +102,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
 
   // Active navigation tab (Landing page is primary welcoming view)
-  const [activeTab, setActiveTab] = useState<'landing' | 'lessons' | 'chat' | 'game' | 'quiz' | 'roleplays' | 'call' | 'dashboard' | 'analytics'>('landing');
+  const [activeTab, setActiveTab] = useState<'landing' | 'study-plan' | 'lessons' | 'chat' | 'game' | 'quiz' | 'roleplays' | 'call' | 'dashboard' | 'analytics'>('landing');
   const [selectedHubTopic, setSelectedHubTopic] = useState<string>('all');
 
   // Quota & Pro Subscription State
@@ -167,7 +169,15 @@ export default function App() {
 
   // Listen to Firebase Auth state & isolate quotas per user
   useEffect(() => {
+    let activeUnsubPhrases: (() => void) | null = null;
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Clean up previous phrases listener if it exists
+      if (activeUnsubPhrases) {
+        activeUnsubPhrases();
+        activeUnsubPhrases = null;
+      }
+
       setCurrentUser(user);
       if (user) {
         try {
@@ -240,16 +250,12 @@ export default function App() {
           console.warn('Error loading user profile:', err);
         }
 
-        const unsubPhrases = subscribeToSavedPhrases(user.uid, (remotePhrases) => {
+        activeUnsubPhrases = subscribeToSavedPhrases(user.uid, (remotePhrases) => {
           if (remotePhrases) {
             setSavedPhrases(remotePhrases);
             localStorage.setItem(getUserStorageKey(user, 'saved_phrases'), JSON.stringify(remotePhrases));
           }
         });
-
-        return () => {
-          unsubPhrases?.();
-        };
       } else {
         const guestCount = loadUserChatCount(null);
         const guestPro = loadUserIsPro(null);
@@ -270,7 +276,12 @@ export default function App() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (activeUnsubPhrases) {
+        activeUnsubPhrases();
+      }
+      unsubscribe();
+    };
   }, []);
 
   // Sync preference state changes
@@ -437,6 +448,7 @@ export default function App() {
         <nav className="hidden lg:flex items-center gap-1 bg-neutral-100/80 p-1 rounded-2xl border border-neutral-200/80 text-xs font-bold">
           {[
             { id: 'landing', label: 'Home', icon: <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> },
+            { id: 'study-plan', label: 'Study Plan', icon: <Target className="w-3.5 h-3.5 text-rose-500" /> },
             { id: 'lessons', label: 'Fun Lessons', icon: <BookOpen className="w-3.5 h-3.5 text-teal-600" /> },
             { id: 'chat', label: 'AI Chat Buddy', icon: <MessageSquare className="w-3.5 h-3.5 text-sky-600" /> },
             { id: 'game', label: 'Word Match', icon: <Gamepad2 className="w-3.5 h-3.5 text-amber-600" /> },
@@ -502,7 +514,7 @@ export default function App() {
             )}
           </button>
 
-          {/* Pro / 1-Day Free Trial Button */}
+          {/* Pro / 3-Day Free Trial Button */}
           {isPro ? (
             <button
               type="button"
@@ -518,7 +530,7 @@ export default function App() {
               type="button"
               onClick={() => navigate('/pricing')}
               className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-[10px] sm:text-xs font-black shadow-sm transition-all cursor-pointer animate-pulse shrink-0"
-              title="1-Day complimentary trial concluded. Upgrade to Pro."
+              title="3-Day complimentary trial concluded. Upgrade to Pro."
             >
               <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span className="hidden sm:inline">Trial Expired • Upgrade</span>
@@ -529,10 +541,10 @@ export default function App() {
               type="button"
               onClick={() => navigate('/pricing')}
               className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-90 text-white text-[10px] sm:text-xs font-extrabold shadow-sm transition-all cursor-pointer shrink-0"
-              title="1-Day Free Trial Active. Click to view Pro plans."
+              title="3-Day Free Trial Active. Click to view Pro plans."
             >
               <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
-              <span className="hidden sm:inline">1-Day Trial ({trialInfo.hoursLeft}h left) • Go Pro</span>
+              <span className="hidden sm:inline">3-Day Trial ({trialInfo.hoursLeft}h left) • Go Pro</span>
               <span className="sm:hidden">{trialInfo.hoursLeft}h left</span>
             </button>
           )}
@@ -598,6 +610,28 @@ export default function App() {
               setActiveTab('lessons');
             }}
           />
+        )}
+
+        {activeTab === 'study-plan' && (
+          trialInfo.canAccess ? (
+            <StudyPlanDashboard 
+              isPro={isPro}
+              user={currentUser}
+              userProfile={userProfileObj}
+              onOpenPaywall={() => navigate('/pricing')}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
+              onStartLesson={(topic) => {
+                setSelectedHubTopic(topic);
+                setActiveTab('lessons');
+              }}
+            />
+          ) : (
+            <PaywallOverlay
+              featureName="Personalized Study Plan"
+              onUpgrade={() => navigate('/pricing')}
+              onOpenSignIn={() => setIsAuthModalOpen(true)}
+            />
+          )
         )}
 
         {/* 2. Interactive Lessons Hub for Everyday Life */}
@@ -855,6 +889,7 @@ export default function App() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-neutral-200 px-2 py-2 flex items-center justify-around shadow-lg">
         {[
           { id: 'landing', label: 'Home', icon: <Home className="w-5 h-5" /> },
+          { id: 'study-plan', label: 'Plan', icon: <Target className="w-5 h-5" /> },
           { id: 'lessons', label: 'Lessons', icon: <BookOpen className="w-5 h-5" /> },
           { id: 'chat', label: 'AI Chat', icon: <MessageSquare className="w-5 h-5" /> },
           { id: 'game', label: 'Game', icon: <Gamepad2 className="w-5 h-5" /> },
