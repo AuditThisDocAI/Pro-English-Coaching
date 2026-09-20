@@ -153,18 +153,42 @@ export function calculateTrialInfo(
 }
 
 /**
- * Grants a fresh 3-day trial period, clearing any stale expired flags.
+ * Checks if the user has completed payment to renew/activate the 3-day trial.
  */
-export function grantFreshTrial(user: User | null): string {
+export function hasPaidForTrialRenewal(user: User | null): boolean {
+  if (typeof window === 'undefined') return false;
+  if (user && user.uid) {
+    return localStorage.getItem(`proenglish_user_${user.uid}_paid_trial_renewal`) === 'true' ||
+           localStorage.getItem(`proenglish_user_${user.uid}_is_pro`) === 'true';
+  }
+  return localStorage.getItem('proenglish_guest_paid_trial_renewal') === 'true' ||
+         localStorage.getItem('proenglish_guest_is_pro') === 'true';
+}
+
+/**
+ * Grants a paid 3-day trial renewal upon verified successful payment/checkout.
+ * Users are ONLY allowed to activate or renew the 3-day trial once payment has been completed.
+ */
+export function grantPaidTrialRenewal(user: User | null): string {
   const now = new Date().toISOString();
   if (typeof window !== 'undefined') {
     if (user && user.uid) {
       localStorage.setItem(`proenglish_user_${user.uid}_trial_start_date`, now);
+      localStorage.setItem(`proenglish_user_${user.uid}_paid_trial_renewal`, 'true');
     }
     localStorage.setItem('proenglish_guest_trial_start_date', now);
+    localStorage.setItem('proenglish_guest_paid_trial_renewal', 'true');
     localStorage.removeItem('proenglish_device_trial_start');
   }
   return now;
+}
+
+/**
+ * Deprecated free trial reset: strictly replaced by grantPaidTrialRenewal.
+ * Maintained as alias for backward compatibility only after checkout confirmation.
+ */
+export function grantFreshTrial(user: User | null): string {
+  return grantPaidTrialRenewal(user);
 }
 
 /**

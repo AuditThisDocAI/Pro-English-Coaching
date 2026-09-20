@@ -23,13 +23,12 @@ export const GROQ_CANDIDATE_MODELS = [
   'mixtral-8x7b-32768',
 ];
 
-// Up-to-date Gemini models per Google AI Studio guidance with broad resilience against temporary spikes
+// Up-to-date Gemini models per Google AI Studio guidance
 export const GEMINI_CANDIDATE_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-flash-latest',
-  'gemini-3.1-flash-lite',
-  'gemini-3.6-flash',
   'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
 ];
 
 export interface LanguageMeta {
@@ -1906,6 +1905,7 @@ export interface GenerateCardsParams {
   topic: string;
   nativeLanguage?: string;
   count?: number;
+  existingScenarios?: string[];
 }
 
 export interface GeneratedCard {
@@ -1927,15 +1927,19 @@ export interface GeneratedCard {
 }
 
 export async function generateBasicEnglishFlashcards(params: GenerateCardsParams): Promise<GeneratedCard[]> {
-  const { topic = 'Everyday English', nativeLanguage = 'English', count = 3 } = params;
-  const safeCount = Math.min(Math.max(count, 1), 6);
+  const { topic = 'Everyday English', nativeLanguage = 'English', count = 3, existingScenarios = [] } = params;
+  const safeCount = Math.min(Math.max(count, 1), 100);
   const meta = resolveLanguageMeta(nativeLanguage);
+
+  const existingConstraint = existingScenarios.length > 0 
+    ? `\nCRITICAL: DO NOT GENERATE any of the following scenarios, they already exist:\n${existingScenarios.join('\n')}\nMake sure to generate ${safeCount} completely UNIQUE and non-repeating scenarios.` 
+    : `\nMake sure to generate ${safeCount} completely UNIQUE and non-repeating scenarios.`;
 
   const systemInstruction = `You are an expert English language coach creating flashcards for English Coach.
 CRITICAL CONSTRAINT: STRICTLY BASIC ENGLISH ONLY (A1–A2 Level).
 The target learners are non-native speakers who need simple, practical, daily conversational English.
 DO NOT use executive buzzwords, advanced corporate jargon, or complicated idioms.
-Keep the English vocabulary easy, clean, polite, and natural for daily life (e.g., shopping, greetings, food, directions, daily work).
+Keep the English vocabulary easy, clean, polite, and natural for daily life (e.g., shopping, greetings, food, directions, daily work).${existingConstraint}
 
 For each card:
 1. "front": Casual everyday situation or question prompt (in simple English).

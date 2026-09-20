@@ -25,7 +25,7 @@ Make sure topics progress logically.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       contents: systemPrompt,
       config: {
         temperature: 0.7,
@@ -34,7 +34,10 @@ Make sure topics progress logically.`;
     });
     
     if (response.text) {
-      const parsed = JSON.parse(response.text);
+      let rawText = response.text || '';
+      rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(rawText);
+      
       if (Array.isArray(parsed)) {
         return parsed.map((item, idx) => ({
           id: `plan_${Date.now()}_${idx}`,

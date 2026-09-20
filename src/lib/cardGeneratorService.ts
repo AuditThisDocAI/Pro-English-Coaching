@@ -300,13 +300,14 @@ export const PRESET_STARTER_PACKS: StarterCardPack[] = [
 export async function generateBasicEnglishCards(
   topic: string,
   nativeLanguage: string = 'Spanish',
-  count: number = 3
+  count: number = 3,
+  existingScenarios: string[] = []
 ): Promise<Flashcard[]> {
   try {
     const res = await fetch('/api/generate-cards', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, nativeLanguage, count }),
+      body: JSON.stringify({ topic, nativeLanguage, count, existingScenarios }),
     });
 
     if (res.ok) {
@@ -326,14 +327,16 @@ export async function generateBasicEnglishCards(
 
   // Local fallback generator from rich 100 lessons bank if API is offline or exhausted
   const matchedLessons = LESSONS_BANK_100.filter(l => 
-    l.topicId.toLowerCase().includes(topic.toLowerCase()) || 
+    !existingScenarios.includes(l.scenario) &&
+    (l.topicId.toLowerCase().includes(topic.toLowerCase()) || 
     l.topicName.toLowerCase().includes(topic.toLowerCase()) ||
     l.scenario.toLowerCase().includes(topic.toLowerCase()) ||
     topic.toLowerCase() === 'all' ||
-    topic.toLowerCase() === 'everyday life'
+    topic.toLowerCase() === 'everyday life')
   );
 
-  const pool = matchedLessons.length >= count ? matchedLessons : LESSONS_BANK_100;
+  const fallbackPool = LESSONS_BANK_100.filter(l => !existingScenarios.includes(l.scenario));
+  const pool = matchedLessons.length >= count ? matchedLessons : fallbackPool;
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   const selectedLessons = shuffled.slice(0, count);
 

@@ -318,6 +318,12 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
 
   // Find the most recent tutor response for fast keyboard replay ('R' shortcut)
   const mostRecentCoachMsg = [...messages].reverse().find(m => m.sender === 'tutor');
+  const mostRecentUserMsg = [...messages].reverse().find(m => m.sender === 'user');
+
+  // Quick Translate Floating Action Button State & Breakdown Modal
+  const [showQuickTranslateModal, setShowQuickTranslateModal] = useState(false);
+  const [isFabTranslating, setIsFabTranslating] = useState(false);
+
   const { isRecentlyTriggered, triggerReplay } = useCoachAudioReplay(
     mostRecentCoachMsg ? {
       id: mostRecentCoachMsg.id,
@@ -440,9 +446,13 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
   };
 
   // Dynamic Translation for individual messages
-  const handleToggleTranslation = async (msgId: string, text: string) => {
-    const currentExpanded = showTranslations[msgId] ?? autoTranslate;
-    if (currentExpanded && !autoTranslate) {
+  const handleToggleTranslation = async (msgId: string, text: string, forceShow?: boolean) => {
+    const isUserMsg = msgId.startsWith('user-');
+    const currentExpanded = showTranslations[msgId] !== undefined
+      ? showTranslations[msgId]
+      : (isUserMsg ? false : autoTranslate);
+
+    if (!forceShow && currentExpanded) {
       setShowTranslations((prev) => ({ ...prev, [msgId]: false }));
       return;
     }
@@ -455,7 +465,7 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
 
     setTranslatingIds((prev) => new Set(prev).add(msgId));
     try {
-      const translated = await translateText(text, nativeLanguage);
+      const translated = await translateText(text, nativeLanguage, isUserMsg ? 'English' : undefined);
       setTranslationsCache((prev) => ({ ...prev, [cacheKey]: translated }));
     } catch (err) {
       console.warn('Translate error:', err);
@@ -467,6 +477,28 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
         next.delete(msgId);
         return next;
       });
+    }
+  };
+
+  // Handler for Quick Translate Floating Action Button (FAB)
+  const handleQuickTranslateLastMessage = async () => {
+    if (!mostRecentUserMsg) return;
+
+    setShowQuickTranslateModal(true);
+    setIsFabTranslating(true);
+
+    try {
+      // 1. Ensure user's last message is translated into their native language and displayed
+      await handleToggleTranslation(mostRecentUserMsg.id, mostRecentUserMsg.text, true);
+
+      // 2. Ensure coach's explanation is also translated
+      if (mostRecentCoachMsg) {
+        await handleToggleTranslation(mostRecentCoachMsg.id, mostRecentCoachMsg.text, true);
+      }
+    } catch (err) {
+      console.warn('Quick translate last message error:', err);
+    } finally {
+      setIsFabTranslating(false);
     }
   };
 
@@ -862,15 +894,21 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
               setShowQuickLookup(!showQuickLookup);
               if (showDraftHelper) setShowDraftHelper(false);
             }}
-            className={`px-2.5 py-1 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer border ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer border shadow-sm hover:shadow-md ${
               showQuickLookup
-                ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
-                : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                ? 'bg-purple-600 text-white border-purple-600 ring-2 ring-purple-600/20'
+                : 'bg-purple-50 text-purple-800 border-purple-200 hover:bg-purple-100 hover:border-purple-300'
             }`}
             title="Quickly look up any word or idiom during the chat"
           >
-            <BookOpen className="w-3.5 h-3.5 text-purple-600" />
-            <span className="hidden sm:inline">Quick Lookup</span>
+            <BookOpen className={`w-4 h-4 ${showQuickLookup ? 'text-white' : 'text-purple-600'}`} />
+            <span>In-Chat Translator</span>
+            {!showQuickLookup && (
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+              </span>
+            )}
           </button>
 
           {/* Replay Audio Shortcut Button */}
@@ -1085,7 +1123,9 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
           const currentTranslation = translationsCache[cacheKey] || 
             (msg.translation && (msg.id === 'welcome-1' ? getWelcomeTranslation(selectedPersona.name, nativeLanguage) : msg.translation));
           
-          const isTranslationVisible = showTranslations[msg.id] ?? autoTranslate;
+          const isTranslationVisible = isUser 
+            ? (showTranslations[msg.id] ?? false)
+            : (showTranslations[msg.id] ?? autoTranslate);
           const isTranslating = translatingIds.has(msg.id);
 
           return (
@@ -1230,25 +1270,33 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
-                      className="mt-2.5 p-3 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950 font-medium space-y-1"
+                      className={`mt-2.5 p-3 rounded-2xl ${
+                        isUser
+                          ? 'bg-indigo-700/80 border border-indigo-400/70 text-white'
+                          : 'bg-emerald-50/90 border border-emerald-200 text-xs text-emerald-950'
+                      } text-xs font-medium space-y-1`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-extrabold text-[10px] text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <span className={`font-extrabold text-[10px] ${
+                          isUser ? 'text-indigo-200' : 'text-emerald-800'
+                        } uppercase tracking-wider flex items-center gap-1.5`}>
                           <span>{currentLangObj.flag}</span>
                           <span>{currentLangObj.name} Translation</span>
                         </span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded ${
+                          isUser ? 'bg-indigo-800 text-indigo-200' : 'bg-emerald-100 text-emerald-800'
+                        } font-extrabold`}>
                           Instant AI Translation
                         </span>
                       </div>
 
                       {isTranslating ? (
-                        <div className="flex items-center gap-2 py-1 text-emerald-700 animate-pulse">
+                        <div className={`flex items-center gap-2 py-1 ${isUser ? 'text-indigo-200' : 'text-emerald-700'} animate-pulse`}>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Translating response to {currentLangObj.name}...</span>
+                          <span>Translating to {currentLangObj.name}...</span>
                         </div>
                       ) : (
-                        <p className="leading-relaxed font-semibold text-emerald-900">
+                        <p className={`leading-relaxed font-semibold ${isUser ? 'text-white' : 'text-emerald-900'}`}>
                           {currentTranslation || 'Translation ready'}
                         </p>
                       )}
@@ -1326,6 +1374,49 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
         )}
 
         <div ref={messagesEndRef} />
+
+        {/* Quick Translate Floating Action Button (FAB) for user's last message */}
+        {mostRecentUserMsg && (
+          <div className="sticky bottom-3 flex justify-end pointer-events-none z-20 pr-1 pb-1">
+            <motion.button
+              type="button"
+              id="fab-quick-translate-last-msg"
+              onClick={handleQuickTranslateLastMessage}
+              initial={{ opacity: 0, scale: 0.85, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-2.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-lg shadow-emerald-950/25 hover:shadow-xl hover:shadow-emerald-950/35 border border-emerald-400/40 cursor-pointer transition-all active:scale-95 group"
+              title={`Quick Translate your last sent message into ${currentLangObj.name} to check understanding`}
+            >
+              <span className="relative flex items-center justify-center">
+                {isFabTranslating ? (
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                ) : (
+                  <Languages className="w-4 h-4 text-emerald-100 group-hover:rotate-12 transition-transform duration-300" />
+                )}
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                </span>
+              </span>
+
+              <div className="flex flex-col items-start leading-none text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black tracking-wide">
+                    Quick Translate
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-[9px] font-extrabold uppercase">
+                    {currentLangObj.flag}
+                  </span>
+                </div>
+                <span className="text-[9px] text-emerald-100 font-medium hidden sm:inline">
+                  Translate last message & explanation
+                </span>
+              </div>
+            </motion.button>
+          </div>
+        )}
       </div>
 
       {/* Suggested Follow-up Quick Reply Chips */}
@@ -1541,6 +1632,212 @@ export const TalkPalChatTutor: React.FC<TalkPalChatTutorProps> = ({
           <span className="hidden sm:inline font-medium text-neutral-500">Speed: {speed}x</span>
         </div>
       </div>
+
+      {/* Quick Translate & Understanding Breakdown Overlay */}
+      <AnimatePresence>
+        {showQuickTranslateModal && mostRecentUserMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="absolute inset-x-3 bottom-14 sm:inset-x-6 sm:bottom-16 z-40 bg-white/95 backdrop-blur-md rounded-3xl border border-emerald-300/80 shadow-2xl overflow-hidden flex flex-col max-h-[82%]"
+          >
+            {/* Header */}
+            <div className="px-4 sm:px-5 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-white shrink-0">
+                  <Languages className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-extrabold text-sm tracking-tight text-white">
+                      Quick Comprehension & Understanding Breakdown
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-extrabold uppercase">
+                      {currentLangObj.flag} {currentLangObj.name}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-100 hidden sm:block">
+                    Verify what you sent and {selectedPersona.name}'s explanation side-by-side
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                id="close-quick-translate-modal"
+                onClick={() => setShowQuickTranslateModal(false)}
+                className="p-1.5 rounded-xl hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer shrink-0"
+                title="Close breakdown"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs text-neutral-800">
+              {/* Card 1: User's Last Sent Message */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Your Sent Message (English)</span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      id="listen-user-last-msg-btn"
+                      onClick={() => speak(mostRecentUserMsg.text, { rate: speed })}
+                      className="px-2 py-0.5 rounded-md bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                    >
+                      <Volume2 className="w-3 h-3" />
+                      <span>Listen</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(mostRecentUserMsg.text, 'copy-user-last')}
+                      className="p-1 rounded-md text-indigo-600 hover:bg-white transition-colors cursor-pointer"
+                      title="Copy English message"
+                    >
+                      {copiedId === 'copy-user-last' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                </div>
+
+                <p className="font-semibold text-neutral-900 text-sm sm:text-base leading-relaxed">
+                  "{mostRecentUserMsg.text}"
+                </p>
+
+                {/* Translation in Native Language */}
+                <div className="pt-2 border-t border-indigo-100 flex flex-col gap-1">
+                  <span className="text-[10px] font-extrabold uppercase text-indigo-600 flex items-center gap-1">
+                    <span>{currentLangObj.flag}</span>
+                    <span>Your Words in {currentLangObj.name}:</span>
+                  </span>
+                  {isFabTranslating && !translationsCache[`${mostRecentUserMsg.id}_${nativeLanguage}`] ? (
+                    <div className="flex items-center gap-1.5 text-indigo-600 animate-pulse py-1">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Translating your sentence...</span>
+                    </div>
+                  ) : (
+                    <p className="font-bold text-indigo-950 text-sm bg-white p-2.5 rounded-xl border border-indigo-100">
+                      {translationsCache[`${mostRecentUserMsg.id}_${nativeLanguage}`] || 'Translation ready'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 2: AI Coach's Explanation & Response */}
+              {mostRecentCoachMsg && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                      <span>{selectedPersona.avatar}</span>
+                      <span>{selectedPersona.name}'s Explanation & Response</span>
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        id="listen-coach-last-msg-btn"
+                        onClick={() => speak(mostRecentCoachMsg.text, { 
+                          rate: speed,
+                          gender: selectedPersona.gender,
+                          pitch: selectedPersona.voicePitch
+                        })}
+                        className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50 font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                      >
+                        <Volume2 className="w-3 h-3" />
+                        <span>Listen Coach</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(mostRecentCoachMsg.text, 'copy-coach-last')}
+                        className="p-1 rounded-md text-emerald-700 hover:bg-white transition-colors cursor-pointer"
+                        title="Copy coach response"
+                      >
+                        {copiedId === 'copy-coach-last' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="font-semibold text-neutral-900 text-sm leading-relaxed">
+                    "{mostRecentCoachMsg.text}"
+                  </p>
+
+                  {/* Tutor Translation */}
+                  <div className="pt-2 border-t border-emerald-100 flex flex-col gap-1">
+                    <span className="text-[10px] font-extrabold uppercase text-emerald-700 flex items-center gap-1">
+                      <span>{currentLangObj.flag}</span>
+                      <span>Explanation in {currentLangObj.name}:</span>
+                    </span>
+                    {isFabTranslating && !(translationsCache[`${mostRecentCoachMsg.id}_${nativeLanguage}`] || mostRecentCoachMsg.translation) ? (
+                      <div className="flex items-center gap-1.5 text-emerald-700 animate-pulse py-1">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Translating explanation into {currentLangObj.name}...</span>
+                      </div>
+                    ) : (
+                      <p className="font-bold text-emerald-950 text-sm bg-white p-2.5 rounded-xl border border-emerald-100">
+                        {translationsCache[`${mostRecentCoachMsg.id}_${nativeLanguage}`] || 
+                         (mostRecentCoachMsg.id === 'welcome-1' ? getWelcomeTranslation(selectedPersona.name, nativeLanguage) : mostRecentCoachMsg.translation) || 
+                         'Translation ready'}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* If coach gave a phrasing upgrade / grammar tip */}
+                  {mostRecentCoachMsg.formalCorrection && (
+                    <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-1">
+                      <div className="flex items-center gap-1.5 font-black text-amber-900 text-[11px]">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Natural Phrasing Upgrade Provided:</span>
+                      </div>
+                      <p className="font-bold text-neutral-900">
+                        "{mostRecentCoachMsg.formalCorrection.formalAlternative}"
+                      </p>
+                      <p className="text-[11px] text-amber-900/80">
+                        <strong>Why:</strong> {mostRecentCoachMsg.formalCorrection.why}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Bottom confirmation and action bar */}
+              <div className="pt-1 flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Translations are now active in your chat bubbles</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    id="scroll-to-last-msg-chat"
+                    onClick={() => {
+                      setShowQuickTranslateModal(false);
+                      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs cursor-pointer transition-colors"
+                  >
+                    View in Chat
+                  </button>
+                  <button
+                    type="button"
+                    id="understood-quick-translate-btn"
+                    onClick={() => setShowQuickTranslateModal(false)}
+                    className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>I Understand!</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

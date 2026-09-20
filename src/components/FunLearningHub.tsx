@@ -397,7 +397,9 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
     try {
       const topicString = selectedTopic === 'all' ? 'Everyday Life' : selectedTopic;
       const { generateBasicEnglishCards } = await import('../lib/cardGeneratorService');
-      const newCards = await generateBasicEnglishCards(topicString, nativeLanguage, 4);
+      
+      const existingScenarios = Array.from(new Set(lessons.map(l => l.scenario)));
+      const newCards = await generateBasicEnglishCards(topicString, nativeLanguage, 100, existingScenarios);
       
       const mappedLessons: LessonPhrase[] = newCards.map(c => ({
         id: c.id,

@@ -36,7 +36,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
     },
     {
       q: "Is there a free trial available?",
-      a: "Absolutely. We offer a generous free tier so you can experience the power of AI-driven language coaching before upgrading."
+      a: "Yes. Every new user receives 3 days of complimentary access with their subscription checkout. Once the 3-day period ends, renewing your 3-day access requires completing your subscription renewal ($16/month) through our secure checkout."
     },
     {
       q: "Does it support multiple languages?",
@@ -325,7 +325,13 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
                   </li>
                 ))}
               </ul>
-              <button onClick={onOpenAuth} className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg">Start Free Trial</button>
+              <button 
+                onClick={onOpenAuth} 
+                id="landing-pricing-trial-btn"
+                className="w-full py-4.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-black text-base sm:text-lg shadow-xl shadow-purple-600/30 active:scale-98 transition-all cursor-pointer"
+              >
+                Start 3-Day Trial ($16/mo)
+              </button>
             </div>
           </div>
         </div>

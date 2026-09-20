@@ -6,7 +6,7 @@ import { auth } from '../lib/firebase';
 import { syncUserProfile } from '../lib/firestoreService';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 import { validateFreemiusConfig } from '../lib/freemius';
-import { calculateTrialInfo } from '../lib/trialService';
+import { calculateTrialInfo, grantPaidTrialRenewal } from '../lib/trialService';
 import asianManComputer from '../assets/images/asian_man_computer_1788796518513.jpg';
 
 export interface Tier {
@@ -89,14 +89,24 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onSuccess }) => {
           console.log('[Freemius Trial] Checkout opened successfully');
         },
         success: async () => {
+          console.log('[Freemius Trial] Checkout success callback triggered');
+        },
+        purchaseCompleted: async () => {
           try {
+            console.log('[Freemius Trial] purchaseCompleted triggered');
             const user = auth.currentUser;
             const key = user ? `proenglish_user_${user.uid}_is_pro` : 'proenglish_guest_is_pro';
             localStorage.setItem(key, 'true');
             localStorage.setItem('proenglish_guest_is_pro', 'true');
 
+            // Grant renewed 3-day trial access upon verified paid checkout
+            const newTrialStart = grantPaidTrialRenewal(user);
+
             if (user) {
-              await syncUserProfile(user.uid, { isPro: true });
+              await syncUserProfile(user.uid, { 
+                isPro: true,
+                trialStartDate: newTrialStart 
+              });
             }
 
             triggerProUpgradeConfetti();

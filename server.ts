@@ -162,11 +162,12 @@ async function startServer() {
   app.post('/api/generate-cards', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const { topic = 'Everyday English', nativeLanguage = 'English', count = 3 } = req.body || {};
+      const { topic = 'Everyday English', nativeLanguage = 'English', count = 3, existingScenarios = [] } = req.body || {};
       const cards = await generateBasicEnglishFlashcards({
         topic: typeof topic === 'string' ? topic : 'Everyday English',
         nativeLanguage: typeof nativeLanguage === 'string' ? nativeLanguage : 'English',
         count: typeof count === 'number' ? count : 3,
+        existingScenarios: Array.isArray(existingScenarios) ? existingScenarios : [],
       });
 
       return res.json({ status: 'ok', cards });

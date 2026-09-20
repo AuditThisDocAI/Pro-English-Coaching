@@ -297,53 +297,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 {/* 3-Day Trial Card if active */}
                 {!isPro && trialInfo && (
-                  <div className={`p-4 rounded-2xl border text-xs space-y-2 ${
+                  <div className={`p-4 sm:p-5 rounded-2xl border text-sm space-y-2.5 ${
                     trialInfo.isTrialExpired 
-                      ? 'bg-amber-50/90 border-amber-300 text-amber-900' 
-                      : 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+                      ? 'bg-amber-50/90 border-amber-300 text-amber-950' 
+                      : 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
                   }`}>
-                    <div className="flex items-center justify-between font-bold">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between font-extrabold text-sm sm:text-base">
+                      <span className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-emerald-600" />
                         <span>3-Day Free Trial Status</span>
                       </span>
-                      <span className={`text-[10px] px-2.5 py-0.5 rounded-md font-extrabold ${
+                      <span className={`text-xs px-2.5 py-1 rounded-md font-black ${
                         trialInfo.isTrialExpired ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900'
                       }`}>
                         {trialInfo.isTrialExpired ? 'Expired' : `${trialInfo.hoursLeft}h left`}
                       </span>
                     </div>
-                    <p className="text-[11px] leading-relaxed text-neutral-600">
+                    <p className="text-xs sm:text-sm leading-relaxed text-neutral-600">
                       {trialInfo.isTrialExpired 
-                        ? 'Your 3-day free trial has expired. To continue using all AI coaching features, voice calls, and sentence cards, please subscribe to Pro.'
+                        ? 'Your 3-day complimentary trial has ended. To activate or renew your 3-day trial and continue practice, complete your subscription checkout.'
                         : `You have full unrestricted access to all features. Time remaining: ${trialInfo.formattedTimeRemaining}.`}
                     </p>
                     {trialInfo.isTrialExpired && (
-                      <div className="flex flex-col gap-2 mt-2">
+                      <div className="flex flex-col gap-2.5 mt-3">
+                        <div className="p-3 rounded-xl bg-amber-100/90 border border-amber-300 text-amber-950 text-xs sm:text-sm font-semibold flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+                          <span>Trial renewal requires subscription payment. Active trial will be unlocked immediately after payment.</span>
+                        </div>
                         {onOpenPaymentModal && (
                           <button
                             type="button"
+                            id="pay-to-renew-trial-auth-btn"
                             onClick={() => {
                               onClose();
                               onOpenPaymentModal();
                             }}
-                            className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-amber-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                            className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:opacity-95 text-white font-extrabold rounded-xl text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
                           >
-                            <Zap className="w-3.5 h-3.5 fill-current" />
-                            <span>Upgrade to Pro ($16/mo)</span>
-                          </button>
-                        )}
-                        {onResetTrial && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onResetTrial();
-                              setSuccessMessage('Fresh 3-Day Free Trial activated!');
-                            }}
-                            className="w-full py-2 px-3 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Activate / Restart 3-Day Free Trial</span>
+                            <Zap className="w-4 h-4 fill-white" />
+                            <span>Pay to Renew 3-Day Trial ($16/mo)</span>
+                            <ArrowRight className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -443,18 +436,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {/* Google Sign-in Button */}
                 <button
                   type="button"
+                  id="google-signin-btn"
                   onClick={handleGoogleSignIn}
                   disabled={isSigningInGoogle}
-                  className="w-full py-3 px-4 bg-white hover:bg-neutral-50 text-neutral-800 font-bold rounded-2xl text-xs sm:text-sm border border-neutral-300 shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full py-3.5 px-4 bg-white hover:bg-neutral-50 text-neutral-850 font-extrabold rounded-2xl text-sm sm:text-base border border-neutral-300 shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSigningInGoogle ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-neutral-400 border-t-indigo-600 rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-neutral-400 border-t-indigo-600 rounded-full animate-spin" />
                       <span>Connecting with Google...</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                         <path
                           fill="#4285F4"
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -479,17 +473,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-neutral-200" />
-                  <span className="text-[11px] text-neutral-400 font-semibold uppercase tracking-wider">or with email</span>
+                  <span className="text-xs text-neutral-400 font-bold uppercase tracking-wider">or with email</span>
                   <div className="flex-1 h-px bg-neutral-200" />
                 </div>
 
                 {/* Auth Mode Tabs */}
-                <div className="flex rounded-xl bg-neutral-100 p-1 text-xs font-bold">
+                <div className="flex rounded-2xl bg-neutral-100 p-1.5 text-sm font-extrabold">
                   <button
                     type="button"
                     onClick={() => { setAuthMode('signin'); setError(null); setSuccessMessage(null); }}
-                    className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      authMode === 'signin' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-neutral-500 hover:text-neutral-800'
+                    className={`flex-1 py-2 rounded-xl transition-all cursor-pointer ${
+                      authMode === 'signin' ? 'bg-white text-indigo-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-800'
                     }`}
                   >
                     Sign In
@@ -497,8 +491,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <button
                     type="button"
                     onClick={() => { setAuthMode('signup'); setError(null); setSuccessMessage(null); }}
-                    className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      authMode === 'signup' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-neutral-500 hover:text-neutral-800'
+                    className={`flex-1 py-2 rounded-xl transition-all cursor-pointer ${
+                      authMode === 'signup' ? 'bg-white text-indigo-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-800'
                     }`}
                   >
                     Create Account
@@ -506,61 +500,61 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 {/* Email Form */}
-                <form onSubmit={handleEmailAuth} className="space-y-3">
+                <form onSubmit={handleEmailAuth} className="space-y-4">
                   {authMode === 'signup' && (
                     <div>
-                      <label className="block text-xs font-bold text-neutral-700 mb-1">Your Name</label>
+                      <label className="block text-sm font-extrabold text-neutral-800 mb-1.5">Your Name</label>
                       <div className="relative">
-                        <UserIcon className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <UserIcon className="w-5 h-5 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
                           value={displayName}
                           onChange={(e) => setDisplayName(e.target.value)}
                           placeholder="e.g. Alex Smith"
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-neutral-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden"
+                          className="w-full pl-11 pr-4 py-3 text-sm sm:text-base rounded-xl border border-neutral-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-hidden"
                         />
                       </div>
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-neutral-700 mb-1">Email Address</label>
+                    <label className="block text-sm font-extrabold text-neutral-800 mb-1.5">Email Address</label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Mail className="w-5 h-5 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="you@example.com"
-                        className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-neutral-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden"
+                        className="w-full pl-11 pr-4 py-3 text-sm sm:text-base rounded-xl border border-neutral-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-hidden"
                       />
                     </div>
                   </div>
 
                   {authMode !== 'reset' && (
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-xs font-bold text-neutral-700">Password</label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-extrabold text-neutral-800">Password</label>
                         {authMode === 'signin' && (
                           <button
                             type="button"
                             onClick={() => { setAuthMode('reset'); setError(null); }}
-                            className="text-[11px] text-indigo-600 hover:underline font-semibold"
+                            className="text-xs text-indigo-600 hover:underline font-bold"
                           >
                             Forgot password?
                           </button>
                         )}
                       </div>
                       <div className="relative">
-                        <KeyRound className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <KeyRound className="w-5 h-5 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="password"
                           required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-neutral-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden"
+                          className="w-full pl-11 pr-4 py-3 text-sm sm:text-base rounded-xl border border-neutral-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-hidden"
                         />
                       </div>
                     </div>
@@ -569,11 +563,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full py-3.5 px-5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-black rounded-2xl text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         <span>Processing...</span>
                       </>
                     ) : (
@@ -583,7 +577,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           {authMode === 'signup' && 'Create Account & Start 3-Day Trial'}
                           {authMode === 'reset' && 'Send Password Reset Link'}
                         </span>
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-5 h-5" />
                       </>
                     )}
                   </button>
@@ -592,26 +586,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <button
                       type="button"
                       onClick={() => { setAuthMode('signin'); setError(null); }}
-                      className="w-full text-center text-xs text-neutral-500 hover:text-indigo-600 font-semibold"
+                      className="w-full text-center text-sm text-neutral-500 hover:text-indigo-600 font-bold"
                     >
                       Back to Sign In
                     </button>
                   )}
                 </form>
 
-                <div className="space-y-2 text-xs text-neutral-600 pt-2 border-t border-neutral-100">
-                  <div className="flex items-center gap-2 text-neutral-500">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <div className="space-y-2.5 text-xs sm:text-sm text-neutral-600 pt-3 border-t border-neutral-100">
+                  <div className="flex items-center gap-2 text-neutral-600 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>3 days (72 hours) of free unlimited AI practice</span>
                   </div>
-                  <div className="flex items-center gap-2 text-neutral-500">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <div className="flex items-center gap-2 text-neutral-600 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Cloud sync across mobile, tablet, and desktop</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-1.5 text-[10px] text-neutral-400">
-                  <Lock className="w-3 h-3 text-indigo-600" />
+                <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-400 font-medium">
+                  <Lock className="w-3.5 h-3.5 text-indigo-600" />
                   <span>Secure Firebase Authentication & 256-bit encryption</span>
                 </div>
               </div>

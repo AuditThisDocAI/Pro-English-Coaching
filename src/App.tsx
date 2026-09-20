@@ -72,7 +72,7 @@ import {
   subscribeToSavedPhrases 
 } from './lib/firestoreService';
 import { triggerProUpgradeConfetti } from './lib/confetti';
-import { calculateTrialInfo, getUserTrialStartDate, grantFreshTrial } from './lib/trialService';
+import { calculateTrialInfo, getUserTrialStartDate } from './lib/trialService';
 
 const MAX_FREE_CHATS = 20;
 
@@ -375,14 +375,6 @@ export default function App() {
     }
   };
 
-  const handleResetTrial = async () => {
-    const newStart = grantFreshTrial(currentUser);
-    setTrialStartDate(newStart);
-    if (currentUser) {
-      await syncUserProfile(currentUser.uid, { trialStartDate: newStart }).catch(console.warn);
-    }
-  };
-
   const userProfileObj: UserProfile = {
     userId: currentUser?.uid || 'guest',
     email: currentUser?.email || 'guest@proenglish.ai',
@@ -402,28 +394,28 @@ export default function App() {
     <div className="min-h-screen bg-neutral-100 text-neutral-900 flex flex-col font-sans pb-20 sm:pb-0">
       
       {/* Top Main Navigation Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 px-4 sm:px-6 py-3 flex items-center justify-between shadow-2xs">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
         
         {/* Brand Logo & Tagline */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('landing')}
-            className="flex items-center gap-2 sm:gap-3 text-left group cursor-pointer"
+            className="flex items-center gap-2.5 sm:gap-3.5 text-left group cursor-pointer"
           >
-            <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-indigo-200/70 group-hover:scale-105 transition-transform shrink-0">
-              <Speech className="w-5 h-5 sm:w-8 sm:h-8" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-indigo-200/70 group-hover:scale-105 transition-transform shrink-0">
+              <Speech className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div>
-              <h1 className="font-cambria font-['Cambria',Georgia,serif] font-black text-base sm:text-xl tracking-tight text-neutral-900 leading-none">
+              <h1 className="font-cambria font-['Cambria',Georgia,serif] font-black text-lg sm:text-2xl tracking-tight text-neutral-900 leading-none">
                 English Coach
               </h1>
             </div>
           </button>
 
           {/* CEFR Level Selector */}
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold" title="Select your English proficiency level">
-            <span className="text-[10px] text-indigo-500 uppercase tracking-wider font-extrabold">Level:</span>
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50/90 border border-indigo-200 text-indigo-900 text-xs sm:text-sm font-bold shadow-2xs" title="Select your English proficiency level">
+            <span className="text-xs text-indigo-600 uppercase tracking-wider font-black">Level:</span>
             <select
               value={englishLevel}
               onChange={(e) => {
@@ -433,7 +425,7 @@ export default function App() {
                   syncUserProfile(currentUser.uid, { englishLevel: newLvl }).catch(console.error);
                 }
               }}
-              className="bg-transparent font-black text-indigo-900 focus:outline-none cursor-pointer text-xs"
+              className="bg-transparent font-black text-indigo-950 focus:outline-none cursor-pointer text-xs sm:text-sm"
             >
               <option value="A1">A1 Beginner</option>
               <option value="A2">A2 Elementary</option>
@@ -444,16 +436,16 @@ export default function App() {
           </div>
         </div>
 
-        {/* Desktop Primary Nav Tabs */}
-        <nav className="hidden lg:flex items-center gap-1 bg-neutral-100/80 p-1 rounded-2xl border border-neutral-200/80 text-xs font-bold">
+        {/* Desktop Primary Nav Tabs with larger typography */}
+        <nav className="hidden lg:flex items-center gap-1 bg-neutral-100/90 p-1.5 rounded-2xl border border-neutral-200/90 text-sm font-extrabold shadow-2xs">
           {[
-            { id: 'landing', label: 'Home', icon: <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> },
-            { id: 'study-plan', label: 'Study Plan', icon: <Target className="w-3.5 h-3.5 text-rose-500" /> },
-            { id: 'lessons', label: 'Fun Lessons', icon: <BookOpen className="w-3.5 h-3.5 text-teal-600" /> },
-            { id: 'chat', label: 'AI Chat Buddy', icon: <MessageSquare className="w-3.5 h-3.5 text-sky-600" /> },
-            { id: 'game', label: 'Word Match', icon: <Gamepad2 className="w-3.5 h-3.5 text-amber-600" /> },
-            { id: 'quiz', label: 'Everyday Cards', icon: <Layers className="w-3.5 h-3.5 text-purple-600" /> },
-            { id: 'roleplays', label: 'Daily Situations', icon: <Coffee className="w-3.5 h-3.5 text-rose-600" /> }
+            { id: 'landing', label: 'Home', icon: <Sparkles className="w-4 h-4 text-indigo-600" /> },
+            { id: 'study-plan', label: 'Study Plan', icon: <Target className="w-4 h-4 text-rose-500" /> },
+            { id: 'lessons', label: 'Fun Lessons', icon: <BookOpen className="w-4 h-4 text-teal-600" /> },
+            { id: 'chat', label: 'AI Chat Buddy', icon: <MessageSquare className="w-4 h-4 text-sky-600" /> },
+            { id: 'game', label: 'Word Match', icon: <Gamepad2 className="w-4 h-4 text-amber-600" /> },
+            { id: 'quiz', label: 'Everyday Cards', icon: <Layers className="w-4 h-4 text-purple-600" /> },
+            { id: 'roleplays', label: 'Daily Situations', icon: <Coffee className="w-4 h-4 text-rose-600" /> }
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -461,10 +453,10 @@ export default function App() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
                   isActive
-                    ? 'bg-white text-indigo-900 shadow-2xs font-extrabold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/50'
+                    ? 'bg-white text-indigo-950 shadow-xs font-black'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/60'
                 }`}
               >
                 {tab.icon}
@@ -478,12 +470,12 @@ export default function App() {
         <div className="flex items-center gap-2 sm:gap-3">
           
           {/* Native Language Selector */}
-          <div className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 transition-colors shrink-0">
-            <Languages className="w-3.5 h-3.5 text-indigo-600 shrink-0 hidden sm:block" />
+          <div className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 transition-colors shrink-0 shadow-2xs">
+            <Languages className="w-4 h-4 text-indigo-600 shrink-0 hidden sm:block" />
             <select
               value={nativeLanguage}
               onChange={(e) => setNativeLanguage(e.target.value as NativeLanguage)}
-              className="bg-transparent text-neutral-800 font-extrabold focus:outline-hidden cursor-pointer text-[11px] sm:text-xs max-w-[65px] sm:max-w-[120px] truncate"
+              className="bg-transparent text-neutral-900 font-extrabold focus:outline-hidden cursor-pointer text-xs sm:text-sm max-w-[75px] sm:max-w-[130px] truncate"
               title="Select native language for translations"
             >
               {SUPPORTED_LANGUAGES.map(lang => (
@@ -502,13 +494,13 @@ export default function App() {
           {/* Saved Vault Button */}
           <button
             onClick={() => setIsSavedModalOpen(true)}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer shrink-0"
+            className="hidden md:flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer shrink-0 shadow-2xs"
             title="View saved formal phrase library"
           >
-            <Bookmark className="w-3.5 h-3.5 text-amber-600" />
+            <Bookmark className="w-4 h-4 text-amber-600" />
             <span>Saved</span>
             {savedPhrases.length > 0 && (
-              <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-1.5 py-0.5 rounded-full">
+              <span className="bg-amber-100 text-amber-800 text-xs font-black px-2 py-0.5 rounded-full">
                 {savedPhrases.length}
               </span>
             )}
@@ -519,39 +511,41 @@ export default function App() {
             <button
               type="button"
               onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] sm:text-xs font-extrabold border border-emerald-200 shadow-2xs transition-colors cursor-pointer shrink-0"
+              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900 text-xs sm:text-sm font-black border border-emerald-300 shadow-2xs transition-colors cursor-pointer shrink-0"
               title="Manage Pro membership"
             >
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" />
+              <Sparkles className="w-4 h-4 text-emerald-700" />
               <span className="hidden sm:inline">Pro Active</span>
             </button>
           ) : trialInfo.isTrialExpired ? (
             <button
               type="button"
+              id="header-trial-expired-btn"
               onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-[10px] sm:text-xs font-black shadow-sm transition-all cursor-pointer animate-pulse shrink-0"
-              title="3-Day complimentary trial concluded. Upgrade to Pro."
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-neutral-950 text-xs sm:text-sm font-black shadow-md transition-all cursor-pointer animate-pulse shrink-0"
+              title="3-Day complimentary trial concluded. Pay to renew."
             >
-              <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden sm:inline">Trial Expired • Upgrade</span>
-              <span className="sm:hidden">Upgrade</span>
+              <Lock className="w-4 h-4" />
+              <span className="hidden sm:inline">Renew 3-Day Trial</span>
+              <span className="sm:hidden">Renew</span>
             </button>
           ) : (
             <button
               type="button"
+              id="header-trial-active-btn"
               onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-90 text-white text-[10px] sm:text-xs font-extrabold shadow-sm transition-all cursor-pointer shrink-0"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-90 text-white text-xs sm:text-sm font-extrabold shadow-md transition-all cursor-pointer shrink-0"
               title="3-Day Free Trial Active. Click to view Pro plans."
             >
-              <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
-              <span className="hidden sm:inline">3-Day Trial ({trialInfo.hoursLeft}h left) • Go Pro</span>
-              <span className="sm:hidden">{trialInfo.hoursLeft}h left</span>
+              <Zap className="w-4 h-4 fill-white" />
+              <span className="hidden sm:inline">3-Day Trial ({trialInfo.hoursLeft}h left)</span>
+              <span className="sm:hidden">{trialInfo.hoursLeft}h</span>
             </button>
           )}
 
           {/* Auth Button */}
           {currentUser ? (
-            <div className="flex items-center gap-1.5 pl-1 border-l border-neutral-200">
+            <div className="flex items-center gap-2 pl-1.5 border-l border-neutral-200">
               <button
                 onClick={() => setIsAuthModalOpen(true)}
                 className="flex items-center gap-1 p-0.5 rounded-full hover:ring-2 hover:ring-indigo-400 transition-all cursor-pointer"
@@ -561,11 +555,11 @@ export default function App() {
                   <img
                     src={currentUser.photoURL}
                     alt={currentUser.displayName || 'User'}
-                    className="w-7 h-7 rounded-full border border-indigo-300 shadow-2xs"
+                    className="w-8 h-8 rounded-full border border-indigo-300 shadow-2xs"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-xs">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-sm">
                     {currentUser.displayName?.[0]?.toUpperCase() || currentUser.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                 )}
@@ -573,19 +567,21 @@ export default function App() {
               <button
                 id="header-logout-button"
                 onClick={() => logout()}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-bold rounded-xl border border-red-200 bg-red-50/90 hover:bg-red-100 text-red-700 transition-all cursor-pointer shadow-2xs shrink-0"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-bold rounded-xl border border-red-200 bg-red-50/90 hover:bg-red-100 text-red-700 transition-all cursor-pointer shadow-2xs shrink-0"
                 title="Log out of account"
               >
-                <LogOut className="w-3.5 h-3.5 text-red-600" />
-                <span>Log Out</span>
+                <LogOut className="w-4 h-4 text-red-600" />
+                <span className="hidden sm:inline">Log Out</span>
               </button>
             </div>
           ) : (
             <button
+              type="button"
+              id="header-signin-button"
               onClick={() => setIsAuthModalOpen(true)}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors cursor-pointer shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-extrabold rounded-xl border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-800 shadow-2xs transition-all cursor-pointer shrink-0"
             >
-              <UserIcon className="w-3.5 h-3.5 text-indigo-600" />
+              <UserIcon className="w-4 h-4 text-indigo-600" />
               <span>Sign In</span>
             </button>
           )}
@@ -886,7 +882,7 @@ export default function App() {
       </footer>
 
       {/* Mobile Bottom Navigation Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-neutral-200 px-2 py-2 flex items-center justify-around shadow-lg">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-neutral-200 px-3 py-2 flex items-center justify-around shadow-lg">
         {[
           { id: 'landing', label: 'Home', icon: <Home className="w-5 h-5" /> },
           { id: 'study-plan', label: 'Plan', icon: <Target className="w-5 h-5" /> },
@@ -901,14 +897,14 @@ export default function App() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all cursor-pointer ${
-                isActive ? 'text-indigo-600 font-extrabold' : 'text-neutral-400 hover:text-neutral-700'
+              className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all cursor-pointer ${
+                isActive ? 'text-indigo-600 font-black' : 'text-neutral-500 hover:text-neutral-800 font-bold'
               }`}
             >
-              <div className={`p-1 rounded-xl transition-all ${isActive ? 'bg-indigo-50 text-indigo-600 scale-110' : ''}`}>
+              <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-indigo-50 text-indigo-600 scale-110' : ''}`}>
                 {tab.icon}
               </div>
-              <span className="text-[10px] mt-0.5 font-bold tracking-tight">{tab.label}</span>
+              <span className="text-xs mt-0.5 tracking-tight font-extrabold">{tab.label}</span>
             </button>
           );
         })}
@@ -956,7 +952,6 @@ export default function App() {
         trialInfo={trialInfo}
         onCancelSubscription={handleCancelSubscription}
         onOpenPaymentModal={() => navigate('/pricing')}
-        onResetTrial={handleResetTrial}
       />
 
       {/* GDPR / CCPA Cookie Consent Banner */}
