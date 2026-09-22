@@ -12,8 +12,13 @@ import {
   BookOpen, 
   Globe2, 
   Heart,
-  HelpCircle
+  HelpCircle,
+  Download,
+  FileText,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { NativeLanguage, SUPPORTED_LANGUAGES, CoachResponse } from '../types';
 import { triggerProUpgradeConfetti } from '../lib/confetti';
 import { useTTS } from '../lib/useTTS';
@@ -468,6 +473,218 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
     });
   };
 
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [downloadingImageId, setDownloadingImageId] = useState<string | null>(null);
+
+  // Download a single phrase card as a clean, high-resolution PNG image
+  const downloadPhraseCardImage = (phrase: LessonPhrase) => {
+    setDownloadingImageId(phrase.id);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 960;
+      canvas.height = 560;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Card Background (modern dark gradient)
+      const grad = ctx.createLinearGradient(0, 0, 960, 560);
+      grad.addColorStop(0, '#0f172a');
+      grad.addColorStop(0.5, '#1e1b4b');
+      grad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 960, 560);
+
+      // Top Accent Line (Teal to Indigo gradient)
+      const accent = ctx.createLinearGradient(0, 0, 960, 0);
+      accent.addColorStop(0, '#14b8a6');
+      accent.addColorStop(0.5, '#6366f1');
+      accent.addColorStop(1, '#ec4899');
+      ctx.fillStyle = accent;
+      ctx.fillRect(0, 0, 960, 8);
+
+      // Inner Card Frame
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(32, 32, 896, 496);
+
+      // Header Tag: Topic & Level
+      ctx.fillStyle = 'rgba(99, 102, 241, 0.25)';
+      ctx.fillRect(56, 56, 320, 44);
+      ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+      ctx.strokeRect(56, 56, 320, 44);
+
+      ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#c7d2fe';
+      ctx.fillText(`${phrase.emoji} ${phrase.topicName.toUpperCase()} • ${phrase.level.toUpperCase()}`, 74, 86);
+
+      // English Headline
+      ctx.font = 'bold 34px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      const words = phrase.english.split(' ');
+      let line = '';
+      let y = 160;
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > 820 && n > 0) {
+          ctx.fillText(line, 56, y);
+          line = words[n] + ' ';
+          y += 44;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, 56, y);
+
+      // Phonetics Transcription
+      y += 44;
+      ctx.font = '22px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#2dd4bf'; // Teal
+      ctx.fillText(`/${phrase.phonetic}/`, 56, y);
+
+      // Translation Divider
+      y += 28;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.beginPath();
+      ctx.moveTo(56, y);
+      ctx.lineTo(904, y);
+      ctx.stroke();
+
+      // Native Translation
+      y += 42;
+      const transText = phrase.translations[nativeLanguage] || phrase.english;
+      ctx.font = 'bold 26px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#fde047'; // Amber yellow
+      ctx.fillText(`${nativeLanguage}: "${transText}"`, 56, y);
+
+      // Why / Explanation
+      y += 40;
+      ctx.font = '19px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#94a3b8'; // Slate
+      const tipText = phrase.why.length > 85 ? phrase.why.substring(0, 85) + '...' : phrase.why;
+      ctx.fillText(`Tip: ${tipText}`, 56, y);
+
+      // Watermark Footer
+      ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('English Coach • ProEnglish AI • Daily Conversational Fluency', 56, 500);
+
+      // Trigger Download
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `EnglishCoach-Phrase-${phrase.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    } catch (e) {
+      console.error('Image download error:', e);
+    } finally {
+      setTimeout(() => setDownloadingImageId(null), 800);
+    }
+  };
+
+  // Download all phrases in the current filter as a printable PDF cheat sheet
+  const downloadTopicPdfSheet = () => {
+    if (filteredPhrases.length === 0) return;
+    setIsExportingPdf(true);
+
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 14;
+      const contentWidth = pageWidth - margin * 2;
+
+      // Header Banner
+      doc.setFillColor(15, 23, 42); // Slate 900
+      doc.rect(0, 0, pageWidth, 32, 'F');
+
+      // Accent Bar
+      doc.setFillColor(20, 184, 166); // Teal 500
+      doc.rect(0, 32, pageWidth, 2.5, 'F');
+
+      // Title & Subtitle
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('English Coach - Everyday Phrase Cheat Sheet', margin, 14);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(203, 213, 225);
+      doc.text(`Topic: ${selectedTopic.toUpperCase()}  •  Translation Language: ${nativeLanguage}  •  Phrases: ${filteredPhrases.length}`, margin, 23);
+
+      let y = 44;
+
+      filteredPhrases.forEach((phrase, idx) => {
+        if (y > pageHeight - 35) {
+          doc.addPage();
+          y = 18;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(148, 163, 184);
+          doc.text(`English Coach Cheat Sheet - Page ${doc.getNumberOfPages()}`, margin, y - 4);
+        }
+
+        // Phrase Card Box
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(margin, y, contentWidth, 26, 2, 2, 'FD');
+
+        // English text
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10.5);
+        doc.text(`${idx + 1}. "${phrase.english}"`, margin + 4, y + 6);
+
+        // Phonetic
+        doc.setTextColor(13, 148, 136);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.text(`/${phrase.phonetic}/`, margin + 4, y + 11.5);
+
+        // Translation
+        doc.setTextColor(180, 83, 9); // Amber 700
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        const trans = phrase.translations[nativeLanguage] || phrase.english;
+        doc.text(`[${nativeLanguage}]: ${trans}`, margin + 4, y + 17);
+
+        // Tip/Scenario
+        doc.setTextColor(100, 116, 139);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        const tipSafe = doc.splitTextToSize(`Context: ${phrase.scenario} • Tip: ${phrase.why}`, contentWidth - 10)[0];
+        doc.text(tipSafe, margin + 4, y + 22);
+
+        y += 30;
+      });
+
+      // Footer
+      y = Math.min(y + 4, pageHeight - 8);
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text('English Coach • ProEnglish AI • Downloadable Daily Study Sheet', margin, y);
+
+      doc.save(`English-Coach-${selectedTopic}-CheatSheet.pdf`);
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
       
@@ -514,6 +731,23 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
           )}
 
           <SpeakerSpeedControl variant="header" idPrefix="lessons-hub-speed" />
+
+          {/* Download Topic Study Sheet as PDF */}
+          <button
+            type="button"
+            id="download-topic-pdf-sheet-btn"
+            onClick={downloadTopicPdfSheet}
+            disabled={isExportingPdf}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50"
+            title="Download printable study sheet of these phrases as PDF"
+          >
+            {isExportingPdf ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+            ) : (
+              <FileText className="w-3.5 h-3.5 text-indigo-600" />
+            )}
+            <span>Export PDF</span>
+          </button>
 
           <div className="flex items-center gap-2 bg-neutral-50 px-3 py-1.5 rounded-xl border border-neutral-200">
             <Globe2 className="w-4 h-4 text-emerald-600" />
@@ -680,8 +914,24 @@ export const FunLearningHub: React.FC<FunLearningHubProps> = ({
                   </button>
                 </div>
 
-                {/* Chat & Save */}
+                {/* Chat & Save & Image Download */}
                 <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    id={`download-phrase-image-${phrase.id}`}
+                    onClick={() => downloadPhraseCardImage(phrase)}
+                    disabled={downloadingImageId === phrase.id}
+                    className="p-2 rounded-xl text-xs font-bold border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-600 transition-colors cursor-pointer flex items-center gap-1"
+                    title="Download phrase card as high-res PNG image"
+                  >
+                    {downloadingImageId === phrase.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                    )}
+                    <span className="text-[11px] hidden sm:inline">Image</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => handleBookmarkPhrase(phrase)}

@@ -223,7 +223,15 @@ async function startServer() {
   app.post('/api/chat-tutor', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     try {
-      const { messages = [], userInput = '', nativeLanguage = 'English', englishLevel = 'B1', coachPersona } = req.body || {};
+      const { 
+        messages = [], 
+        userInput = '', 
+        nativeLanguage = 'English', 
+        englishLevel = 'B1', 
+        coachPersona,
+        taskComplexity,
+        customSystemInstruction
+      } = req.body || {};
       if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
         return res.status(400).json({ error: 'User input is required.' });
       }
@@ -233,13 +241,57 @@ async function startServer() {
         userInput,
         nativeLanguage,
         englishLevel,
-        coachPersona
+        coachPersona,
+        taskComplexity,
+        customSystemInstruction
       });
 
       return res.json({ status: 'ok', ...result });
     } catch (error: any) {
       console.error('Chat tutor error:', error);
       return res.status(500).json({ error: error?.message || 'Failed to get chat tutor response.' });
+    }
+  });
+
+  // Dedicated Multi-turn Gemini Chat Endpoint
+  app.post('/api/gemini-chat', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const { 
+        messages = [], 
+        userInput = '', 
+        nativeLanguage = 'English', 
+        englishLevel = 'B1', 
+        coachPersona,
+        taskComplexity = 'general',
+        customSystemInstruction
+      } = req.body || {};
+
+      if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
+        return res.status(400).json({ error: 'User input is required.' });
+      }
+
+      const result = await getChatTutorResponse({
+        messages: Array.isArray(messages) ? messages.map((m: any) => ({
+          sender: (m.sender === 'user' || m.role === 'user') ? 'user' : 'tutor',
+          text: m.text || m.content || ''
+        })) : [],
+        userInput,
+        nativeLanguage,
+        englishLevel,
+        coachPersona,
+        taskComplexity,
+        customSystemInstruction
+      });
+
+      return res.json({ 
+        status: 'ok', 
+        ...result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Gemini chat error:', error);
+      return res.status(500).json({ error: error?.message || 'Failed to complete Gemini chat turn.' });
     }
   });
 

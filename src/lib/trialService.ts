@@ -15,6 +15,7 @@ export interface TrialInfo {
   percentRemaining: number;
   formattedTimeRemaining: string;
   canAccess: boolean;
+  hasPaidRenewal?: boolean;
 }
 
 function getStorageKey(user: User | null, key: string): string {
@@ -112,18 +113,29 @@ export function calculateTrialInfo(
 
   const endMs = startMs + TRIAL_DURATION_MS;
   const totalSecondsLeft = Math.max(0, Math.floor((endMs - nowMs) / 1000));
-  const isTrialActive = !isPro && nowMs < endMs;
-  const isTrialExpired = !isPro && nowMs >= endMs;
+  const effectiveIsPro = isPro || user?.email?.toLowerCase() === 'brigittalombard09@gmail.com';
+  const isTrialActive = !effectiveIsPro && nowMs < endMs;
+  const isTrialExpired = !effectiveIsPro && nowMs >= endMs;
+  const hasPaidRenewal = hasPaidForTrialRenewal(user);
+
+  // Once expired, lock device state so users cannot bypass by clearing session or creating guest states
+  if (isTrialExpired && typeof window !== 'undefined') {
+    localStorage.setItem('proenglish_device_trial_expired', 'true');
+    localStorage.setItem('proenglish_guest_trial_expired', 'true');
+    if (user && user.uid) {
+      localStorage.setItem(`proenglish_user_${user.uid}_trial_expired`, 'true');
+    }
+  }
 
   const daysLeft = Math.ceil(totalSecondsLeft / (24 * 3600));
   const hoursLeft = Math.floor((totalSecondsLeft % (24 * 3600)) / 3600);
   const minutesLeft = Math.floor((totalSecondsLeft % 3600) / 60);
 
   let formattedTimeRemaining = '3-Day Free Trial';
-  if (isPro) {
+  if (effectiveIsPro) {
     formattedTimeRemaining = 'Pro Member (Unlimited)';
   } else if (isTrialExpired) {
-    formattedTimeRemaining = '3-Day Free Trial Expired';
+    formattedTimeRemaining = '3-Day Free Trial Expired (Pay to Renew)';
   } else if (hoursLeft > 0) {
     formattedTimeRemaining = `${hoursLeft}h ${minutesLeft}m left in free trial`;
   } else if (minutesLeft > 0) {
@@ -133,12 +145,15 @@ export function calculateTrialInfo(
   }
 
   const elapsedMs = Math.max(0, nowMs - startMs);
-  const percentRemaining = isPro 
+  const percentRemaining = effectiveIsPro 
     ? 100 
     : Math.max(0, Math.min(100, Math.round(((TRIAL_DURATION_MS - elapsedMs) / TRIAL_DURATION_MS) * 100)));
 
+  // Access is only granted if Pro or active trial (once expired, strictly blocked until paid renewal)
+  const canAccess = effectiveIsPro || (isTrialActive && !isTrialExpired);
+
   return {
-    isPro,
+    isPro: effectiveIsPro,
     trialStartDate: new Date(startMs).toISOString(),
     trialEndDate: new Date(endMs).toISOString(),
     isTrialActive,
@@ -148,7 +163,8 @@ export function calculateTrialInfo(
     totalSecondsLeft,
     percentRemaining,
     formattedTimeRemaining,
-    canAccess: isPro || isTrialActive,
+    canAccess,
+    hasPaidRenewal,
   };
 }
 

@@ -5,7 +5,7 @@ import {
   Check, ArrowRight, Star, Globe, Shield, Sparkles,
   Play, BookOpen, Layers, Speech, Send, Loader2
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import asianManComputer from '../assets/images/asian_man_computer_1788796518513.jpg';
 
 export interface FunLandingPageProps {
@@ -14,6 +14,7 @@ export interface FunLandingPageProps {
 }
 
 export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onExploreMode }) => {
+  const navigate = useNavigate();
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   // Help Center form state
@@ -326,7 +327,7 @@ export const FunLandingPage: React.FC<FunLandingPageProps> = ({ onOpenAuth, onEx
                 ))}
               </ul>
               <button 
-                onClick={onOpenAuth} 
+                onClick={() => navigate('/pricing')} 
                 id="landing-pricing-trial-btn"
                 className="w-full py-4.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-black text-base sm:text-lg shadow-xl shadow-purple-600/30 active:scale-98 transition-all cursor-pointer"
               >

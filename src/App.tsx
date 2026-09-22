@@ -115,7 +115,16 @@ export default function App() {
   // User Profile details
   const [englishLevel, setEnglishLevel] = useState<EnglishCEFRLevel>('A2');
   const [learningGoal, setLearningGoal] = useState<EnglishGoal>('daily_conversation');
-  const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number>(10);
+  const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('proenglish_daily_goal_minutes');
+      if (saved) {
+        const val = parseInt(saved, 10);
+        if (!isNaN(val) && val > 0) return val;
+      }
+    }
+    return 15;
+  });
   const [xpPoints, setXpPoints] = useState<number>(140);
   const [streakDays, setStreakDays] = useState<number>(3);
 
@@ -212,16 +221,22 @@ export default function App() {
             localStorage.setItem(getUserStorageKey(user, 'is_pro'), pro.toString());
             localStorage.setItem(getUserStorageKey(user, 'trial_start_date'), trialStart);
           } else {
-            // New user registered: Grant a fresh 3-day trial and reset local counts
+            // New user registered: check if device trial is already expired and unpaid
             const now = new Date().toISOString();
+            const isDeviceExpired = localStorage.getItem('proenglish_device_trial_expired') === 'true' ||
+                                    localStorage.getItem('proenglish_guest_trial_expired') === 'true';
+            const hasPaid = localStorage.getItem('proenglish_guest_paid_trial_renewal') === 'true';
             const initialCount = 0;
             const initialPro = false;
-            const initialTrialStart = now;
+            // Only grant a fresh 3-day window if this device hasn't already expired its trial without paying
+            const initialTrialStart = (isDeviceExpired && !hasPaid) 
+              ? new Date(Date.now() - (3 * 24 * 60 * 60 * 1000 + 3600000)).toISOString()
+              : now;
 
-            // Overwrite any guest fallbacks on this device
-            localStorage.setItem(getUserStorageKey(user, 'trial_start_date'), now);
-            localStorage.setItem('proenglish_device_trial_start', now);
-            localStorage.setItem('proenglish_guest_trial_start_date', now);
+            localStorage.setItem(getUserStorageKey(user, 'trial_start_date'), initialTrialStart);
+            if (isDeviceExpired && !hasPaid) {
+              localStorage.setItem(getUserStorageKey(user, 'trial_expired'), 'true');
+            }
             localStorage.setItem(getUserStorageKey(user, 'chat_count'), '0');
             localStorage.setItem('proenglish_guest_chat_count', '0');
 
@@ -372,6 +387,16 @@ export default function App() {
     localStorage.setItem(key, 'false');
     if (currentUser) {
       await syncUserProfile(currentUser.uid, { isPro: false });
+    }
+  };
+
+  const handleUpdateDailyGoal = async (minutes: number) => {
+    setDailyGoalMinutes(minutes);
+    localStorage.setItem('proenglish_daily_goal_minutes', minutes.toString());
+    const key = getUserStorageKey(currentUser, 'daily_goal_minutes');
+    localStorage.setItem(key, minutes.toString());
+    if (currentUser) {
+      await syncUserProfile(currentUser.uid, { dailyGoalMinutes: minutes });
     }
   };
 
@@ -597,7 +622,7 @@ export default function App() {
       />
 
       {/* Main Dynamic View Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-2.5 sm:px-6 py-3 sm:py-6">
         {/* 1. Welcoming Fun Landing Page */}
         {activeTab === 'landing' && (
           <FunLandingPage
@@ -614,12 +639,14 @@ export default function App() {
               isPro={isPro}
               user={currentUser}
               userProfile={userProfileObj}
+              savedPhrases={savedPhrases}
               onOpenPaywall={() => navigate('/pricing')}
               onOpenAuth={() => setIsAuthModalOpen(true)}
               onStartLesson={(topic) => {
                 setSelectedHubTopic(topic);
                 setActiveTab('lessons');
               }}
+              onUpdateDailyGoal={handleUpdateDailyGoal}
             />
           ) : (
             <PaywallOverlay

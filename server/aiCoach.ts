@@ -25,10 +25,10 @@ export const GROQ_CANDIDATE_MODELS = [
 
 // Up-to-date Gemini models per Google AI Studio guidance
 export const GEMINI_CANDIDATE_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-3.1-pro-preview',
 ];
 
 export interface LanguageMeta {
@@ -1031,11 +1031,13 @@ Text:
 }
 
 export interface ChatTutorParams {
-  messages: { sender: 'user' | 'tutor'; text: string }[];
+  messages: { sender: 'user' | 'tutor' | 'model'; text: string }[];
   userInput: string;
   nativeLanguage?: string;
   englishLevel?: string;
   coachPersona?: string;
+  taskComplexity?: 'complex' | 'general' | 'fast';
+  customSystemInstruction?: string;
 }
 
 export interface ChatTutorResult {
@@ -1048,6 +1050,7 @@ export interface ChatTutorResult {
     grammarTag?: string;
   };
   suggestions: string[];
+  usedModel?: string;
 }
 
 // Generate dynamic, context-aware non-repeating fallback responses when keys are offline
@@ -1311,11 +1314,13 @@ export async function getChatTutorResponse(params: ChatTutorParams): Promise<Cha
     userInput, 
     nativeLanguage = 'English', 
     englishLevel = 'B1', 
-    coachPersona = 'Elena - Senior Executive English Coach' 
+    coachPersona = 'Elena - Senior Executive English Coach',
+    taskComplexity,
+    customSystemInstruction
   } = params;
   const meta = resolveLanguageMeta(nativeLanguage);
 
-  const systemInstruction = `You are ${coachPersona}, an expert AI English language coach on Pro English Coach, specializing in teaching Basic & Formal Workplace English.
+  const baseSystemInstruction = customSystemInstruction?.trim() || `You are ${coachPersona}, an expert AI English language coach on Pro English Coach, specializing in teaching Basic & Formal Workplace English.
 The learner's current English level is ${englishLevel} (CEFR).
 The learner's native language for translations and explanations is ${meta.regionalVariantName} (${meta.standardName}).
 
@@ -1350,21 +1355,53 @@ Respond strictly in valid JSON matching this schema:
   // 1. Try Gemini candidate models first (Native Google AI Studio models)
   const gemini = getGeminiClient();
   if (gemini) {
-    const conversationContext = messages
-      .slice(-8)
-      .map(m => `${m.sender === 'user' ? 'Learner' : 'Tutor'}: ${m.text}`)
-      .join('\n');
-    const prompt = `Learner's CEFR Level: ${englishLevel}\nLearner's Native Language: ${nativeLanguage}\n\n${conversationContext ? `Recent Dialogue:\n${conversationContext}\n\n` : ''}Learner's Latest Message: "${userInput}"\n\nProvide the next engaging, contextually tailored tutor response, translation, sentence improvement, and 3 smart follow-up suggestions in JSON format.`;
+    // Select model order based on task complexity
+    let prioritizedModels: string[] = [];
+    if (taskComplexity === 'complex') {
+      prioritizedModels = ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3.5-flash'];
+    } else if (taskComplexity === 'fast') {
+      prioritizedModels = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash'];
+    } else if (taskComplexity === 'general') {
+      prioritizedModels = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'];
+    } else {
+      prioritizedModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+    }
 
-    const candidateModels = getActiveCandidateModels();
+    // Filter by active cooldowns if any
+    const activeModels = prioritizedModels.filter(m => {
+      const cooldown = modelCooldowns[m];
+      return !cooldown || Date.now() >= cooldown;
+    });
+    const candidateModels = activeModels.length > 0 ? activeModels : prioritizedModels;
+
+    // Structured multi-turn history formatting for Gemini
+    const contents: any[] = [];
+    const recentMessages = (Array.isArray(messages) ? messages : []).slice(-10);
+    for (const msg of recentMessages) {
+      if (msg.text && msg.text.trim()) {
+        contents.push({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text.trim() }]
+        });
+      }
+    }
+    contents.push({
+      role: 'user',
+      parts: [{
+        text: `${userInput}
+
+(Instruction: Respond directly as the English Coach. Output JSON with "reply", "translation" in ${meta.standardName}, optional "formalCorrection", and "suggestions".)`
+      }]
+    });
+
     for (let i = 0; i < candidateModels.length; i++) {
       const model = candidateModels[i];
       try {
         const response = await gemini.models.generateContent({
           model,
-          contents: prompt,
+          contents,
           config: {
-            systemInstruction,
+            systemInstruction: baseSystemInstruction,
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
@@ -1404,6 +1441,7 @@ Respond strictly in valid JSON matching this schema:
                 'I understand completely. What are our next steps?',
                 'Thank you for the guidance. I will keep that in mind.'
               ],
+              usedModel: model
             };
           }
         }
@@ -1422,7 +1460,7 @@ Respond strictly in valid JSON matching this schema:
   const groq = getGroqClient();
   if (groq) {
     const groqMessages = [
-      { role: 'system' as const, content: systemInstruction },
+      { role: 'system' as const, content: baseSystemInstruction },
       ...messages.slice(-8).map(m => ({
         role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
         content: m.text
@@ -1469,7 +1507,7 @@ Respond strictly in valid JSON matching this schema:
   if (openai) {
     try {
       const openAiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-        { role: 'system', content: systemInstruction },
+        { role: 'system', content: baseSystemInstruction },
         ...messages.slice(-8).map(m => ({
           role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
           content: m.text
